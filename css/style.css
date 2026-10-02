@@ -149,6 +149,17 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .frame-box h3 span { text-transform: none; letter-spacing: 0; color: var(--text); }
 .frame-rule { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .frames { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-essay); font-size: 15px; }
+.fno { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); margin-right: 4px; vertical-align: 2px; }
+.frames { list-style: none; padding-left: 0; }
+.fx { color: var(--accent); font-weight: 700; }
+.opt .sent { display: inline; }
+.pp { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.pp li { line-height: 1.55; }
+.pp .vi { color: var(--muted); font-size: 13px; }
+.pp .arrow { color: var(--accent); font-weight: 700; margin: 0 2px; }
+.pp .alt { font-weight: 500; }
+.pp .note { color: var(--warn); font-size: 12px; }
+.pp-card .pp { max-height: 420px; overflow: auto; }
 .slot { color: var(--accent); font-style: italic; }
 .warn-line { display: block; color: var(--warn); font-size: 13px; }
 .para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }

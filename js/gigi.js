@@ -317,7 +317,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   function promptBlock(ids) {
     const parts = ids.map(id => {
       const o = OUTLINES[id];
-      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map(f => '    • ' + f).join('\n');
+      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map((f, n) => `    F${n + 1}. ` + f).join('\n');
       return `### OUTLINE "${id}": ${o.name}\nUse when: ${o.when}\n${STEP_KEYS.map(sec).join('\n')}\n  RULES:\n${o.rules.map(r => '    - ' + r).join('\n')}` +
         (o.sample ? `\n  MODEL ESSAY (follow this style and paragraph plan):\n${o.sample.split('\n').map(l => '    ' + l).join('\n')}` : '');
     });
@@ -353,5 +353,20 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return out;
   }
 
-  return { OUTLINES, GENERAL, STEP_KEYS, outlineFor, promptBlock, generalBlock, lint };
+  /* Các cụm cố định của khung (phần không nằm trong [..]) để tô màu trong gợi ý */
+  function fixedPhrases(outline, step) {
+    const o = OUTLINES[outline];
+    if (!o) return [];
+    const out = [];
+    for (let f of o[STEP_KEYS[step]].frames) {
+      f = f.replace(/^[^:]{0,40}[À-ỹ][^:]{0,40}:\s*/, '').replace(/\([^)]*[À-ỹ][^)]*\)/g, ' ');
+      for (const chunk of f.split(/\[[^\]]*\]|…|\.\.\.|\(|\)|\/\s*|\+/)) {
+        const c = chunk.replace(/[.,;:"“”]+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (c.split(' ').length >= 2 && !/[À-ỹ]/.test(c)) out.push(c);
+      }
+    }
+    return [...new Set(out)].sort((a, b) => b.length - a.length);
+  }
+
+  return { OUTLINES, GENERAL, STEP_KEYS, outlineFor, promptBlock, generalBlock, lint, fixedPhrases };
 })();

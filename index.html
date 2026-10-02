@@ -161,6 +161,17 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .frame-box h3 span { text-transform: none; letter-spacing: 0; color: var(--text); }
 .frame-rule { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .frames { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-essay); font-size: 15px; }
+.fno { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); margin-right: 4px; vertical-align: 2px; }
+.frames { list-style: none; padding-left: 0; }
+.fx { color: var(--accent); font-weight: 700; }
+.opt .sent { display: inline; }
+.pp { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.pp li { line-height: 1.55; }
+.pp .vi { color: var(--muted); font-size: 13px; }
+.pp .arrow { color: var(--accent); font-weight: 700; margin: 0 2px; }
+.pp .alt { font-weight: 500; }
+.pp .note { color: var(--warn); font-size: 12px; }
+.pp-card .pp { max-height: 420px; overflow: auto; }
 .slot { color: var(--accent); font-style: italic; }
 .warn-line { display: block; color: var(--warn); font-size: 13px; }
 .para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }
@@ -348,6 +359,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             </div>
             <div class="frame-box">
               <h3>📐 Khung dàn ý Ms. Gigi · <span id="frame-name"></span></h3>
+              <p class="frame-rule">Mỗi câu gợi ý bên dưới có nhãn <span class="fno">K1</span> <span class="fno">K2</span>… = viết theo khung số đó; chữ <b class="fx">xanh đậm</b> là chữ giữ nguyên của khung.</p>
               <p class="frame-rule" id="frame-rule"></p>
               <ul class="frames" id="frame-list"></ul>
             </div>
@@ -388,6 +400,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
               <p id="ref-visual-text"></p>
             </details>
           </div>
+          <div class="card pp-card">
+            <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3><button type="button" class="btn sm" id="btn-copy-pp">📋 Sao chép</button></div>
+            <p class="muted small">Từ trong đề → cách viết khác cùng nghĩa (kèm nghĩa tiếng Việt).</p>
+            <div id="pp-side"></div>
+          </div>
           <div class="card mini-essay">
             <div class="row between"><h3>Bài đang viết</h3><span class="small muted" id="mini-count">0 từ</span></div>
             <ol id="mini"></ol>
@@ -411,6 +428,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           </div>
         </div>
         <div class="paper" id="paper"></div>
+      </div>
+      <div class="card">
+        <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3>
+          <div class="row"><button type="button" class="btn sm" id="btn-copy-pp2">📋 Sao chép từ vựng</button><button type="button" class="btn sm primary" id="btn-copy-all">📋 Sao chép bài + từ vựng</button></div></div>
+        <div id="pp-review"></div>
       </div>
     </section>
   </main>
@@ -593,6 +615,34 @@ window.CONTENT = (function () {
       },
     ],
   };
+
+
+  // Gợi ý mẫu: tách câu theo khung (K1, K2…) cho cả 3 gợi ý của từng đoạn
+  const frameMap = [
+    [[1], [1], [1]],
+    [[1, 1], [2, 2], [1]],
+    [[1, 2, 3, 4, 4], [1, 2, 3], [1, 2, 4]],
+    [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 5]],
+  ];
+  demo.steps.forEach((st, i) => {
+    st.parts = st.options.map((o, k) => {
+      const sents = o.split(/(?<=\.)\s+(?=[A-Z])/);
+      const fm = frameMap[i][k] || [];
+      return sents.map((t, n) => ({ f: fm[n] || fm[fm.length - 1] || 1, text: t }));
+    });
+  });
+  demo.paraphrase = [
+    { word: 'show', meaning_vi: 'cho thấy', alternatives: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'depict', meaning_vi: 'mô tả' }, { phrase: 'compare', meaning_vi: 'so sánh', note_vi: 'dùng khi có 2 bản đồ' }] },
+    { word: 'the village', meaning_vi: 'ngôi làng', alternatives: [{ phrase: 'the settlement', meaning_vi: 'khu định cư' }, { phrase: 'the area', meaning_vi: 'khu vực' }, { phrase: 'Stokeford', meaning_vi: 'tên làng', note_vi: 'dùng tên riêng để đỡ lặp' }] },
+    { word: 'in 1930 and 2010', meaning_vi: 'vào năm 1930 và 2010', alternatives: [{ phrase: 'between 1930 and 2010', meaning_vi: 'giữa 1930 và 2010' }, { phrase: 'over the 80-year period', meaning_vi: 'trong 80 năm' }, { phrase: 'over eight decades', meaning_vi: 'trong tám thập kỷ' }] },
+    { word: 'houses', meaning_vi: 'nhà ở', alternatives: [{ phrase: 'housing', meaning_vi: 'nhà ở (danh từ chung)' }, { phrase: 'residential buildings', meaning_vi: 'các toà nhà dân cư' }, { phrase: 'homes', meaning_vi: 'nhà' }] },
+    { word: 'farmland', meaning_vi: 'đất nông nghiệp', alternatives: [{ phrase: 'agricultural land', meaning_vi: 'đất canh tác' }, { phrase: 'farming area', meaning_vi: 'khu trồng trọt' }, { phrase: 'fields', meaning_vi: 'cánh đồng' }] },
+    { word: 'retirement home', meaning_vi: 'viện dưỡng lão', alternatives: [{ phrase: 'care home for the elderly', meaning_vi: 'nhà chăm sóc người già' }, { phrase: 'nursing home', meaning_vi: 'viện dưỡng lão' }] },
+    { word: 'school', meaning_vi: 'trường học', alternatives: [{ phrase: 'educational facility', meaning_vi: 'cơ sở giáo dục' }, { phrase: 'the school building', meaning_vi: 'toà nhà trường' }] },
+    { word: 'post office', meaning_vi: 'bưu điện', alternatives: [{ phrase: 'postal office', meaning_vi: 'bưu cục' }] },
+    { word: 'residential area', meaning_vi: 'khu dân cư', alternatives: [{ phrase: 'housing estate', meaning_vi: 'khu nhà ở' }, { phrase: 'neighbourhood', meaning_vi: 'khu phố' }] },
+    { word: 'main road', meaning_vi: 'đường chính', alternatives: [{ phrase: 'the principal road', meaning_vi: 'con đường chính' }, { phrase: 'the main street', meaning_vi: 'phố chính' }] },
+  ];
 
   return { demo, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips };
 })();
@@ -917,7 +967,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   function promptBlock(ids) {
     const parts = ids.map(id => {
       const o = OUTLINES[id];
-      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map(f => '    • ' + f).join('\n');
+      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map((f, n) => `    F${n + 1}. ` + f).join('\n');
       return `### OUTLINE "${id}": ${o.name}\nUse when: ${o.when}\n${STEP_KEYS.map(sec).join('\n')}\n  RULES:\n${o.rules.map(r => '    - ' + r).join('\n')}` +
         (o.sample ? `\n  MODEL ESSAY (follow this style and paragraph plan):\n${o.sample.split('\n').map(l => '    ' + l).join('\n')}` : '');
     });
@@ -953,7 +1003,22 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return out;
   }
 
-  return { OUTLINES, GENERAL, STEP_KEYS, outlineFor, promptBlock, generalBlock, lint };
+  /* Các cụm cố định của khung (phần không nằm trong [..]) để tô màu trong gợi ý */
+  function fixedPhrases(outline, step) {
+    const o = OUTLINES[outline];
+    if (!o) return [];
+    const out = [];
+    for (let f of o[STEP_KEYS[step]].frames) {
+      f = f.replace(/^[^:]{0,40}[À-ỹ][^:]{0,40}:\s*/, '').replace(/\([^)]*[À-ỹ][^)]*\)/g, ' ');
+      for (const chunk of f.split(/\[[^\]]*\]|…|\.\.\.|\(|\)|\/\s*|\+/)) {
+        const c = chunk.replace(/[.,;:"“”]+/g, ' ').replace(/\s+/g, ' ').trim();
+        if (c.split(' ').length >= 2 && !/[À-ỹ]/.test(c)) out.push(c);
+      }
+    }
+    return [...new Set(out)].sort((a, b) => b.length - a.length);
+  }
+
+  return { OUTLINES, GENERAL, STEP_KEYS, outlineFor, promptBlock, generalBlock, lint, fixedPhrases };
 })();
 </script>
   <script>
@@ -1013,20 +1078,31 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
       "title": "Vietnamese title of what this paragraph does for THIS task",
       "guide_vi": "Vietnamese guidance (2-4 sentences): which Ms. Gigi frame to use, which data to pick and in what order, traps",
       "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
-      "options": [ "full paragraph option 1", "option 2", "option 3" ]              // 3 alternative paragraphs
+      "options": [   // exactly 3 alternative paragraphs; each is the list of its sentences in order
+        [ { "f": 1, "text": "sentence written from frame F1" }, { "f": 2, "text": "sentence written from frame F2" } ],
+        [ ... ], [ ... ]
+      ]
     }
+  ],
+  "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
+    { "word": "commuters", "meaning_vi": "người đi làm hằng ngày",
+      "alternatives": [ { "phrase": "people travelling to work", "meaning_vi": "người di chuyển đi làm" }, { "phrase": "car users", "meaning_vi": "người dùng ô tô", "note_vi": "chỉ dùng khi nói riêng nhóm đi ô tô" } ] }
   ]
 }`;
 
   const RULES = `You are an IELTS Writing Task 1 examiner helping a Vietnamese teacher, Ms. Gigi, whose students must write EXACTLY in her outline.
-1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs following that outline's frames, paragraph plan and rules.
-   Option 1 of every paragraph must follow her frames almost word for word (only fill the brackets with the task's real content).
-   Options 2 and 3 keep the same paragraph plan but use her other listed structures (Band 7+ upgrades, comparison levels, synonyms) for variety.
+1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs with that outline.
+   Students compare each suggestion with the outline, so EVERY option (all 3) must be written sentence by sentence from the numbered frames (F1, F2, ...) of that paragraph, in the frames' order:
+   - keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers;
+   - tag every sentence with the number of the frame it comes from ("f"); a frame may be reused for more data, a frame may be skipped if the task has no such data, but do not add sentences that follow no frame;
+   - the 3 options differ only in which "/" alternatives, which synonyms from her lists, and which data are used — not in structure.
+   - frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
 3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
 5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
-6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, name the frame you used (e.g. "Dùng khung: In [năm đầu], the percentage of …").`;
+6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, explain which data goes into which frame (e.g. "F1: năm đầu 2000 — car 60%…").
+7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -1080,7 +1156,8 @@ Write 3 NEW options for the ${NAMES[stepIndex]} paragraph, following the same Ms
 Do not reuse these earlier options:
 - ${old}
 
-Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
+Every option must be written sentence by sentence from the numbered frames of this paragraph, keeping the frames' fixed words exactly.
+Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ... ], [ ... ], [ ... ] ] }`;
   }
 
   /* ---------- Backends ---------- */
@@ -1166,13 +1243,33 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     return parseJson(block.text);
   }
 
+  // Một gợi ý: chuỗi, hoặc danh sách câu [{f, text}] → { text, parts }
+  function normOption(o) {
+    if (typeof o === 'string') return { text: o.trim(), parts: null };
+    if (Array.isArray(o)) {
+      const parts = o.map(x => (typeof x === 'string' ? { f: 0, text: x } : { f: +x.f || 0, text: String(x.text || '') }))
+        .map(x => ({ f: x.f, text: x.text.trim() })).filter(x => x.text);
+      return { text: parts.map(x => x.text).join(' '), parts };
+    }
+    if (o && o.text) return { text: String(o.text), parts: null };
+    return { text: '', parts: null };
+  }
+  function normParaphrase(list) {
+    return (Array.isArray(list) ? list : []).filter(x => x && x.word).map(x => ({
+      word: String(x.word), meaning_vi: String(x.meaning_vi || ''),
+      alternatives: (Array.isArray(x.alternatives) ? x.alternatives : []).filter(a => a && a.phrase)
+        .map(a => ({ phrase: String(a.phrase), meaning_vi: String(a.meaning_vi || ''), note_vi: String(a.note_vi || '') })),
+    }));
+  }
+
   function validate(r) {
     if (!r || !Array.isArray(r.steps) || r.steps.length < 4) throw new Error('AI trả về dữ liệu không đầy đủ. Bấm thử lại.');
     r.steps = r.steps.slice(0, 4).map(s => ({
       title: String(s.title || ''), guide_vi: String(s.guide_vi || ''),
       vocab: Array.isArray(s.vocab) ? s.vocab.filter(v => v && v.phrase) : [],
-      options: Array.isArray(s.options) ? s.options.map(String).filter(Boolean) : [],
+      ...(() => { const n = (Array.isArray(s.options) ? s.options : []).map(normOption).filter(o => o.text); return { options: n.map(o => o.text), parts: n.map(o => o.parts) }; })(),
     }));
+    r.paraphrase = normParaphrase(r.paraphrase);
     return r;
   }
 
@@ -1243,8 +1340,9 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   }
   async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
     const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
-    if (!r || !Array.isArray(r.options) || !r.options.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
-    return r.options.map(String);
+    const n = (r && Array.isArray(r.options) ? r.options : []).map(normOption).filter(o => o.text);
+    if (!n.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
+    return n;
   }
 
   return { readImage, ocr, analyze, regenerate, available, getKey, setKey };
@@ -1370,15 +1468,17 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   }
 
   /* ---------- Wizard ---------- */
-  // Tô đậm từ vựng riêng của đề trong các gợi ý
-  function hl(text, vocab) {
-    let out = esc(text);
-    const terms = (vocab || []).map(v => String(v.phrase || '').split('/')).flat()
-      .map(t => t.replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(t => t.length > 2)
-      .sort((a, b) => b.length - a.length);
+  // Tô màu trong gợi ý: chữ cố định của khung Ms. Gigi (đậm xanh) + từ vựng của đề (nền vàng)
+  const reEsc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function hl(text, vocab, fixed) {
+    const out = esc(text);
+    const fx = (fixed || []).map(t => t.toLowerCase());
+    const vterms = (vocab || []).map(v => String(v.phrase || '').split('/')).flat()
+      .map(t => t.replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(t => t.length > 2);
+    const terms = [...new Set((fixed || []).concat(vterms))].sort((x, y) => y.length - x.length);
     if (!terms.length) return out;
-    const re = new RegExp('\\b(' + terms.map(t => esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi');
-    return out.replace(re, '<mark>$1</mark>');
+    const re = new RegExp('\\b(' + terms.map(t => reEsc(esc(t))).join('|') + ')\\b', 'gi');
+    return out.replace(re, m => fx.includes(m.toLowerCase()) ? `<b class="fx">${m}</b>` : `<mark>${m}</mark>`);
   }
 
   const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
@@ -1388,7 +1488,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     const sec = o[G.STEP_KEYS[i]];
     $('#frame-name').textContent = o.name;
     $('#frame-rule').textContent = sec.rule;
-    $('#frame-list').innerHTML = sec.frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
+    $('#frame-list').innerHTML = sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
   }
 
   function renderStep() {
@@ -1402,10 +1502,15 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     $('#step-guide').textContent = st.guide_vi;
     renderFrame(i);
     $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
+    const fixed = G.fixedPhrases(outlineOf(a), i);
     $('#options').innerHTML = st.options.map((o, k) => {
       const on = S.paras[i] === o;
+      const parts = st.parts && st.parts[k];
+      const body = parts && parts.length
+        ? parts.map(p => `<span class="sent">${p.f ? `<span class="fno">K${p.f}</span>` : ''}${hl(p.text, st.vocab, fixed)}</span>`).join(' ')
+        : hl(o, st.vocab, fixed);
       return `<button type="button" class="opt" role="radio" aria-checked="${on}" data-opt="${k}"><span class="dot" aria-hidden="true"></span>
-        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${hl(o, st.vocab)}</span></span></button>`;
+        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${body}</span></span></button>`;
     }).join('');
     $('#para').value = S.paras[i];
     updateCount();
@@ -1433,6 +1538,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
       $('#ref-visual-title').textContent = S.visual.source === 'ocr' ? 'Chữ đọc được từ ảnh (OCR)' : 'AI đọc được từ ảnh';
       $('#ref-visual-text').textContent = S.visual.text;
     } else vis.hidden = true;
+    renderParaphrase();
     if (S.image) { $('#ref-img').src = S.image.dataUrl; $('#ref-img-btn').hidden = false; } else $('#ref-img-btn').hidden = true;
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#mini-count').textContent = `${total} / 150 từ`;
@@ -1457,7 +1563,10 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
     try {
       const opts = await AI.regenerate({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
-      S.analysis.steps[S.step].options = opts.concat(S.analysis.steps[S.step].options.filter(o => o === S.paras[S.step]));
+      const st = S.analysis.steps[S.step];
+      const keep = st.options.map((o, k) => [o, st.parts && st.parts[k]]).filter(([o]) => o === S.paras[S.step]);
+      st.options = opts.map(o => o.text).concat(keep.map(x => x[0]));
+      st.parts = opts.map(o => o.parts).concat(keep.map(x => x[1] || null));
       save(); renderStep();
       toast('Đã có 3 gợi ý mới.');
     } catch (e) {
@@ -1467,8 +1576,33 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     }
   }
 
+  /* ---------- Paraphrase theo đề ---------- */
+  function paraphraseHtml(list) {
+    if (!list || !list.length) return '<p class="muted small">Chưa có — bấm “AI đọc đề & tạo gợi ý” để AI soạn từ paraphrase cho đề này.</p>';
+    return `<ul class="pp">${list.map(x => `<li><b>${esc(x.word)}</b>${x.meaning_vi ? ` <span class="vi">(${esc(x.meaning_vi)})</span>` : ''}
+      <span class="arrow">→</span> ${x.alternatives.map(a => `<span class="alt">${esc(a.phrase)}${a.meaning_vi ? ` <span class="vi">(${esc(a.meaning_vi)})</span>` : ''}${a.note_vi ? ` <span class="note">— ${esc(a.note_vi)}</span>` : ''}</span>`).join('<span class="sep">; </span>')}</li>`).join('')}</ul>`;
+  }
+  function paraphraseText(a) {
+    const list = (a && a.paraphrase) || [];
+    const head = `TỪ PARAPHRASE CHO ĐỀ${a && a.subject ? ': ' + a.subject : ''}`;
+    return head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
+      x.alternatives.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '') + (v.note_vi ? ' – ' + v.note_vi : '')).join('; ')).join('\n');
+  }
+  function renderParaphrase() {
+    const a = S.analysis || {};
+    for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = paraphraseHtml(a.paraphrase); }
+  }
+  async function copyText(txt, okMsg, fallbackEl) {
+    try { await navigator.clipboard.writeText(txt); toast(okMsg); }
+    catch (err) {
+      if (fallbackEl) { const r = document.createRange(); r.selectNodeContents(fallbackEl); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+      toast('Đã bôi đen nội dung — nhấn Ctrl+C để sao chép.');
+    }
+  }
+
   /* ---------- Review ---------- */
   function renderReview() {
+    renderParaphrase();
     const a = S.analysis || {};
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#review-meta').textContent = `Dàn ý Ms. Gigi: ${G.OUTLINES[outlineOf(a)].short}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
@@ -1579,6 +1713,18 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
         if (S.view === 'loading') return;
         const keep = { band: S.band, type: S.type };
         S = Object.assign(blank(), keep); save(); show('setup'); $('#prompt').focus(); return;
+      }
+      case 'btn-copy-pp': case 'btn-copy-pp2': {
+        const a = S.analysis;
+        if (!a || !a.paraphrase || !a.paraphrase.length) { toast('Chưa có từ paraphrase để sao chép.'); return; }
+        copyText(paraphraseText(a), 'Đã sao chép từ paraphrase — dán gửi học sinh.', t.id === 'btn-copy-pp' ? $('#pp-side') : $('#pp-review'));
+        return;
+      }
+      case 'btn-copy-all': {
+        const txt = essayText();
+        if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }
+        copyText(txt + '\n\n' + paraphraseText(S.analysis), 'Đã sao chép bài viết + từ paraphrase.', $('#paper'));
+        return;
       }
       case 'btn-copy': {
         const txt = essayText();

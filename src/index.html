@@ -105,6 +105,7 @@
             </div>
             <div class="frame-box">
               <h3>📐 Khung dàn ý Ms. Gigi · <span id="frame-name"></span></h3>
+              <p class="frame-rule">Mỗi câu gợi ý bên dưới có nhãn <span class="fno">K1</span> <span class="fno">K2</span>… = viết theo khung số đó; chữ <b class="fx">xanh đậm</b> là chữ giữ nguyên của khung.</p>
               <p class="frame-rule" id="frame-rule"></p>
               <ul class="frames" id="frame-list"></ul>
             </div>
@@ -145,6 +146,11 @@
               <p id="ref-visual-text"></p>
             </details>
           </div>
+          <div class="card pp-card">
+            <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3><button type="button" class="btn sm" id="btn-copy-pp">📋 Sao chép</button></div>
+            <p class="muted small">Từ trong đề → cách viết khác cùng nghĩa (kèm nghĩa tiếng Việt).</p>
+            <div id="pp-side"></div>
+          </div>
           <div class="card mini-essay">
             <div class="row between"><h3>Bài đang viết</h3><span class="small muted" id="mini-count">0 từ</span></div>
             <ol id="mini"></ol>
@@ -168,6 +174,11 @@
           </div>
         </div>
         <div class="paper" id="paper"></div>
+      </div>
+      <div class="card">
+        <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3>
+          <div class="row"><button type="button" class="btn sm" id="btn-copy-pp2">📋 Sao chép từ vựng</button><button type="button" class="btn sm primary" id="btn-copy-all">📋 Sao chép bài + từ vựng</button></div></div>
+        <div id="pp-review"></div>
       </div>
     </section>
   </main>

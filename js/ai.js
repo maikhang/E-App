@@ -54,20 +54,31 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
       "title": "Vietnamese title of what this paragraph does for THIS task",
       "guide_vi": "Vietnamese guidance (2-4 sentences): which Ms. Gigi frame to use, which data to pick and in what order, traps",
       "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
-      "options": [ "full paragraph option 1", "option 2", "option 3" ]              // 3 alternative paragraphs
+      "options": [   // exactly 3 alternative paragraphs; each is the list of its sentences in order
+        [ { "f": 1, "text": "sentence written from frame F1" }, { "f": 2, "text": "sentence written from frame F2" } ],
+        [ ... ], [ ... ]
+      ]
     }
+  ],
+  "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
+    { "word": "commuters", "meaning_vi": "người đi làm hằng ngày",
+      "alternatives": [ { "phrase": "people travelling to work", "meaning_vi": "người di chuyển đi làm" }, { "phrase": "car users", "meaning_vi": "người dùng ô tô", "note_vi": "chỉ dùng khi nói riêng nhóm đi ô tô" } ] }
   ]
 }`;
 
   const RULES = `You are an IELTS Writing Task 1 examiner helping a Vietnamese teacher, Ms. Gigi, whose students must write EXACTLY in her outline.
-1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs following that outline's frames, paragraph plan and rules.
-   Option 1 of every paragraph must follow her frames almost word for word (only fill the brackets with the task's real content).
-   Options 2 and 3 keep the same paragraph plan but use her other listed structures (Band 7+ upgrades, comparison levels, synonyms) for variety.
+1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs with that outline.
+   Students compare each suggestion with the outline, so EVERY option (all 3) must be written sentence by sentence from the numbered frames (F1, F2, ...) of that paragraph, in the frames' order:
+   - keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers;
+   - tag every sentence with the number of the frame it comes from ("f"); a frame may be reused for more data, a frame may be skipped if the task has no such data, but do not add sentences that follow no frame;
+   - the 3 options differ only in which "/" alternatives, which synonyms from her lists, and which data are used — not in structure.
+   - frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
 3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
 5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
-6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, name the frame you used (e.g. "Dùng khung: In [năm đầu], the percentage of …").`;
+6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, explain which data goes into which frame (e.g. "F1: năm đầu 2000 — car 60%…").
+7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -121,7 +132,8 @@ Write 3 NEW options for the ${NAMES[stepIndex]} paragraph, following the same Ms
 Do not reuse these earlier options:
 - ${old}
 
-Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
+Every option must be written sentence by sentence from the numbered frames of this paragraph, keeping the frames' fixed words exactly.
+Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ... ], [ ... ], [ ... ] ] }`;
   }
 
   /* ---------- Backends ---------- */
@@ -207,13 +219,33 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     return parseJson(block.text);
   }
 
+  // Một gợi ý: chuỗi, hoặc danh sách câu [{f, text}] → { text, parts }
+  function normOption(o) {
+    if (typeof o === 'string') return { text: o.trim(), parts: null };
+    if (Array.isArray(o)) {
+      const parts = o.map(x => (typeof x === 'string' ? { f: 0, text: x } : { f: +x.f || 0, text: String(x.text || '') }))
+        .map(x => ({ f: x.f, text: x.text.trim() })).filter(x => x.text);
+      return { text: parts.map(x => x.text).join(' '), parts };
+    }
+    if (o && o.text) return { text: String(o.text), parts: null };
+    return { text: '', parts: null };
+  }
+  function normParaphrase(list) {
+    return (Array.isArray(list) ? list : []).filter(x => x && x.word).map(x => ({
+      word: String(x.word), meaning_vi: String(x.meaning_vi || ''),
+      alternatives: (Array.isArray(x.alternatives) ? x.alternatives : []).filter(a => a && a.phrase)
+        .map(a => ({ phrase: String(a.phrase), meaning_vi: String(a.meaning_vi || ''), note_vi: String(a.note_vi || '') })),
+    }));
+  }
+
   function validate(r) {
     if (!r || !Array.isArray(r.steps) || r.steps.length < 4) throw new Error('AI trả về dữ liệu không đầy đủ. Bấm thử lại.');
     r.steps = r.steps.slice(0, 4).map(s => ({
       title: String(s.title || ''), guide_vi: String(s.guide_vi || ''),
       vocab: Array.isArray(s.vocab) ? s.vocab.filter(v => v && v.phrase) : [],
-      options: Array.isArray(s.options) ? s.options.map(String).filter(Boolean) : [],
+      ...(() => { const n = (Array.isArray(s.options) ? s.options : []).map(normOption).filter(o => o.text); return { options: n.map(o => o.text), parts: n.map(o => o.parts) }; })(),
     }));
+    r.paraphrase = normParaphrase(r.paraphrase);
     return r;
   }
 
@@ -284,8 +316,9 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   }
   async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
     const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
-    if (!r || !Array.isArray(r.options) || !r.options.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
-    return r.options.map(String);
+    const n = (r && Array.isArray(r.options) ? r.options : []).map(normOption).filter(o => o.text);
+    if (!n.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
+    return n;
   }
 
   return { readImage, ocr, analyze, regenerate, available, getKey, setKey };

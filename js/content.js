@@ -145,5 +145,33 @@ window.CONTENT = (function () {
     ],
   };
 
+
+  // Gợi ý mẫu: tách câu theo khung (K1, K2…) cho cả 3 gợi ý của từng đoạn
+  const frameMap = [
+    [[1], [1], [1]],
+    [[1, 1], [2, 2], [1]],
+    [[1, 2, 3, 4, 4], [1, 2, 3], [1, 2, 4]],
+    [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 5]],
+  ];
+  demo.steps.forEach((st, i) => {
+    st.parts = st.options.map((o, k) => {
+      const sents = o.split(/(?<=\.)\s+(?=[A-Z])/);
+      const fm = frameMap[i][k] || [];
+      return sents.map((t, n) => ({ f: fm[n] || fm[fm.length - 1] || 1, text: t }));
+    });
+  });
+  demo.paraphrase = [
+    { word: 'show', meaning_vi: 'cho thấy', alternatives: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'depict', meaning_vi: 'mô tả' }, { phrase: 'compare', meaning_vi: 'so sánh', note_vi: 'dùng khi có 2 bản đồ' }] },
+    { word: 'the village', meaning_vi: 'ngôi làng', alternatives: [{ phrase: 'the settlement', meaning_vi: 'khu định cư' }, { phrase: 'the area', meaning_vi: 'khu vực' }, { phrase: 'Stokeford', meaning_vi: 'tên làng', note_vi: 'dùng tên riêng để đỡ lặp' }] },
+    { word: 'in 1930 and 2010', meaning_vi: 'vào năm 1930 và 2010', alternatives: [{ phrase: 'between 1930 and 2010', meaning_vi: 'giữa 1930 và 2010' }, { phrase: 'over the 80-year period', meaning_vi: 'trong 80 năm' }, { phrase: 'over eight decades', meaning_vi: 'trong tám thập kỷ' }] },
+    { word: 'houses', meaning_vi: 'nhà ở', alternatives: [{ phrase: 'housing', meaning_vi: 'nhà ở (danh từ chung)' }, { phrase: 'residential buildings', meaning_vi: 'các toà nhà dân cư' }, { phrase: 'homes', meaning_vi: 'nhà' }] },
+    { word: 'farmland', meaning_vi: 'đất nông nghiệp', alternatives: [{ phrase: 'agricultural land', meaning_vi: 'đất canh tác' }, { phrase: 'farming area', meaning_vi: 'khu trồng trọt' }, { phrase: 'fields', meaning_vi: 'cánh đồng' }] },
+    { word: 'retirement home', meaning_vi: 'viện dưỡng lão', alternatives: [{ phrase: 'care home for the elderly', meaning_vi: 'nhà chăm sóc người già' }, { phrase: 'nursing home', meaning_vi: 'viện dưỡng lão' }] },
+    { word: 'school', meaning_vi: 'trường học', alternatives: [{ phrase: 'educational facility', meaning_vi: 'cơ sở giáo dục' }, { phrase: 'the school building', meaning_vi: 'toà nhà trường' }] },
+    { word: 'post office', meaning_vi: 'bưu điện', alternatives: [{ phrase: 'postal office', meaning_vi: 'bưu cục' }] },
+    { word: 'residential area', meaning_vi: 'khu dân cư', alternatives: [{ phrase: 'housing estate', meaning_vi: 'khu nhà ở' }, { phrase: 'neighbourhood', meaning_vi: 'khu phố' }] },
+    { word: 'main road', meaning_vi: 'đường chính', alternatives: [{ phrase: 'the principal road', meaning_vi: 'con đường chính' }, { phrase: 'the main street', meaning_vi: 'phố chính' }] },
+  ];
+
   return { demo, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips };
 })();

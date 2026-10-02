@@ -117,15 +117,17 @@
   }
 
   /* ---------- Wizard ---------- */
-  // Tô đậm từ vựng riêng của đề trong các gợi ý
-  function hl(text, vocab) {
-    let out = esc(text);
-    const terms = (vocab || []).map(v => String(v.phrase || '').split('/')).flat()
-      .map(t => t.replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(t => t.length > 2)
-      .sort((a, b) => b.length - a.length);
+  // Tô màu trong gợi ý: chữ cố định của khung Ms. Gigi (đậm xanh) + từ vựng của đề (nền vàng)
+  const reEsc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  function hl(text, vocab, fixed) {
+    const out = esc(text);
+    const fx = (fixed || []).map(t => t.toLowerCase());
+    const vterms = (vocab || []).map(v => String(v.phrase || '').split('/')).flat()
+      .map(t => t.replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(t => t.length > 2);
+    const terms = [...new Set((fixed || []).concat(vterms))].sort((x, y) => y.length - x.length);
     if (!terms.length) return out;
-    const re = new RegExp('\\b(' + terms.map(t => esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi');
-    return out.replace(re, '<mark>$1</mark>');
+    const re = new RegExp('\\b(' + terms.map(t => reEsc(esc(t))).join('|') + ')\\b', 'gi');
+    return out.replace(re, m => fx.includes(m.toLowerCase()) ? `<b class="fx">${m}</b>` : `<mark>${m}</mark>`);
   }
 
   const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
@@ -135,7 +137,7 @@
     const sec = o[G.STEP_KEYS[i]];
     $('#frame-name').textContent = o.name;
     $('#frame-rule').textContent = sec.rule;
-    $('#frame-list').innerHTML = sec.frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
+    $('#frame-list').innerHTML = sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
   }
 
   function renderStep() {
@@ -149,10 +151,15 @@
     $('#step-guide').textContent = st.guide_vi;
     renderFrame(i);
     $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
+    const fixed = G.fixedPhrases(outlineOf(a), i);
     $('#options').innerHTML = st.options.map((o, k) => {
       const on = S.paras[i] === o;
+      const parts = st.parts && st.parts[k];
+      const body = parts && parts.length
+        ? parts.map(p => `<span class="sent">${p.f ? `<span class="fno">K${p.f}</span>` : ''}${hl(p.text, st.vocab, fixed)}</span>`).join(' ')
+        : hl(o, st.vocab, fixed);
       return `<button type="button" class="opt" role="radio" aria-checked="${on}" data-opt="${k}"><span class="dot" aria-hidden="true"></span>
-        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${hl(o, st.vocab)}</span></span></button>`;
+        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${body}</span></span></button>`;
     }).join('');
     $('#para').value = S.paras[i];
     updateCount();
@@ -180,6 +187,7 @@
       $('#ref-visual-title').textContent = S.visual.source === 'ocr' ? 'Chữ đọc được từ ảnh (OCR)' : 'AI đọc được từ ảnh';
       $('#ref-visual-text').textContent = S.visual.text;
     } else vis.hidden = true;
+    renderParaphrase();
     if (S.image) { $('#ref-img').src = S.image.dataUrl; $('#ref-img-btn').hidden = false; } else $('#ref-img-btn').hidden = true;
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#mini-count').textContent = `${total} / 150 từ`;
@@ -204,7 +212,10 @@
     note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
     try {
       const opts = await AI.regenerate({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
-      S.analysis.steps[S.step].options = opts.concat(S.analysis.steps[S.step].options.filter(o => o === S.paras[S.step]));
+      const st = S.analysis.steps[S.step];
+      const keep = st.options.map((o, k) => [o, st.parts && st.parts[k]]).filter(([o]) => o === S.paras[S.step]);
+      st.options = opts.map(o => o.text).concat(keep.map(x => x[0]));
+      st.parts = opts.map(o => o.parts).concat(keep.map(x => x[1] || null));
       save(); renderStep();
       toast('Đã có 3 gợi ý mới.');
     } catch (e) {
@@ -214,8 +225,33 @@
     }
   }
 
+  /* ---------- Paraphrase theo đề ---------- */
+  function paraphraseHtml(list) {
+    if (!list || !list.length) return '<p class="muted small">Chưa có — bấm “AI đọc đề & tạo gợi ý” để AI soạn từ paraphrase cho đề này.</p>';
+    return `<ul class="pp">${list.map(x => `<li><b>${esc(x.word)}</b>${x.meaning_vi ? ` <span class="vi">(${esc(x.meaning_vi)})</span>` : ''}
+      <span class="arrow">→</span> ${x.alternatives.map(a => `<span class="alt">${esc(a.phrase)}${a.meaning_vi ? ` <span class="vi">(${esc(a.meaning_vi)})</span>` : ''}${a.note_vi ? ` <span class="note">— ${esc(a.note_vi)}</span>` : ''}</span>`).join('<span class="sep">; </span>')}</li>`).join('')}</ul>`;
+  }
+  function paraphraseText(a) {
+    const list = (a && a.paraphrase) || [];
+    const head = `TỪ PARAPHRASE CHO ĐỀ${a && a.subject ? ': ' + a.subject : ''}`;
+    return head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
+      x.alternatives.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '') + (v.note_vi ? ' – ' + v.note_vi : '')).join('; ')).join('\n');
+  }
+  function renderParaphrase() {
+    const a = S.analysis || {};
+    for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = paraphraseHtml(a.paraphrase); }
+  }
+  async function copyText(txt, okMsg, fallbackEl) {
+    try { await navigator.clipboard.writeText(txt); toast(okMsg); }
+    catch (err) {
+      if (fallbackEl) { const r = document.createRange(); r.selectNodeContents(fallbackEl); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+      toast('Đã bôi đen nội dung — nhấn Ctrl+C để sao chép.');
+    }
+  }
+
   /* ---------- Review ---------- */
   function renderReview() {
+    renderParaphrase();
     const a = S.analysis || {};
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#review-meta').textContent = `Dàn ý Ms. Gigi: ${G.OUTLINES[outlineOf(a)].short}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
@@ -326,6 +362,18 @@
         if (S.view === 'loading') return;
         const keep = { band: S.band, type: S.type };
         S = Object.assign(blank(), keep); save(); show('setup'); $('#prompt').focus(); return;
+      }
+      case 'btn-copy-pp': case 'btn-copy-pp2': {
+        const a = S.analysis;
+        if (!a || !a.paraphrase || !a.paraphrase.length) { toast('Chưa có từ paraphrase để sao chép.'); return; }
+        copyText(paraphraseText(a), 'Đã sao chép từ paraphrase — dán gửi học sinh.', t.id === 'btn-copy-pp' ? $('#pp-side') : $('#pp-review'));
+        return;
+      }
+      case 'btn-copy-all': {
+        const txt = essayText();
+        if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }
+        copyText(txt + '\n\n' + paraphraseText(S.analysis), 'Đã sao chép bài viết + từ paraphrase.', $('#paper'));
+        return;
       }
       case 'btn-copy': {
         const txt = essayText();
