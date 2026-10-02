@@ -13,6 +13,7 @@ Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) →
 “Xem bài mẫu” mở một bài Maps có sẵn (đề minh hoạ) để xem app hoạt động mà không cần AI.
 
 ## AI
+- Dán ảnh đề (không cần gõ chữ) vẫn dùng được AI: bước 1 AI đọc ảnh thành chữ (câu đề + toàn bộ số liệu/nội dung hình, hiện ở mục “AI đọc được từ ảnh” để kiểm tra), bước 2 tạo gợi ý. Nếu chế độ xem không gửi được ảnh, app tự đọc chữ trong ảnh bằng OCR (Tesseract.js đóng gói trong `vendor/tesseract`).
 - Mở trong claude.ai: dùng tài khoản Claude của người xem, không cần API key.
 - Mở file `index.html` riêng: cần Anthropic API key (⚙️), chỉ lưu trong trình duyệt.
 

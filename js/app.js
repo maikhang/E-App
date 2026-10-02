@@ -9,7 +9,7 @@
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
   }
   let S = load();
   function load() {
@@ -50,7 +50,7 @@
     renderImage();
     const note = $('#setup-note');
     note.classList.remove('err');
-    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
+    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Chỉ dán ảnh đề cũng được: AI đọc ảnh rồi tạo gợi ý. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
     else note.innerHTML = AI.getKey() ? 'Đang dùng Anthropic API key đã lưu (⚙️ để đổi).' : 'Mở ngoài claude.ai: cần Anthropic API key để dùng AI — bấm ⚙️ ở góc trên. Không có key vẫn bấm được “Xem bài mẫu”.';
   }
   function renderImage() {
@@ -64,25 +64,46 @@
   async function analyze() {
     S.prompt = $('#prompt').value.trim();
     if (!S.prompt && !S.image) { showSetupError('Hãy dán đề bài hoặc ảnh đề trước khi bấm.'); return; }
+    AVAIL = await AI.available();   // chờ kết nối Claude xong rồi mới quyết định
+    if (AVAIL.via === 'claude') $('#btn-key').hidden = true;
     if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
-    if (S.image && AVAIL.via === 'claude' && !AVAIL.images) {
-      if (!S.prompt) { showSetupError('Chế độ xem này không gửi được ảnh. Hãy gõ đề vào ô văn bản.'); return; }
-    }
     show('loading');
     const t0 = Date.now();
+    const stage = txt => { $('#loading-stage').textContent = txt; };
     $('#elapsed').textContent = '0 giây';
     tick = setInterval(() => { $('#elapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' giây'; }, 1000);
     ctl = new AbortController();
     try {
-      const image = S.image && (AVAIL.via !== 'claude' || AVAIL.images) ? S.image : null;
-      const r = await AI.analyze({ text: S.prompt, type: S.type, band: S.band, image, signal: ctl.signal });
+      // Bước 1: ảnh → chữ. Luôn thử gửi ảnh cho AI; nếu chế độ xem không gửi được ảnh thì OCR trong trình duyệt.
+      S.visual = null;
+      let detected = '';
+      if (S.image) {
+        try {
+          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
+          const r = await AI.readImage({ image: S.image, signal: ctl.signal });
+          S.visual = r.visual; detected = r.task_type;
+          if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
+        } catch (e) {
+          if (e.code === 'cancelled') throw e;
+          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
+          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
+          try {
+            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
+          } catch (oe) {
+            if (!S.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.');
+          }
+        }
+      }
+      stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
+      const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
+      const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, signal: ctl.signal });
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
       toast(`AI nhận dạng: ${TYPE_VI[r.task_type] || r.task_type} — ${r.subject || ''}`, 3500);
     } catch (e) {
       show('setup');
-      if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.'));
+      if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
     } finally {
       clearInterval(tick); ctl = null;
     }
@@ -142,6 +163,12 @@
     const a = S.analysis;
     $('#ref-topic').textContent = `${TYPE_VI[a.task_type] || ''}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
     $('#ref-text').textContent = S.prompt || a.prompt_text || '';
+    const vis = $('#ref-visual');
+    if (S.visual && S.visual.text) {
+      vis.hidden = false;
+      $('#ref-visual-title').textContent = S.visual.source === 'ocr' ? 'Chữ đọc được từ ảnh (OCR)' : 'AI đọc được từ ảnh';
+      $('#ref-visual-text').textContent = S.visual.text;
+    } else vis.hidden = true;
     if (S.image) { $('#ref-img').src = S.image.dataUrl; $('#ref-img-btn').hidden = false; } else $('#ref-img-btn').hidden = true;
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#mini-count').textContent = `${total} / 150 từ`;
@@ -158,14 +185,14 @@
   }
 
   async function regen(btn) {
+    AVAIL = await AI.available();
     if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
     S.paras[S.step] = $('#para').value.trim();
     const note = $('#regen-note');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang viết gợi ý mới…';
     note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
     try {
-      const image = S.image && (AVAIL.via !== 'claude' || AVAIL.images) ? S.image : null;
-      const opts = await AI.regenerate({ text: S.prompt, band: S.band, image, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
+      const opts = await AI.regenerate({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
       S.analysis.steps[S.step].options = opts.concat(S.analysis.steps[S.step].options.filter(o => o === S.paras[S.step]));
       save(); renderStep();
       toast('Đã có 3 gợi ý mới.');
@@ -215,7 +242,7 @@
   function takeFile(file) {
     if (!file || !/^image\//.test(file.type)) return;
     const reader = new FileReader();
-    reader.onload = () => downscale(reader.result, file.type).then(img => { S.image = img; save(); renderImage(); toast('Đã nhận ảnh đề bài.'); });
+    reader.onload = () => downscale(reader.result, file.type).then(img => { S.image = img; S.visual = null; save(); renderImage(); toast('Đã nhận ảnh đề bài — bấm “AI đọc đề & tạo gợi ý”.'); });
     reader.readAsDataURL(file);
   }
   // Thu nhỏ ảnh (cạnh dài ≤ 1600px) để gửi AI nhanh hơn và lưu được
@@ -254,7 +281,7 @@
     }
     switch (t.id) {
       case 'dropzone': $('#file').click(); return;
-      case 'img-clear': S.image = null; save(); renderImage(); return;
+      case 'img-clear': S.image = null; S.visual = null; save(); renderImage(); return;
       case 'btn-analyze': analyze(); return;
       case 'btn-demo': loadDemo(); return;
       case 'btn-stop': if (ctl) ctl.abort(); return;

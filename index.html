@@ -137,6 +137,10 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 
 /* Loading */
 .loading { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 48px 22px; }
+.stage { font-weight: 600; max-width: 520px; }
+.ref-visual { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 13px; }
+.ref-visual summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+.ref-visual p { margin-top: 6px; white-space: pre-wrap; color: var(--muted); max-height: 260px; overflow: auto; }
 .elapsed { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; }
 .spinner.big { width: 44px; height: 44px; border-width: 4px; color: var(--accent); }
@@ -306,7 +310,8 @@ td:first-child { font-weight: 600; white-space: nowrap; }
       <div class="card loading">
         <div class="spinner big" aria-hidden="true"></div>
         <h2>AI đang đọc đề của bạn…</h2>
-        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–90 giây.</p>
+        <p class="stage" id="loading-stage">Đang chuẩn bị…</p>
+        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–120 giây.</p>
         <p class="elapsed" id="elapsed">0 giây</p>
         <button type="button" class="btn" id="btn-stop">Dừng</button>
       </div>
@@ -360,6 +365,10 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             <p class="topic" id="ref-topic"></p>
             <button type="button" class="ref-img" id="ref-img-btn" hidden><img id="ref-img" alt="Ảnh đề bài gốc"><span>🔍 Phóng to</span></button>
             <p class="ref-text" id="ref-text"></p>
+            <details class="ref-visual" id="ref-visual" hidden>
+              <summary id="ref-visual-title">AI đọc được từ ảnh</summary>
+              <p id="ref-visual-text"></p>
+            </details>
           </div>
           <div class="card mini-essay">
             <div class="row between"><h3>Bài đang viết</h3><span class="small muted" id="mini-count">0 từ</span></div>
@@ -629,25 +638,40 @@ Use the correct tense (past for past years, present perfect up to now, future fo
 Each of the 3 options must use different structures and vocabulary, but all must be accurate.
 All guidance and meanings in Vietnamese; all options in English.`;
 
-  function taskBlock(text, hasImage) {
-    return (hasImage ? 'The attached image is the task (the question and/or the visual).\n' : '') +
-      (text ? 'Task text:\n"""' + text + '"""\n' : '');
+  // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
+  function taskBlock(text, visual) {
+    let t = text ? 'Task text:\n"""' + text + '"""\n' : '';
+    if (visual && visual.text) {
+      t += visual.source === 'ocr'
+        ? '\nOCR text of the task image (may contain recognition errors; the figures/drawing could not be seen — use only what is clearly given, and say in guide_vi if data is missing):\n"""' + visual.text + '"""\n'
+        : '\nContent of the task visual, transcribed from the image:\n"""' + visual.text + '"""\n';
+    }
+    return t;
   }
 
-  function buildPrompt({ text, type, band, hasImage }) {
+  const READ_PROMPT = `The attached image is an IELTS Writing Task 1 question (it may show the question text, a chart, table, map or process diagram).
+Read it very carefully and transcribe everything a student needs to write the answer.
+Reply with ONLY one JSON object:
+{
+  "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "prompt_text": "the question text exactly as written in the image, or '' if there is none",
+  "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
+}`;
+
+  function buildPrompt({ text, type, band, visual }) {
     return `${RULES}
 
 Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}
 Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes(type)}
 
-${taskBlock(text, hasImage)}
+${taskBlock(text, visual)}
 Reply with ONLY one JSON object in this shape:
 ${SHAPE}`;
   }
 
   const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
-  function buildRegenPrompt({ text, band, hasImage, analysis, stepIndex, chosen }) {
+  function buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }) {
     const prev = chosen.map((p, i) => (p ? `${NAMES[i]}: ${p}` : '')).filter(Boolean).join('\n');
     const old = (analysis.steps[stepIndex].options || []).join('\n- ');
     return `${RULES}
@@ -656,7 +680,7 @@ Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes(analysis.task_type === 'maps' ? 'maps' : 'charts')}
 
-${taskBlock(text || analysis.prompt_text, hasImage)}
+${taskBlock(text || analysis.prompt_text, visual)}
 Paragraphs the student has already chosen:
 ${prev || '(none yet)'}
 
@@ -760,16 +784,76 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     return r;
   }
 
-  async function analyze({ text, type, band, image, signal }) {
-    return validate(await ask(buildPrompt({ text, type, band, hasImage: !!image }), image, signal));
+  /* Bước 1: AI đọc ảnh đề → chữ (câu đề + toàn bộ số liệu/nội dung hình) */
+  async function readImage({ image, signal }) {
+    const r = await ask(READ_PROMPT, image, signal);
+    const text = String((r && r.visual_data) || '').trim();
+    if (!text && !(r && r.prompt_text)) throw new Error('AI không đọc được nội dung ảnh. Thử ảnh rõ hơn hoặc gõ đề vào ô văn bản.');
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), visual: { source: 'ai', text } };
   }
-  async function regenerate({ text, band, image, analysis, stepIndex, chosen, signal }) {
-    const r = await ask(buildRegenPrompt({ text, band, hasImage: !!image, analysis, stepIndex, chosen }), image, signal);
+
+  /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */
+  let tessPromise = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (!tessPromise) {
+      tessPromise = new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = 'vendor/tesseract/tesseract.min.js';
+        sc.onload = () => resolve(window.Tesseract);
+        sc.onerror = () => { tessPromise = null; reject(new Error('Không tải được bộ đọc chữ (OCR).')); };
+        document.head.appendChild(sc);
+      });
+    }
+    return tessPromise;
+  }
+  /* Dữ liệu tiếng Anh lưu dạng base64 (.txt) vì trang chỉ được đăng file văn bản/script.
+   * Giải mã rồi ghi vào bộ đệm IndexedDB mà Tesseract đọc (idb-keyval: keyval-store/keyval, khoá ./eng.traineddata). */
+  async function primeLangCache(base) {
+    const b64 = await (await fetch(base + 'eng.traineddata.gz.b64.txt')).text();
+    const bin = atob(b64.trim());
+    const data = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.open('keyval-store');
+      req.onupgradeneeded = () => req.result.createObjectStore('keyval');
+      req.onerror = () => reject(new Error('Trình duyệt chặn bộ nhớ IndexedDB nên không chạy được OCR.'));
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction('keyval', 'readwrite');
+        tx.objectStore('keyval').put(data, './eng.traineddata');
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(new Error('Không ghi được dữ liệu OCR.')); };
+      };
+    });
+  }
+  async function ocr(image, onProgress) {
+    const T = await loadTesseract();
+    const base = new URL('vendor/tesseract/', location.href).href;
+    await primeLangCache(base);
+    const worker = await T.createWorker('eng', 1, {
+      workerPath: base + 'worker.min.js', corePath: base, langPath: base, workerBlobURL: false, cacheMethod: 'readOnly',
+      logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress); },
+    });
+    try {
+      const res = await worker.recognize(image.dataUrl);
+      const text = String((res.data && res.data.text) || '').replace(/[ \t]+\n/g, '\n').trim();
+      if (!text) throw new Error('Không thấy chữ trong ảnh. Hãy gõ đề vào ô văn bản.');
+      return { source: 'ocr', text };
+    } finally { worker.terminate(); }
+  }
+
+  /* Bước 2: tạo gợi ý 4 đoạn từ chữ */
+  async function analyze({ text, type, band, visual, signal }) {
+    return validate(await ask(buildPrompt({ text, type, band, visual }), null, signal));
+  }
+  async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
+    const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
     if (!r || !Array.isArray(r.options) || !r.options.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
     return r.options.map(String);
   }
 
-  return { analyze, regenerate, available, getKey, setKey };
+  return { readImage, ocr, analyze, regenerate, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -784,7 +868,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
   }
   let S = load();
   function load() {
@@ -825,7 +909,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     renderImage();
     const note = $('#setup-note');
     note.classList.remove('err');
-    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
+    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Chỉ dán ảnh đề cũng được: AI đọc ảnh rồi tạo gợi ý. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
     else note.innerHTML = AI.getKey() ? 'Đang dùng Anthropic API key đã lưu (⚙️ để đổi).' : 'Mở ngoài claude.ai: cần Anthropic API key để dùng AI — bấm ⚙️ ở góc trên. Không có key vẫn bấm được “Xem bài mẫu”.';
   }
   function renderImage() {
@@ -839,25 +923,46 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   async function analyze() {
     S.prompt = $('#prompt').value.trim();
     if (!S.prompt && !S.image) { showSetupError('Hãy dán đề bài hoặc ảnh đề trước khi bấm.'); return; }
+    AVAIL = await AI.available();   // chờ kết nối Claude xong rồi mới quyết định
+    if (AVAIL.via === 'claude') $('#btn-key').hidden = true;
     if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
-    if (S.image && AVAIL.via === 'claude' && !AVAIL.images) {
-      if (!S.prompt) { showSetupError('Chế độ xem này không gửi được ảnh. Hãy gõ đề vào ô văn bản.'); return; }
-    }
     show('loading');
     const t0 = Date.now();
+    const stage = txt => { $('#loading-stage').textContent = txt; };
     $('#elapsed').textContent = '0 giây';
     tick = setInterval(() => { $('#elapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' giây'; }, 1000);
     ctl = new AbortController();
     try {
-      const image = S.image && (AVAIL.via !== 'claude' || AVAIL.images) ? S.image : null;
-      const r = await AI.analyze({ text: S.prompt, type: S.type, band: S.band, image, signal: ctl.signal });
+      // Bước 1: ảnh → chữ. Luôn thử gửi ảnh cho AI; nếu chế độ xem không gửi được ảnh thì OCR trong trình duyệt.
+      S.visual = null;
+      let detected = '';
+      if (S.image) {
+        try {
+          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
+          const r = await AI.readImage({ image: S.image, signal: ctl.signal });
+          S.visual = r.visual; detected = r.task_type;
+          if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
+        } catch (e) {
+          if (e.code === 'cancelled') throw e;
+          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
+          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
+          try {
+            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
+          } catch (oe) {
+            if (!S.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.');
+          }
+        }
+      }
+      stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
+      const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
+      const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, signal: ctl.signal });
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
       toast(`AI nhận dạng: ${TYPE_VI[r.task_type] || r.task_type} — ${r.subject || ''}`, 3500);
     } catch (e) {
       show('setup');
-      if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.'));
+      if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
     } finally {
       clearInterval(tick); ctl = null;
     }
@@ -917,6 +1022,12 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     const a = S.analysis;
     $('#ref-topic').textContent = `${TYPE_VI[a.task_type] || ''}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
     $('#ref-text').textContent = S.prompt || a.prompt_text || '';
+    const vis = $('#ref-visual');
+    if (S.visual && S.visual.text) {
+      vis.hidden = false;
+      $('#ref-visual-title').textContent = S.visual.source === 'ocr' ? 'Chữ đọc được từ ảnh (OCR)' : 'AI đọc được từ ảnh';
+      $('#ref-visual-text').textContent = S.visual.text;
+    } else vis.hidden = true;
     if (S.image) { $('#ref-img').src = S.image.dataUrl; $('#ref-img-btn').hidden = false; } else $('#ref-img-btn').hidden = true;
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#mini-count').textContent = `${total} / 150 từ`;
@@ -933,14 +1044,14 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   }
 
   async function regen(btn) {
+    AVAIL = await AI.available();
     if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
     S.paras[S.step] = $('#para').value.trim();
     const note = $('#regen-note');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang viết gợi ý mới…';
     note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
     try {
-      const image = S.image && (AVAIL.via !== 'claude' || AVAIL.images) ? S.image : null;
-      const opts = await AI.regenerate({ text: S.prompt, band: S.band, image, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
+      const opts = await AI.regenerate({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
       S.analysis.steps[S.step].options = opts.concat(S.analysis.steps[S.step].options.filter(o => o === S.paras[S.step]));
       save(); renderStep();
       toast('Đã có 3 gợi ý mới.');
@@ -990,7 +1101,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   function takeFile(file) {
     if (!file || !/^image\//.test(file.type)) return;
     const reader = new FileReader();
-    reader.onload = () => downscale(reader.result, file.type).then(img => { S.image = img; save(); renderImage(); toast('Đã nhận ảnh đề bài.'); });
+    reader.onload = () => downscale(reader.result, file.type).then(img => { S.image = img; S.visual = null; save(); renderImage(); toast('Đã nhận ảnh đề bài — bấm “AI đọc đề & tạo gợi ý”.'); });
     reader.readAsDataURL(file);
   }
   // Thu nhỏ ảnh (cạnh dài ≤ 1600px) để gửi AI nhanh hơn và lưu được
@@ -1029,7 +1140,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     }
     switch (t.id) {
       case 'dropzone': $('#file').click(); return;
-      case 'img-clear': S.image = null; save(); renderImage(); return;
+      case 'img-clear': S.image = null; S.visual = null; save(); renderImage(); return;
       case 'btn-analyze': analyze(); return;
       case 'btn-demo': loadDemo(); return;
       case 'btn-stop': if (ctl) ctl.abort(); return;

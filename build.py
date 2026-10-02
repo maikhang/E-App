@@ -3,6 +3,7 @@
 
   index.html             – bản đầy đủ, mở trực tiếp bằng trình duyệt / app xem file
   dist/task1-coach.html  – bản đăng lên claude.ai (không có <!doctype>/<html>/<head>/<body>)
+  dist/vendor/           – bộ OCR dự phòng, đăng kèm trang
 
 Chạy lại sau mỗi lần sửa:  python3 build.py
 """
@@ -30,4 +31,7 @@ body = re.search(r'<body>(.*?)</body>', html, re.S).group(1)
 head = re.sub(r'\s*<meta (charset|name="viewport")[^>]*>', '', head)
 (ROOT / 'dist').mkdir(exist_ok=True)
 (ROOT / 'dist/task1-coach.html').write_text(head.strip() + '\n' + body.strip() + '\n', encoding='utf-8')
-print('OK: index.html, dist/task1-coach.html')
+# Bộ OCR dự phòng (Tesseract.js) được tải theo đường dẫn tương đối vendor/tesseract/
+import shutil
+shutil.copytree(ROOT / 'vendor', ROOT / 'dist/vendor', dirs_exist_ok=True)
+print('OK: index.html, dist/task1-coach.html, dist/vendor/')

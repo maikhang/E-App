@@ -58,25 +58,40 @@ Use the correct tense (past for past years, present perfect up to now, future fo
 Each of the 3 options must use different structures and vocabulary, but all must be accurate.
 All guidance and meanings in Vietnamese; all options in English.`;
 
-  function taskBlock(text, hasImage) {
-    return (hasImage ? 'The attached image is the task (the question and/or the visual).\n' : '') +
-      (text ? 'Task text:\n"""' + text + '"""\n' : '');
+  // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
+  function taskBlock(text, visual) {
+    let t = text ? 'Task text:\n"""' + text + '"""\n' : '';
+    if (visual && visual.text) {
+      t += visual.source === 'ocr'
+        ? '\nOCR text of the task image (may contain recognition errors; the figures/drawing could not be seen — use only what is clearly given, and say in guide_vi if data is missing):\n"""' + visual.text + '"""\n'
+        : '\nContent of the task visual, transcribed from the image:\n"""' + visual.text + '"""\n';
+    }
+    return t;
   }
 
-  function buildPrompt({ text, type, band, hasImage }) {
+  const READ_PROMPT = `The attached image is an IELTS Writing Task 1 question (it may show the question text, a chart, table, map or process diagram).
+Read it very carefully and transcribe everything a student needs to write the answer.
+Reply with ONLY one JSON object:
+{
+  "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "prompt_text": "the question text exactly as written in the image, or '' if there is none",
+  "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
+}`;
+
+  function buildPrompt({ text, type, band, visual }) {
     return `${RULES}
 
 Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}
 Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes(type)}
 
-${taskBlock(text, hasImage)}
+${taskBlock(text, visual)}
 Reply with ONLY one JSON object in this shape:
 ${SHAPE}`;
   }
 
   const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
-  function buildRegenPrompt({ text, band, hasImage, analysis, stepIndex, chosen }) {
+  function buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }) {
     const prev = chosen.map((p, i) => (p ? `${NAMES[i]}: ${p}` : '')).filter(Boolean).join('\n');
     const old = (analysis.steps[stepIndex].options || []).join('\n- ');
     return `${RULES}
@@ -85,7 +100,7 @@ Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes(analysis.task_type === 'maps' ? 'maps' : 'charts')}
 
-${taskBlock(text || analysis.prompt_text, hasImage)}
+${taskBlock(text || analysis.prompt_text, visual)}
 Paragraphs the student has already chosen:
 ${prev || '(none yet)'}
 
@@ -189,14 +204,74 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     return r;
   }
 
-  async function analyze({ text, type, band, image, signal }) {
-    return validate(await ask(buildPrompt({ text, type, band, hasImage: !!image }), image, signal));
+  /* Bước 1: AI đọc ảnh đề → chữ (câu đề + toàn bộ số liệu/nội dung hình) */
+  async function readImage({ image, signal }) {
+    const r = await ask(READ_PROMPT, image, signal);
+    const text = String((r && r.visual_data) || '').trim();
+    if (!text && !(r && r.prompt_text)) throw new Error('AI không đọc được nội dung ảnh. Thử ảnh rõ hơn hoặc gõ đề vào ô văn bản.');
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), visual: { source: 'ai', text } };
   }
-  async function regenerate({ text, band, image, analysis, stepIndex, chosen, signal }) {
-    const r = await ask(buildRegenPrompt({ text, band, hasImage: !!image, analysis, stepIndex, chosen }), image, signal);
+
+  /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */
+  let tessPromise = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (!tessPromise) {
+      tessPromise = new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = 'vendor/tesseract/tesseract.min.js';
+        sc.onload = () => resolve(window.Tesseract);
+        sc.onerror = () => { tessPromise = null; reject(new Error('Không tải được bộ đọc chữ (OCR).')); };
+        document.head.appendChild(sc);
+      });
+    }
+    return tessPromise;
+  }
+  /* Dữ liệu tiếng Anh lưu dạng base64 (.txt) vì trang chỉ được đăng file văn bản/script.
+   * Giải mã rồi ghi vào bộ đệm IndexedDB mà Tesseract đọc (idb-keyval: keyval-store/keyval, khoá ./eng.traineddata). */
+  async function primeLangCache(base) {
+    const b64 = await (await fetch(base + 'eng.traineddata.gz.b64.txt')).text();
+    const bin = atob(b64.trim());
+    const data = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.open('keyval-store');
+      req.onupgradeneeded = () => req.result.createObjectStore('keyval');
+      req.onerror = () => reject(new Error('Trình duyệt chặn bộ nhớ IndexedDB nên không chạy được OCR.'));
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction('keyval', 'readwrite');
+        tx.objectStore('keyval').put(data, './eng.traineddata');
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(new Error('Không ghi được dữ liệu OCR.')); };
+      };
+    });
+  }
+  async function ocr(image, onProgress) {
+    const T = await loadTesseract();
+    const base = new URL('vendor/tesseract/', location.href).href;
+    await primeLangCache(base);
+    const worker = await T.createWorker('eng', 1, {
+      workerPath: base + 'worker.min.js', corePath: base, langPath: base, workerBlobURL: false, cacheMethod: 'readOnly',
+      logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress); },
+    });
+    try {
+      const res = await worker.recognize(image.dataUrl);
+      const text = String((res.data && res.data.text) || '').replace(/[ \t]+\n/g, '\n').trim();
+      if (!text) throw new Error('Không thấy chữ trong ảnh. Hãy gõ đề vào ô văn bản.');
+      return { source: 'ocr', text };
+    } finally { worker.terminate(); }
+  }
+
+  /* Bước 2: tạo gợi ý 4 đoạn từ chữ */
+  async function analyze({ text, type, band, visual, signal }) {
+    return validate(await ask(buildPrompt({ text, type, band, visual }), null, signal));
+  }
+  async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
+    const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
     if (!r || !Array.isArray(r.options) || !r.options.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
     return r.options.map(String);
   }
 
-  return { analyze, regenerate, available, getKey, setKey };
+  return { readImage, ocr, analyze, regenerate, available, getKey, setKey };
 })();

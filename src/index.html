@@ -79,7 +79,8 @@
       <div class="card loading">
         <div class="spinner big" aria-hidden="true"></div>
         <h2>AI đang đọc đề của bạn…</h2>
-        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–90 giây.</p>
+        <p class="stage" id="loading-stage">Đang chuẩn bị…</p>
+        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–120 giây.</p>
         <p class="elapsed" id="elapsed">0 giây</p>
         <button type="button" class="btn" id="btn-stop">Dừng</button>
       </div>
@@ -133,6 +134,10 @@
             <p class="topic" id="ref-topic"></p>
             <button type="button" class="ref-img" id="ref-img-btn" hidden><img id="ref-img" alt="Ảnh đề bài gốc"><span>🔍 Phóng to</span></button>
             <p class="ref-text" id="ref-text"></p>
+            <details class="ref-visual" id="ref-visual" hidden>
+              <summary id="ref-visual-title">AI đọc được từ ảnh</summary>
+              <p id="ref-visual-text"></p>
+            </details>
           </div>
           <div class="card mini-essay">
             <div class="row between"><h3>Bài đang viết</h3><span class="small muted" id="mini-count">0 từ</span></div>
