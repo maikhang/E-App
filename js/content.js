@@ -116,5 +116,82 @@ window.CONTENT = (function () {
       goal: 'Kiểm tra từ vựng, giới từ (IN/AT/ON/TO), lặp từ và độ dài bài.' },
   ];
 
-  return { changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips, outline };
+
+  // Ví dụ kết quả phân tích AI cho dạng Line graph (đề và số liệu minh hoạ, tự soạn)
+  const sampleLine = {
+    task_type: 'line',
+    prompt_text: 'The graph below shows the number of international visitors to three cities in Vietnam between 2010 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+    topic_vi: 'Số lượng khách quốc tế đến Hà Nội, Đà Nẵng và Huế giai đoạn 2010–2020.',
+    place: '', year1: '2010', year2: '2020', tense: 'past', features: [], changes: [],
+    key_features: [
+      'Hà Nội luôn cao nhất: tăng từ 1,5 triệu (2010) lên 4 triệu (2019), rồi giảm mạnh còn 1 triệu năm 2020.',
+      'Đà Nẵng tăng nhanh nhất: từ 0,5 triệu lên 3,5 triệu (2019), gần đuổi kịp Hà Nội.',
+      'Huế gần như ổn định quanh 0,8–1 triệu suốt giai đoạn.',
+      'Cả ba thành phố đều giảm vào năm 2020.',
+    ],
+    overview_points: [
+      'Hanoi and Da Nang saw strong growth until 2019, while Hue changed little.',
+      'All three cities experienced a sharp fall in 2020, and Hanoi remained the most popular throughout.',
+    ],
+    body1_focus: 'Hai thành phố tăng mạnh (Hà Nội, Đà Nẵng) từ 2010 đến 2019 — nhóm có xu hướng giống nhau.',
+    body2_focus: 'Huế (ổn định) và cú giảm chung của cả ba thành phố năm 2020.',
+    data_notes: ['Hanoi: 1.5m (2010) → 4m (2019) → 1m (2020)', 'Da Nang: 0.5m (2010) → 3.5m (2019) → 0.8m (2020)', 'Hue: about 0.8m–1m, 0.3m in 2020'],
+    sections: {
+      intro: [{ label: 'Câu 1 · Paraphrase đề', variants: [
+        { text: 'The line graph illustrates how many international tourists visited three Vietnamese cities between 2010 and 2020.', structure: 'Paraphrase' },
+        { text: 'The graph compares the number of foreign visitors to Hanoi, Da Nang and Hue over a ten-year period from 2010.', structure: 'Paraphrase' },
+      ] }],
+      overview: [{ label: 'Câu 1 · Hai đặc điểm nổi bật', variants: [
+        { text: 'Overall, Hanoi and Da Nang saw substantial growth until 2019, while visitor numbers to Hue remained relatively stable.', structure: 'Contrast (while)' },
+        { text: 'Overall, Hanoi was the most popular destination throughout the period, and all three cities experienced a sharp decline in 2020.', structure: 'Addition' },
+      ] }],
+      body1: [
+        { label: 'Câu 1 · Hà Nội: điểm xuất phát và xu hướng', variants: [
+          { text: 'In 2010, Hanoi received around 1.5 million international visitors, and this figure rose steadily to a peak of 4 million in 2019.', structure: 'Time Clause' },
+          { text: 'There were around 1.5 million foreign tourists in Hanoi in 2010, a figure which climbed steadily to 4 million by 2019.', structure: 'There was/were' },
+        ] },
+        { label: 'Câu 2 · Đà Nẵng: tăng nhanh nhất', variants: [
+          { text: 'Da Nang, meanwhile, recorded the most dramatic increase, from only 0.5 million to 3.5 million over the same period.', structure: 'Comparison' },
+          { text: 'Moreover, the number of visitors to Da Nang grew sevenfold, reaching 3.5 million in 2019.', structure: 'Addition' },
+        ] },
+        { label: 'Câu 3 · So sánh hai thành phố', variants: [
+          { text: 'As a result, the gap between the two cities narrowed considerably, while Hanoi still remained ahead.', structure: 'Contrast (while)' },
+        ] },
+      ],
+      body2: [
+        { label: 'Câu 1 · Huế: ổn định', variants: [
+          { text: 'By contrast, the figure for Hue fluctuated only slightly, staying at around 0.8 to 1 million between 2010 and 2019.', structure: 'Contrast' },
+          { text: 'Hue attracted between 0.8 and 1 million international tourists each year, while the other two cities grew rapidly.', structure: 'Contrast (while)' },
+        ] },
+        { label: 'Câu 2 · Cú giảm năm 2020', variants: [
+          { text: 'In 2020, visitor numbers fell sharply in all three cities, with Hanoi dropping to 1 million and Da Nang to 0.8 million.', structure: 'Time Clause' },
+          { text: 'Moreover, all three destinations experienced a dramatic decline in 2020, when Hue welcomed only 0.3 million visitors.', structure: 'Addition' },
+        ] },
+      ],
+    },
+    vocabulary: [
+      { phrase: 'rose steadily', meaning_vi: 'tăng đều', example: 'The figure rose steadily to 4 million.' },
+      { phrase: 'reach a peak of', meaning_vi: 'đạt đỉnh', example: 'Visitors reached a peak of 4 million in 2019.' },
+      { phrase: 'the most dramatic increase', meaning_vi: 'mức tăng mạnh nhất', example: 'Da Nang recorded the most dramatic increase.' },
+      { phrase: 'fluctuated', meaning_vi: 'dao động', example: 'The figure for Hue fluctuated slightly.' },
+      { phrase: 'fell sharply', meaning_vi: 'giảm mạnh', example: 'Numbers fell sharply in 2020.' },
+      { phrase: 'remained relatively stable', meaning_vi: 'tương đối ổn định', example: 'Hue remained relatively stable.' },
+      { phrase: 'the gap narrowed', meaning_vi: 'khoảng cách thu hẹp', example: 'The gap between the two cities narrowed.' },
+      { phrase: 'sevenfold', meaning_vi: 'gấp bảy lần', example: 'The number grew sevenfold.' },
+    ],
+    teacher_notes: [
+      'Nhóm Hà Nội + Đà Nẵng vào Body 1 vì cùng xu hướng tăng; Huế + năm 2020 vào Body 2.',
+      'Nhắc học viên mô tả cả điểm đầu, đỉnh và điểm cuối của mỗi đường.',
+      'Năm 2020 là điểm bất thường — phải nhắc tới trong Overview.',
+      'Không cần giải thích nguyên nhân (COVID-19) vì đề không cho thông tin này.',
+    ],
+    common_mistakes: [
+      '“The number of tourists increased to 4 million people” → bỏ “people”, dùng “4 million”.',
+      'Dùng “raise” thay vì “rise”: “rose” (nội động từ), không phải “raised”.',
+      'Viết Overview có số liệu → Overview chỉ nêu xu hướng.',
+      'Liệt kê từng năm một → chọn điểm đầu, đỉnh, điểm cuối.',
+    ],
+  };
+
+  return { sampleLine, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips, outline };
 })();

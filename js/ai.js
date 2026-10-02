@@ -1,5 +1,5 @@
-/* Đọc đề từ ảnh:
- *  - AI (Claude, cần API key của bạn): đọc cả chữ lẫn nội dung bản đồ → tự điền bước Phân tích.
+/* Đọc & phân tích mọi đề Task 1 (maps, line, bar, pie, table, process, mixed):
+ *  - AI (Claude): trong claude.ai dùng tài khoản người xem; mở file riêng thì cần API key.
  *  - OCR (Tesseract.js, miễn phí, chạy trong trình duyệt): chỉ đọc chữ của đề bài. */
 window.AI = (function () {
   const MODEL = 'claude-opus-5-5';
@@ -16,51 +16,103 @@ window.AI = (function () {
       ref: { type: 'string', description: 'Reference object WITHOUT article, e.g. "river", "town", "main road"; empty if none' },
     },
   };
-  const schema = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['prompt_text', 'place', 'year1', 'year2', 'tense', 'features', 'changes'],
-    properties: {
-      prompt_text: { type: 'string', description: 'The task question text exactly as written (empty if not visible).' },
-      place: { type: 'string', description: 'Place name with article, e.g. "the village of Chorleywood".' },
-      year1: { type: 'string' },
-      year2: { type: 'string', description: 'Year of the second map, or "present".' },
-      tense: { type: 'string', enum: ['past', 'perfect', 'future'] },
-      features: {
-        type: 'array',
-        description: 'Key features of MAP 1 with their positions (max 6).',
-        items: { type: 'object', additionalProperties: false, required: ['name', 'pos'], properties: { name: { type: 'string' }, pos: posSchema } },
-      },
-      changes: {
-        type: 'array',
-        description: 'Changes visible on MAP 2 (max 8). Mark the 3-4 most significant with main=true.',
-        items: {
-          type: 'object', additionalProperties: false, required: ['type', 'subject', 'target', 'pos', 'main'],
-          properties: {
-            type: { type: 'string', enum: ENGINE.CHANGE_TYPES.map(c => c.id) },
-            subject: { type: 'string', description: 'Old feature (from map 1) without article; empty for built/added.' },
-            target: { type: 'string', description: 'New feature without article; empty if not applicable.' },
-            pos: posSchema,
-            main: { type: 'boolean' },
+  const str = (description) => (description ? { type: 'string', description } : { type: 'string' });
+  const strArr = (description) => ({ type: 'array', description, items: { type: 'string' } });
+  const slotSchema = {
+    type: 'array',
+    items: {
+      type: 'object', additionalProperties: false, required: ['label', 'variants'],
+      properties: {
+        label: str('Vietnamese label: sentence number + its job, e.g. "Câu 2 · Xu hướng của nhóm tăng"'),
+        variants: {
+          type: 'array',
+          description: '2-3 alternative English sentences for this slot, each using a different structure.',
+          items: {
+            type: 'object', additionalProperties: false, required: ['text', 'structure'],
+            properties: { text: str(), structure: str('Structure / key phrase used, e.g. "Contrast (while)", "Passive Voice", "rose sharply"') },
           },
         },
       },
     },
   };
+  const schema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_type', 'prompt_text', 'topic_vi', 'place', 'year1', 'year2', 'tense', 'features', 'changes',
+      'key_features', 'overview_points', 'body1_focus', 'body2_focus', 'data_notes', 'sections', 'vocabulary', 'teacher_notes', 'common_mistakes'],
+    properties: {
+      task_type: { type: 'string', enum: ['maps', 'line', 'bar', 'pie', 'table', 'process', 'mixed'] },
+      prompt_text: str('The task question text exactly as written (empty if not visible).'),
+      topic_vi: str('One Vietnamese sentence: what the visual shows.'),
+      place: str('MAPS ONLY: place name with article, e.g. "the village of Chorleywood". Empty otherwise.'),
+      year1: str('First year / start of the period, or empty.'),
+      year2: str('Last year / end of the period, "present", or empty.'),
+      tense: { type: 'string', enum: ['past', 'perfect', 'future', 'present'] },
+      features: {
+        type: 'array',
+        description: 'MAPS ONLY: key features of MAP 1 with their positions (max 6). Empty for other types.',
+        items: { type: 'object', additionalProperties: false, required: ['name', 'pos'], properties: { name: str(), pos: posSchema } },
+      },
+      changes: {
+        type: 'array',
+        description: 'MAPS ONLY: changes visible on MAP 2 (max 8); mark the 3-4 most significant with main=true. Empty for other types.',
+        items: {
+          type: 'object', additionalProperties: false, required: ['type', 'subject', 'target', 'pos', 'main'],
+          properties: {
+            type: { type: 'string', enum: ENGINE.CHANGE_TYPES.map(c => c.id) },
+            subject: str('Old feature (from map 1) without article; empty for built/added.'),
+            target: str('New feature without article; empty if not applicable.'),
+            pos: posSchema,
+            main: { type: 'boolean' },
+          },
+        },
+      },
+      key_features: strArr('Vietnamese: the 3-5 most important things a student must notice (with the real figures).'),
+      overview_points: strArr('English notes: the 2 main points for the Overview (no figures).'),
+      body1_focus: str('Vietnamese: what Body 1 covers and why this grouping.'),
+      body2_focus: str('Vietnamese: what Body 2 covers.'),
+      data_notes: strArr('English: specific data to quote (highest, lowest, start/end values, stages), each one short.'),
+      sections: {
+        type: 'object', additionalProperties: false, required: ['intro', 'overview', 'body1', 'body2'],
+        description: 'Sentence-by-sentence suggestions. For MAPS return empty arrays (the app builds map sentences itself).',
+        properties: { intro: slotSchema, overview: slotSchema, body1: slotSchema, body2: slotSchema },
+      },
+      vocabulary: {
+        type: 'array', description: '8-14 phrases useful for THIS task.',
+        items: { type: 'object', additionalProperties: false, required: ['phrase', 'meaning_vi', 'example'], properties: { phrase: str(), meaning_vi: str(), example: str() } },
+      },
+      teacher_notes: strArr('Vietnamese: 3-5 teaching notes (how to group data, what to compare, traps in this visual).'),
+      common_mistakes: strArr('Vietnamese: 3-5 mistakes students typically make on this task, each with the correct form.'),
+    },
+  };
 
-  const SYSTEM = `You help Vietnamese students prepare IELTS Writing Task 1 MAP answers.
-Read the task (text and/or image) and extract structured notes:
+  const BAND_GUIDE = {
+    '5.5': 'Band 5.5-6 learners: short, clear sentences; common vocabulary; at most one clause per sentence.',
+    '6.5': 'Band 6.5-7 learners: mix simple and complex sentences; precise trend/comparison vocabulary; accurate figures.',
+    '7.5': 'Band 7.5+ learners: varied complex structures, nominalisation, precise collocations, concise and natural.',
+  };
+
+  const SYSTEM = `You are an IELTS Writing Task 1 teaching assistant for Vietnamese teachers and students.
+Read the task (text and/or image), identify its type, and prepare a lesson-ready analysis.
+
+Outline every answer must follow (4 paragraphs):
+1. Introduction: one sentence paraphrasing the prompt (illustrate/compare, between X and Y; never copy it).
+2. Overview: 1-2 sentences starting with "Overall," giving the 2 main features, with NO figures.
+3. Body 1 and 4. Body 2: the details, grouped logically (e.g. rising vs falling items, highest vs lowest, first map vs changes, first half vs second half of a process). 3-5 sentences each, quoting accurate figures.
+Prefer these sentence structures and name them in "structure": Passive Voice (S + was/were + V3), There was/were + N, Time Clause (In + [Year], S + V), Contrast (S + V..., while...), Addition (Moreover, S + V).
+Use the right tense: past for past years, present perfect when the end point is now, future for plans/projections, present simple (mostly passive) for processes and timeless diagrams.
+Never invent data: if a value is unclear, approximate with "about/around" and say so in teacher_notes.
+
+For MAPS tasks: fill place/year1/year2/tense/features/changes and leave "sections" arrays empty.
 - features: the important buildings/areas on the FIRST map and where they are.
-- changes: what changed on the SECOND map. Use exactly one change type per item:
-  built (new large building), added (small/extra facility), demolished, removed, replaced (X -> Y in the same place),
-  converted (same building, new function), transformed (big area change, e.g. farmland -> housing), expanded (bigger area),
-  extended (roads, railways, bridges made longer), relocated (moved; pos = new position), modernized, renovated,
-  reduced (smaller), redeveloped (whole area rebuilt), unchanged (appears on both maps unchanged).
+- changes: one type per item: built (new large building), added (small/extra facility), demolished, removed, replaced (X -> Y same place),
+  converted (same building, new function), transformed (big area change), expanded (bigger area), extended (roads/railways made longer),
+  relocated (moved; pos = new position), modernized, renovated, reduced, redeveloped (whole area rebuilt), unchanged.
 - Positions use these relation ids: ${ENGINE.RELATIONS.map(r => `${r.id} = "${r.label}"`).join('; ')}.
   "in_dir" = inside the area; "to_dir" = outside the reference, towards that direction.
 - Use simple English nouns without articles ("school", "car park", "houses").
-- tense: "past" if both maps are in the past, "perfect" if the second map is the present day, "future" if it is a plan/proposal.
-If the image is not a map task, return empty arrays and whatever text you can read.`;
+For every other type: leave features/changes empty and fill "sections" with 1 intro slot, 1-2 overview slots, and 3-5 slots for each body paragraph.
+All explanations (labels, key_features, focus, notes, mistakes, meaning_vi) in Vietnamese; all model sentences in English.`;
 
   function getKey() {
     try { return localStorage.getItem('e-app.apiKey') || ''; } catch (e) { return ''; }
@@ -76,16 +128,16 @@ If the image is not a map task, return empty arrays and whatever text you can re
   }
 
   /* image: { mediaType, base64 } | null */
-  async function analyze({ text, image }) {
+  async function analyze({ text, image, band }) {
     const sample = await getSample();
-    if (sample) return analyzeWithSample(sample, { text, image });
+    if (sample) return analyzeWithSample(sample, { text, image, band });
     const apiKey = getKey();
     if (!apiKey) throw new Error('Chưa có API key. Bấm ⚙️ Cài đặt để nhập Anthropic API key.');
     const Anthropic = await loadSdk();
     const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
     const content = [];
     if (image) content.push({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } });
-    content.push({ type: 'text', text: (text ? 'Task text:\n' + text + '\n\n' : '') + 'Extract the notes for this IELTS Task 1 map question.' });
+    content.push({ type: 'text', text: 'Target level: ' + (BAND_GUIDE[band] || BAND_GUIDE['6.5']) + '\n\n' + (text ? 'Task text:\n' + text + '\n\n' : '') + 'Analyse this IELTS Writing Task 1 question.' });
 
     const response = await client.beta.messages.create({
       model: MODEL,
@@ -134,12 +186,12 @@ If the image is not a map task, return empty arrays and whatever text you can re
     images_unavailable: 'Chế độ xem này không gửi được ảnh. Hãy gõ đề vào ô văn bản.',
     image_rejected: 'Ảnh không đọc được. Hãy thử ảnh PNG/JPG khác.',
   };
-  async function analyzeWithSample(sample, { text, image }) {
-    const prompt = SYSTEM + '\n\n' + (text ? 'Task text:\n' + text + '\n\n' : '') +
+  async function analyzeWithSample(sample, { text, image, band }) {
+    const prompt = SYSTEM + '\n\n' + 'Target level: ' + (BAND_GUIDE[band] || BAND_GUIDE['6.5']) + '\n\n' + (text ? 'Task text:\n' + text + '\n\n' : '') +
       (image ? 'The attached image is the task (question text and/or the two maps).\n' : '') +
       'Reply with ONLY one JSON object matching this JSON Schema:\n' + JSON.stringify(schema);
     try {
-      return await sample.json(prompt, image ? { images: dataUrlToBlob(image.dataUrl) } : {});
+      return await sample.json(prompt, Object.assign({ modelTier: 'default' }, image ? { images: dataUrlToBlob(image.dataUrl) } : {}));
     } catch (e) {
       throw new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không đọc được đề.');
     }

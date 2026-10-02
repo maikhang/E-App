@@ -1,6 +1,9 @@
 # Task 1 Writing Coach
 
-Web app gợi ý **từng câu** cho IELTS Writing Task 1, bám đúng dàn ý & từ vựng của bạn. Bắt đầu với dạng **Maps** (các dạng khác: sắp có).
+Web app gợi ý **từng câu** cho IELTS Writing Task 1, phục vụ dạy và học.
+
+- **Maps**: bám đúng dàn ý & từ vựng của bạn (sinh câu theo quy tắc, AI chỉ giúp đọc bản đồ).
+- **Mọi dạng khác** (Line, Bar, Pie, Table, Process, Mixed) và đề bất kỳ: AI tự nhận dạng loại đề, phân tích đặc điểm chính, số liệu, cách chia đoạn, gợi ý từng câu theo trình độ (Band 5.5 / 6.5 / 7.5+), từ vựng, ghi chú giảng dạy và lỗi học viên hay mắc. Có nút sao chép phân tích để dùng làm tài liệu lớp.
 
 ## Chạy
 `index.html` là **một file duy nhất** (đã gộp CSS + JS), mở trực tiếp bằng trình duyệt là chạy.

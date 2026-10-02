@@ -7,14 +7,28 @@
   const WRITING = ['intro', 'overview', 'body1', 'body2'];
 
   const TASK_TYPES = [
-    { id: 'maps', label: '🗺️ Maps', ready: true },
-    { id: 'line', label: 'Line graph' }, { id: 'bar', label: 'Bar chart' }, { id: 'pie', label: 'Pie chart' },
-    { id: 'table', label: 'Table' }, { id: 'process', label: 'Process' }, { id: 'mixed', label: 'Mixed' },
+    { id: 'maps', label: '🗺️ Maps' }, { id: 'line', label: '📈 Line graph' }, { id: 'bar', label: '📊 Bar chart' },
+    { id: 'pie', label: '🥧 Pie chart' }, { id: 'table', label: '🧮 Table' }, { id: 'process', label: '🔁 Process' }, { id: 'mixed', label: '🧩 Mixed' },
   ];
+  const typeLabel = id => ((TASK_TYPES.find(t => t.id === id) || TASK_TYPES[0]).label).replace(/^\S+\s/, '');
+  const isMaps = () => S.type === 'maps';
+
+  /* Dàn ý: Maps dùng đúng dàn ý trong content.js; các dạng khác cùng 4 đoạn nhưng nội dung do AI phân tích */
+  const GENERIC = {
+    prompt: { goal: 'Dán ảnh hoặc gõ đề bất kỳ. AI tự nhận dạng loại đề (line, bar, pie, table, process, mixed, maps) và phân tích.' },
+    analyze: { title: 'Phân tích đề (AI)', short: 'Phân tích', goal: 'Đặc điểm chính, số liệu cần dẫn, cách chia 2 đoạn thân bài, ghi chú giảng dạy và lỗi hay gặp.' },
+    intro: { structures: [] },
+    overview: { goal: 'Bắt đầu bằng “Overall,” — nêu 2 đặc điểm nổi bật nhất, không đưa số liệu.' },
+    body1: { title: 'Body 1', goal: 'Nhóm thông tin thứ nhất, có số liệu cụ thể.' },
+    body2: { title: 'Body 2', goal: 'Nhóm thông tin thứ hai, có số liệu và so sánh.' },
+  };
+  function OUT() {
+    return isMaps() ? C.outline : C.outline.map(o => Object.assign({}, o, GENERIC[o.id] || {}));
+  }
 
   function blank() {
     return {
-      step: 'prompt', view: 'outline',
+      step: 'prompt', view: 'outline', type: 'maps', band: '6.5', ai: null,
       promptText: '', image: null,
       place: '', year1: '', year2: '', tense: 'past',
       features: [newFeature()], changes: [newChange()],
@@ -54,23 +68,31 @@
   /* ================= Highlight ================= */
   const TERMS = E.highlightTerms();
   const TERM_RE = new RegExp('\\b(' + TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi');
-  const hl = s => esc(s).replace(TERM_RE, '<mark>$1</mark>');
+  let hlCache = { ai: undefined, re: TERM_RE };
+  function termRe() {
+    if (hlCache.ai === S.ai) return hlCache.re;
+    const extra = (S.ai && S.ai.vocabulary || []).map(v => String(v.phrase || '').replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(x => x.length > 2);
+    const all = [...new Set(TERMS.concat(extra))].sort((a, b) => b.length - a.length);
+    hlCache = { ai: S.ai, re: new RegExp('\\b(' + all.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi') };
+    return hlCache.re;
+  }
+  const hl = s => esc(s).replace(termRe(), '<mark>$1</mark>');
 
   /* ================= Top / stepper ================= */
   function renderTypes() {
     $('#types').innerHTML = TASK_TYPES.map(t =>
-      `<button type="button" class="type ${t.ready ? 'active' : ''}" ${t.ready ? '' : 'disabled title="Sắp có"'}>${esc(t.label)}${t.ready ? '' : ' <small>· sắp có</small>'}</button>`).join('');
+      `<button type="button" class="type ${S.type === t.id ? 'active' : ''}" data-type="${t.id}">${esc(t.label)}</button>`).join('');
   }
 
   function stepDone(id) {
     if (id === 'prompt') return !!(S.promptText.trim() || S.image || S.place);
-    if (id === 'analyze') return S.features.some(f => f.name.trim()) && S.changes.some(c => (c.subject || c.target).trim());
+    if (id === 'analyze') return isMaps() ? S.features.some(f => f.name.trim()) && S.changes.some(c => (c.subject || c.target).trim()) : !!S.ai;
     if (WRITING.includes(id)) return !!S.draft[id].trim();
     return false;
   }
   function renderStepper() {
-    const parts = ['<p class="label">Dàn ý Task 1 · Maps</p>'];
-    C.outline.forEach((o, i) => {
+    const parts = [`<p class="label">Dàn ý Task 1 · ${esc(typeLabel(S.type))}</p>`];
+    OUT().forEach((o, i) => {
       if (i) parts.push('<div class="connector"></div>');
       const active = S.view === 'outline' && S.step === o.id;
       const meta = [o.minutes ? `${o.minutes} phút` : '', o.sentences || ''].filter(Boolean).join(' · ');
@@ -87,12 +109,13 @@
     const main = $('#main');
     if (S.view === 'library') main.innerHTML = libraryView();
     else {
-      const o = C.outline.find(x => x.id === S.step) || C.outline[0];
+      const o = OUT().find(x => x.id === S.step) || OUT()[0];
       const body = {
         prompt: promptView, analyze: analyzeView, intro: writeView, overview: writeView, body1: writeView, body2: writeView, check: checkView,
       }[o.id](o);
       main.innerHTML = headerCard(o) + body + navCard(o);
     }
+    renderTypes();
     renderEssay();
     restoreTimer();
   }
@@ -105,8 +128,9 @@
     </div></section>`;
   }
   function navCard(o) {
-    const i = C.outline.findIndex(x => x.id === o.id);
-    const prev = C.outline[i - 1], next = C.outline[i + 1];
+    const out = OUT();
+    const i = out.findIndex(x => x.id === o.id);
+    const prev = out[i - 1], next = out[i + 1];
     return `<div class="row" style="justify-content:space-between">
       ${prev ? `<button type="button" class="btn" data-step="${prev.id}">← ${esc(prev.title)}</button>` : '<span></span>'}
       ${next ? `<button type="button" class="btn primary" data-step="${next.id}">${esc(next.title)} →</button>` : ''}
@@ -133,14 +157,16 @@
       </div>
       <div style="height:12px"></div>
       <div class="row">
-        <button type="button" class="btn primary" id="ai-btn" ${img || S.promptText.trim() ? '' : 'disabled'}>🤖 AI đọc đề + bản đồ</button>
+        <label class="field" style="flex-direction:row;align-items:center;gap:6px"><span>Trình độ</span>
+          <select id="band">${['5.5', '6.5', '7.5'].map(b => `<option value="${b}" ${S.band === b ? 'selected' : ''}>Band ${b}${b === '7.5' ? '+' : b === '5.5' ? '–6' : '–7'}</option>`).join('')}</select></label>
+        <button type="button" class="btn primary" id="ai-btn" ${img || S.promptText.trim() ? '' : 'disabled'}>🤖 AI phân tích đề</button>
         ${SAMPLE ? '' : `<button type="button" class="btn" id="ocr-btn" ${img ? '' : 'disabled'}>🔤 Đọc chữ trong ảnh (OCR)</button>`}
-        <button type="button" class="btn ghost" id="sample-btn">Dùng đề mẫu</button>
+        <button type="button" class="btn ghost" id="sample-btn">${isMaps() ? 'Dùng đề mẫu' : 'Xem ví dụ phân tích (Line graph)'}</button>
         <button type="button" class="btn ghost" id="reset-btn">Làm bài mới</button>
       </div>
-      <p class="muted small" id="ai-status">${SAMPLE ? 'AI đọc ảnh đề và tự điền công trình + thay đổi vào bước Phân tích. Dùng tài khoản Claude của bạn, không cần API key.' : 'AI tự điền công trình + thay đổi vào bước Phân tích (cần API key ở ⚙️). OCR miễn phí chỉ đọc chữ của đề.'}</p>
+      <p class="muted small" id="ai-status">AI đọc mọi dạng đề Task 1, tự nhận dạng loại đề và soạn phân tích + gợi ý câu theo trình độ. ${SAMPLE ? 'Dùng tài khoản Claude của bạn, không cần API key.' : 'Cần API key ở ⚙️. OCR miễn phí chỉ đọc chữ của đề.'}${!isMaps() && !SAMPLE && !AI.getKey() ? ' <b>Dạng ' + esc(typeLabel(S.type)) + ' cần AI để gợi ý câu.</b>' : ''}</p>
     </section>
-    <section class="card">
+    ${isMaps() ? '' : '<!--'}<section class="card">
       <h3>Thông tin đề <span class="muted small">(tự nhận từ đề — sửa nếu sai)</span></h3>
       <div class="grid-4">
         <label class="field"><span>Địa điểm</span><input type="text" data-f="place" value="${esc(S.place)}" placeholder="the village of Stokeford"></label>
@@ -154,7 +180,7 @@
           </select></label>
       </div>
       <p class="muted small" style="margin-bottom:0">Thì quyết định dạng động từ: <b>was built</b> · <b>has been built</b> · <b>will be built</b>.</p>
-    </section>`;
+    </section>${isMaps() ? '' : '-->'}`;
   }
 
   /* ---------- Bước 1: Phân tích ---------- */
@@ -176,6 +202,7 @@
       ${dirSel}${refInp}</div>`;
   }
   function analyzeView() {
+    if (!isMaps()) return aiAnalysisView();
     const names = S.features.map(f => E.cleanNoun(f.name)).filter(Boolean);
     const refs = [...new Set(names.concat(['map', 'town', 'village', 'river', 'main road', 'railway', 'lake', 'park', 'school', 'beach', 'forest']))];
     const mains = S.changes.filter(c => c.main).length;
@@ -191,6 +218,7 @@
         </div>
       </details>
     </section>
+    ${S.ai && S.ai.task_type === 'maps' ? teachingCards() : ''}
     <section class="card">
       <div class="head"><h3>🗺️ Map 1${S.year1 ? ' (' + esc(S.year1) + ')' : ''} — công trình &amp; vị trí <span class="muted small">→ dùng cho Body 1</span></h3>
         <button type="button" class="btn sm" data-act="add-feature">＋ Thêm công trình</button></div>
@@ -237,6 +265,76 @@
     return v ? '→ ' + v.text : '';
   }
 
+  /* ---------- Phân tích AI (mọi dạng đề) ---------- */
+  const li = arr => (arr || []).filter(Boolean).map(x => `<li>${esc(x)}</li>`).join('');
+  function teachingCards() {
+    const a = S.ai;
+    return `<section class="card">
+      <div class="head"><h3>🧑‍🏫 Ghi chú giảng dạy</h3>
+        <div class="row"><button type="button" class="btn sm" data-act="copy-lesson">📋 Sao chép phân tích</button>
+        <button type="button" class="btn sm ghost" data-act="reanalyze">↻ Phân tích lại</button></div></div>
+      <div class="prep-grid" style="margin-top:10px">
+        <div class="prep-box"><h4>Điểm cần dạy</h4><ul>${li(a.teacher_notes)}</ul></div>
+        <div class="prep-box"><h4>Lỗi học viên hay mắc</h4><ul>${li(a.common_mistakes)}</ul></div>
+      </div></section>`;
+  }
+  function aiAnalysisView() {
+    const a = S.ai;
+    if (!a) {
+      return `<section class="card"><div class="empty">Chưa có phân tích cho đề ${esc(typeLabel(S.type))}.
+        <button type="button" class="btn sm primary" data-step="prompt">Dán đề và bấm “AI phân tích đề” →</button></div></section>`;
+    }
+    const vocab = (a.vocabulary || []);
+    return `<section class="card">
+      <div class="head"><div><span class="kicker">${esc(typeLabel(a.task_type))}${a.year1 ? ' · ' + esc(a.year1) + (a.year2 ? '–' + esc(a.year2) : '') : ''} · thì: ${esc({ past: 'quá khứ', perfect: 'hiện tại hoàn thành', future: 'tương lai', present: 'hiện tại' }[a.tense] || a.tense)}</span>
+        <h3 style="margin-top:4px">${esc(a.topic_vi)}</h3></div></div>
+      ${a.prompt_text ? `<p class="muted small" style="margin:4px 0 0"><i>${esc(a.prompt_text)}</i></p>` : ''}
+      <div class="prep-grid" style="margin-top:12px">
+        <div class="prep-box"><h4>Đặc điểm chính</h4><ul>${li(a.key_features)}</ul></div>
+        <div class="prep-box"><h4>Overview nên nêu</h4><ul>${li(a.overview_points)}</ul></div>
+        <div class="prep-box"><h4>Chia đoạn thân bài</h4><p style="margin:0 0 6px"><b>Body 1:</b> ${esc(a.body1_focus)}</p><p style="margin:0"><b>Body 2:</b> ${esc(a.body2_focus)}</p></div>
+        <div class="prep-box"><h4>Số liệu cần dẫn</h4><ul>${li(a.data_notes)}</ul></div>
+      </div>
+    </section>
+    ${teachingCards()}
+    <section class="card"><h3>Từ vựng cho đề này</h3>
+      <div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
+      ${vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi)}</td><td>${esc(v.example)}</td></tr>`).join('')}</tbody></table></div>
+    </section>`;
+  }
+  function aiPrep(id) {
+    const a = S.ai;
+    if (!a) return '<p class="muted">Chưa có phân tích AI — quay lại bước Đề bài.</p>';
+    const focus = { intro: '', overview: '', body1: a.body1_focus, body2: a.body2_focus }[id];
+    const boxes = [];
+    if (id === 'intro') boxes.push(`<div class="prep-box"><h4>Đề gốc</h4><p style="margin:0">${esc(a.prompt_text || S.promptText)}</p></div>`,
+      `<div class="prep-box"><h4>Cách paraphrase</h4><ul><li>show → <b>illustrate / compare / give information about</b></li><li>from X to Y → <b>between X and Y</b></li><li>Không chép nguyên câu đề, không thêm nhận xét.</li></ul></div>`);
+    if (id === 'overview') boxes.push(`<div class="prep-box"><h4>2 ý cho Overview</h4><ul>${li(a.overview_points)}</ul><p class="muted small" style="margin:6px 0 0">Bắt đầu bằng “Overall,” · không đưa số liệu.</p></div>`);
+    if (focus) boxes.push(`<div class="prep-box"><h4>Đoạn này viết gì</h4><p style="margin:0">${esc(focus)}</p></div>`,
+      `<div class="prep-box"><h4>Số liệu cần dẫn</h4><ul>${li(a.data_notes)}</ul></div>`);
+    boxes.push(structuresBox(['passive', 'there', 'time', 'contrast', 'addition']));
+    const vocab = (a.vocabulary || []).map((v, i) => ({ id: String(i), phrase: v.phrase, meaning: v.meaning_vi, usage: '', example: v.example, note: '' }));
+    if (vocab.length) boxes.push(`<div class="prep-box"><h4>Từ vựng cho đề này</h4>${vocabChips(vocab, 'ai')}</div>`);
+    return `<div class="prep-grid">${boxes.join('')}</div>`;
+  }
+  function lessonText() {
+    const a = S.ai || {};
+    const sec = (t, arr) => arr && arr.length ? `\n${t}\n` + arr.map(x => '- ' + x).join('\n') + '\n' : '';
+    let out = `PHÂN TÍCH ĐỀ – ${typeLabel(a.task_type || S.type)} (Band ${S.band})\n${a.prompt_text || S.promptText}\n\n${a.topic_vi || ''}\n`;
+    out += sec('Đặc điểm chính:', a.key_features) + sec('Overview:', a.overview_points);
+    if (a.body1_focus) out += `\nBody 1: ${a.body1_focus}\nBody 2: ${a.body2_focus}\n`;
+    out += sec('Số liệu cần dẫn:', a.data_notes) + sec('Ghi chú giảng dạy:', a.teacher_notes) + sec('Lỗi hay gặp:', a.common_mistakes);
+    out += sec('Từ vựng:', (a.vocabulary || []).map(v => `${v.phrase} – ${v.meaning_vi} (${v.example})`));
+    if (a.sections) {
+      for (const k of WRITING) {
+        const sl = slotsFor(k);
+        if (!sl.length) continue;
+        out += `\n${k.toUpperCase()}\n` + sl.map(x => `${x.label}\n` + x.variants.map(v => '  • ' + v.text).join('\n')).join('\n') + '\n';
+      }
+    }
+    return out.trim();
+  }
+
   /* ---------- Bước 2–5: Viết ---------- */
   function vocabChips(list, key) {
     return `<div class="chips">${list.map(v => `<button type="button" class="chip" data-chip="${key}:${v.id}">${esc(v.phrase)}</button>`).join('')}</div><div class="chip-detail" data-chip-detail="${key}"></div>`;
@@ -255,6 +353,7 @@
     return `<div class="prep-box"><h4>Paraphrase vị trí</h4><ul>${C.paraphrasing.ways.map(w => `<li><b>${esc(w.name)}:</b> ${w.text}</li>`).join('')}</ul></div>`;
   }
   function prepFor(id) {
+    if (!isMaps()) return aiPrep(id);
     if (id === 'intro') {
       return `<div class="prep-grid">
         <div class="prep-box"><h4>Đề gốc</h4><p style="margin:0">${S.promptText.trim() ? esc(S.promptText.trim().split(/(?<=\.)\s/)[0]) : '<span class="muted">Chưa nhập đề — quay lại bước 0.</span>'}</p></div>
@@ -299,6 +398,10 @@
     return '';
   }
   function slotsFor(id) {
+    if (!isMaps()) {
+      const list = (S.ai && S.ai.sections && S.ai.sections[id]) || [];
+      return list.map(sl => ({ label: sl.label, variants: (sl.variants || []).map(v => ({ text: v.text, tags: v.structure ? [v.structure] : [] })) }));
+    }
     if (id === 'intro') return [{ label: 'Câu 1 · Paraphrase đề bài', variants: E.introSentences(S) }];
     if (id === 'overview') return E.overviewSentences(S);
     if (id === 'body1') return E.body1Sentences(S);
@@ -308,11 +411,12 @@
   function writeView(o) {
     const slots = slotsFor(o.id);
     const draft = S.draft[o.id] || '';
-    const needData = (o.id === 'body1' && !S.features.some(f => f.name.trim())) || ((o.id === 'body2') && !S.changes.some(c => (c.subject || c.target).trim()));
+    const needData = !isMaps() ? !S.ai : (o.id === 'body1' && !S.features.some(f => f.name.trim())) || ((o.id === 'body2') && !S.changes.some(c => (c.subject || c.target).trim()));
     return `<section class="card"><details class="prep" open><summary>📌 Trước khi viết ${esc(o.title)}</summary>${prepFor(o.id)}</details></section>
     <section class="card">
       <div class="head"><h3>✍️ Gợi ý từng câu</h3><span class="muted small">Chọn 1 phương án mỗi câu · từ trong dàn ý được <mark>tô vàng</mark></span></div>
-      ${needData ? `<div class="empty">Chưa có dữ liệu bản đồ. <button type="button" class="btn sm" data-step="analyze">Điền ở bước Phân tích →</button></div>` : ''}
+      ${needData ? (isMaps() ? `<div class="empty">Chưa có dữ liệu bản đồ. <button type="button" class="btn sm" data-step="analyze">Điền ở bước Phân tích →</button></div>`
+        : `<div class="empty">Chưa có phân tích AI cho đề này. <button type="button" class="btn sm" data-step="prompt">Dán đề và bấm “AI phân tích đề” →</button></div>`) : ''}
       <div class="slots">${slots.map((s, si) => `<div class="slot">
         <div class="slot-head"><span>${esc(s.label)}</span>${s.optional ? '<span class="opt">tuỳ chọn</span>' : ''}</div>
         ${s.variants.map((v, vi) => {
@@ -334,7 +438,7 @@
     return WRITING.map(k => S.draft[k].trim()).filter(Boolean).join('\n\n');
   }
   function checkView() {
-    const r = E.check(essayText(), S);
+    const r = E.check(essayText(), isMaps() ? S : { tense: (S.ai && S.ai.tense) || 'past', changes: [] });
     const items = [
       'Introduction paraphrase đề, không chép nguyên văn',
       'Overview có xu hướng chung + 2 thay đổi nổi bật, không có vị trí chi tiết',
@@ -460,7 +564,12 @@
   }
 
   function applyAI(r) {
+    if (!r || typeof r !== 'object') throw new Error('AI trả về dữ liệu không hợp lệ. Thử lại.');
+    const types = TASK_TYPES.map(t => t.id);
+    S.type = types.includes(r.task_type) ? r.task_type : S.type;
+    S.ai = r;
     if (r.prompt_text && !S.promptText.trim()) S.promptText = r.prompt_text;
+    if (S.type !== 'maps') { if (r.tense) S.tense = r.tense; return; }
     for (const k of ['place', 'year1', 'year2']) if (r[k]) S[k] = r[k];
     if (r.tense) S.tense = r.tense;
     const fixPos = p => {
@@ -503,12 +612,26 @@
     const t = e.target.closest('button, a, [data-step]');
     if (!t) return;
     if (t.dataset.step) { e.preventDefault(); go(t.dataset.step); return; }
+    if (t.dataset.type) {
+      if (S.type === t.dataset.type) return;
+      S.type = t.dataset.type; S.view = 'outline';
+      // dạng chưa có phân tích AI → về bước Đề bài để dán đề
+      if (S.type !== 'maps' && (!S.ai || S.ai.task_type !== S.type)) S.step = 'prompt';
+      save(); render(); return;
+    }
     if (t.id === 'btn-library') { S.view = S.view === 'library' ? 'outline' : 'library'; render(); return; }
     if (t.id === 'btn-settings') { $('#api-key').value = AI.getKey(); $('#settings').showModal(); return; }
     if (t.id === 'api-save') { AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); return; }
     if (t.id === 'api-clear') { AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return; }
     if (t.id === 'timer') { startTimer(+t.dataset.min); return; }
-    if (t.id === 'sample-btn') { loadSample(); return; }
+    if (t.id === 'sample-btn') {
+      if (isMaps()) { loadSample(); return; }
+      const band = S.band; S = blank(); S.band = band;
+      S.promptText = C.sampleLine.prompt_text;
+      applyAI(JSON.parse(JSON.stringify(C.sampleLine)));
+      save(); go('analyze'); toast('Đã nạp ví dụ phân tích Line graph (số liệu minh hoạ).', 3500);
+      return;
+    }
     if (t.id === 'reset-btn') {
       if (t.dataset.armed) { S = blank(); save(); render(); toast('Đã xoá, bắt đầu bài mới.'); return; }
       t.dataset.armed = '1'; t.textContent = 'Bấm lần nữa để xoá hết'; t.classList.add('danger');
@@ -533,6 +656,12 @@
       if (c.main && S.changes.filter(x => x.main).length > 4) toast('Mẹo: chỉ nên chọn 3-4 thay đổi chính.');
       save(); render(); return;
     }
+    if (act === 'copy-lesson') {
+      try { await navigator.clipboard.writeText(lessonText()); toast('Đã sao chép phân tích.'); }
+      catch (err) { toast('Không sao chép được — hãy bôi đen và copy thủ công.'); }
+      return;
+    }
+    if (act === 'reanalyze') { go('prompt'); setTimeout(() => { const b = $('#ai-btn'); if (b && !b.disabled) runAI(b); }, 0); return; }
     if (act === 'clear-sec') { S.draft[S.step] = ''; save(); render(); return; }
     if (act === 'copy') {
       const txt = essayText();
@@ -544,7 +673,9 @@
 
   function showChip(btn) {
     const [key, id] = btn.dataset.chip.split(':');
-    const list = key === 'pos' ? C.positionVocab : C.changeVocab;
+    const list = key === 'pos' ? C.positionVocab : key === 'ai'
+      ? ((S.ai && S.ai.vocabulary) || []).map((x, i) => ({ id: String(i), phrase: x.phrase, meaning: x.meaning_vi, usage: '', example: x.example, note: '' }))
+      : C.changeVocab;
     const v = list.find(x => x.id === id);
     const box = btn.closest('.prep-box').querySelector('[data-chip-detail]');
     const wasOn = btn.classList.contains('on');
@@ -614,6 +745,7 @@
     const t = e.target;
     if (t.dataset.check != null) { S.checks[t.dataset.check] = t.checked; save(); return; }
     if (t.id === 'file') { setImageFromFile(t.files[0]); return; }
+    if (t.id === 'band') { S.band = t.value; save(); return; }
     if (t.dataset.f === 'tense') { S.tense = t.value; S._manual_tense = true; save(); return; }
     if (t.dataset.k && t.tagName === 'SELECT') {
       const it = findItem(t.dataset.k, t.dataset.id);
@@ -678,16 +810,16 @@
   async function runAI(btn) {
     if (!SAMPLE && !AI.getKey()) { $('#api-key').value = ''; $('#settings').showModal(); return; }
     const status = $('#ai-status');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> AI đang đọc đề…';
-    status.textContent = 'Có thể mất 10–40 giây.';
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> AI đang phân tích…';
+    status.textContent = 'Thường mất 30–90 giây (đọc ảnh, phân tích số liệu, soạn câu gợi ý).';
     try {
-      const r = await AI.analyze({ text: S.promptText.trim(), image: S.image });
+      const r = await AI.analyze({ text: S.promptText.trim(), image: S.image, band: S.band });
       applyAI(r);
       save();
-      toast('AI đã điền xong — kiểm tra lại ở bước Phân tích.', 3500);
+      toast(`AI nhận dạng: ${typeLabel(S.type)} — xem phân tích.`, 3500);
       go('analyze');
     } catch (err) {
-      btn.disabled = false; btn.textContent = '🤖 AI đọc đề + bản đồ';
+      btn.disabled = false; btn.textContent = '🤖 AI phân tích đề';
       status.textContent = '⚠️ ' + (err && err.message ? err.message : String(err));
     }
   }
