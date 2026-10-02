@@ -12,6 +12,13 @@ Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) →
 
 “Xem bài mẫu” mở một bài Maps có sẵn (đề minh hoạ) để xem app hoạt động mà không cần AI.
 
+## Dàn ý Ms. Gigi
+`js/gigi.js` chứa toàn bộ dàn ý từ tài liệu *IELTS WRITING Ms. Gigi*: 6 dạng (Line/Bar xu hướng, Bar/Pie/Table so sánh, Maps, Floor plan, Process nhân tạo, Process tự nhiên) với khung câu Introduction/Overview/Body 1/Body 2, quy tắc, từ vựng và bài mẫu, cùng các quy tắc chung (chủ thể, quy tắc “trọc lốc”, từ đồng nghĩa, so sánh 3 mức độ, nâng cấp Band 7+).
+- AI chọn đúng dàn ý cho đề và viết gợi ý 1 bám sát khung câu; gợi ý 2–3 dùng các cấu trúc khác trong dàn ý.
+- Mỗi đoạn hiện “📐 Khung dàn ý Ms. Gigi” (lấy thẳng từ file, không phụ thuộc AI).
+- Đoạn văn được kiểm tra theo quy tắc của cô (account for chỉ dùng cho %, witness, Body 1 Maps không nói thay đổi, Process dùng bị động hiện tại, side→ON, part→IN…).
+- Nút “📚 Dàn ý Ms. Gigi” mở thư viện theo từng dạng.
+
 ## AI
 - Dán ảnh đề (không cần gõ chữ) vẫn dùng được AI: bước 1 AI đọc ảnh thành chữ (câu đề + toàn bộ số liệu/nội dung hình, hiện ở mục “AI đọc được từ ảnh” để kiểm tra), bước 2 tạo gợi ý. Nếu chế độ xem không gửi được ảnh, app tự đọc chữ trong ảnh bằng OCR (Tesseract.js đóng gói trong `vendor/tesseract`).
 - Mở trong claude.ai: dùng tài khoản Claude của người xem, không cần API key.

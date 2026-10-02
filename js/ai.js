@@ -18,45 +18,56 @@ window.AI = (function () {
     '8.0': 'Band 8.0+: sophisticated yet natural; precise, concise, flexible grammar, nominalisation, no memorised phrases.',
   };
 
-  // Từ vựng & cấu trúc trong dàn ý của giáo viên → AI ưu tiên dùng (bắt buộc với Maps)
-  function outlineNotes(type) {
+  const G = window.GIGI;
+  // Dạng đề người dùng chọn → các dàn ý Ms. Gigi có thể áp dụng
+  const OUTLINE_CANDIDATES = {
+    maps: ['maps', 'floorplan'],
+    process: ['process_man', 'process_nat'],
+    charts: ['trend', 'compare'],
+    auto: ['trend', 'compare', 'maps', 'floorplan', 'process_man', 'process_nat'],
+  };
+
+  // Từ vựng Maps trong dàn ý (bảng A/B) — bắt buộc khi đề là bản đồ
+  function mapsVocab() {
+    return `MAPS VOCABULARY (teacher's tables — use these, vary synonyms):
+- Change: ${C.changeVocab.map(v => v.phrase).join(', ')}; ${C.writingStructures.map(g => g.items.join(', ')).join('; ')}.
+- Position: ${C.positionVocab.map(v => v.phrase).join(', ')}; is located in, is situated in, lies in, stands next to, can be found in, is positioned between, sits along, lies to the north of, in close proximity to, on the outskirts of, extends across, at the far end of the map.`;
+  }
+  function outlineNotes(ids) {
     const structures = C.sentenceStructures.map(s => `${s.name} (${s.formula})`).join('; ');
-    let t = `Sentence structures to use: ${structures}. Tip: Time + Object + Action + Position.`;
-    if (type === 'maps' || type === 'auto') {
-      t += `\nIF THE TASK IS A MAP, use the teacher's vocabulary below (vary synonyms, do not repeat the same phrase):
-- Change verbs: ${C.changeVocab.map(v => v.phrase).join(', ')}.
-- Extra structures: ${C.writingStructures.map(g => g.items.join(', ')).join('; ')}.
-- Position phrases: ${C.positionVocab.map(v => v.phrase).join(', ')}.
-- Rules: "in the north of X" = inside X, "to the north of X" = outside X; "side" takes ON; "part" takes IN; IN: center, middle, corner, part, area; AT: top, bottom, entrance, intersection, junction; ON: side, bank, edge, left/right-hand side.
-- Body 1 describes the first map (positions); Body 2 describes the changes (change verbs + positions). Choose only the 3-4 main changes.`;
-    }
-    return t;
+    return `THE TEACHER'S OUTLINE (Ms. Gigi) — EVERY paragraph MUST follow it:
+${G.generalBlock()}
+Basic sentence structures: ${structures}.
+
+${G.promptBlock(ids)}
+${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   }
 
   const SHAPE = `{
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "outline": "trend" | "compare" | "maps" | "floorplan" | "process_man" | "process_nat",   // which Ms. Gigi outline you followed
   "subject": "the exact subject in English, e.g. 'water consumption in the USA and China'",
   "topic_vi": "one Vietnamese sentence: what the task shows",
   "prompt_text": "the task question exactly as written if visible, else ''",
   "steps": [  // exactly 4 items in this order: Introduction, Overview, Body 1, Body 2
     {
       "title": "Vietnamese title of what this paragraph does for THIS task",
-      "guide_vi": "Vietnamese guidance (2-4 sentences): what to write, which data to pick, how to group, traps",
+      "guide_vi": "Vietnamese guidance (2-4 sentences): which Ms. Gigi frame to use, which data to pick and in what order, traps",
       "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
       "options": [ "full paragraph option 1", "option 2", "option 3" ]              // 3 alternative paragraphs
     }
   ]
 }`;
 
-  const RULES = `You are a professional IELTS Writing Task 1 examiner and teacher for Vietnamese learners.
-Golden rule: NO generic template writing. Read the task (text and/or image) carefully and use the EXACT subjects,
-countries, categories, places, units and years from it in every option. Never write "the given chart" or placeholders like X/Y.
-Quote real figures from the visual (approximate with "about/around" if unclear). Never invent data that is not shown.
-Paragraph lengths: Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 2 sentences starting with "Overall,", no figures.
-Body 1 and Body 2 = 3-5 sentences each, grouping the data logically, with accurate figures and comparisons.
-Use the correct tense (past for past years, present perfect up to now, future for plans/projections, present simple passive for processes).
-Each of the 3 options must use different structures and vocabulary, but all must be accurate.
-All guidance and meanings in Vietnamese; all options in English.`;
+  const RULES = `You are an IELTS Writing Task 1 examiner helping a Vietnamese teacher, Ms. Gigi, whose students must write EXACTLY in her outline.
+1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs following that outline's frames, paragraph plan and rules.
+   Option 1 of every paragraph must follow her frames almost word for word (only fill the brackets with the task's real content).
+   Options 2 and 3 keep the same paragraph plan but use her other listed structures (Band 7+ upgrades, comparison levels, synonyms) for variety.
+2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
+3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
+4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
+5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
+6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, name the frame you used (e.g. "Dùng khung: In [năm đầu], the percentage of …").`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -78,12 +89,13 @@ Reply with ONLY one JSON object:
   "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
 }`;
 
-  function buildPrompt({ text, type, band, visual }) {
+  function buildPrompt({ text, type, band, visual, detected }) {
     return `${RULES}
 
-Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}
+Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}${detected ? ' (image reader detected: ' + detected + ')' : ''}
 Target level: ${BAND[band] || BAND['7.0']}
-${outlineNotes(type)}
+
+${outlineNotes(OUTLINE_CANDIDATES[type] || OUTLINE_CANDIDATES.auto)}
 
 ${taskBlock(text, visual)}
 Reply with ONLY one JSON object in this shape:
@@ -98,13 +110,14 @@ ${SHAPE}`;
 
 Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Target level: ${BAND[band] || BAND['7.0']}
-${outlineNotes(analysis.task_type === 'maps' ? 'maps' : 'charts')}
+
+${outlineNotes([analysis.outline || G.outlineFor(analysis.task_type)])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
 Paragraphs the student has already chosen:
 ${prev || '(none yet)'}
 
-Write 3 NEW options for the ${NAMES[stepIndex]} paragraph that fit with the chosen paragraphs and do not repeat their data.
+Write 3 NEW options for the ${NAMES[stepIndex]} paragraph, following the same Ms. Gigi outline ("${analysis.outline || G.outlineFor(analysis.task_type)}") frames for this paragraph, fitting with the chosen paragraphs and not repeating their data.
 Do not reuse these earlier options:
 - ${old}
 
@@ -264,8 +277,10 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   }
 
   /* Bước 2: tạo gợi ý 4 đoạn từ chữ */
-  async function analyze({ text, type, band, visual, signal }) {
-    return validate(await ask(buildPrompt({ text, type, band, visual }), null, signal));
+  async function analyze({ text, type, band, visual, detected, signal }) {
+    const r = validate(await ask(buildPrompt({ text, type, band, visual, detected }), null, signal));
+    r.outline = G.outlineFor(r.task_type, r.outline);
+    return r;
   }
   async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
     const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);

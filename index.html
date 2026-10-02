@@ -156,6 +156,18 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .progress span.on { background: var(--accent); border-color: var(--accent); }
 .step-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .step-head h2 { margin-top: 4px; }
+.frame-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; border: 1.5px solid var(--accent); background: var(--surface); }
+.frame-box h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; color: var(--accent); }
+.frame-box h3 span { text-transform: none; letter-spacing: 0; color: var(--text); }
+.frame-rule { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.frames { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-essay); font-size: 15px; }
+.slot { color: var(--accent); font-style: italic; }
+.warn-line { display: block; color: var(--warn); font-size: 13px; }
+.para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.vsec h3 .muted { font-weight: 400; font-size: 13px; }
 .guide, .vocab-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; }
 .guide { background: var(--ink-soft); }
 .vocab-box { background: var(--surface-2); border: 1px solid var(--border); }
@@ -247,11 +259,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
       <span class="logo" aria-hidden="true">✍️</span>
       <div>
         <h1>Task 1 Writing Coach</h1>
-        <p class="sub">Đọc đề · Gợi ý từng đoạn bám sát đề · Band 6.0–8.0</p>
+        <p class="sub">Theo dàn ý Ms. Gigi · Gợi ý từng đoạn bám sát đề</p>
       </div>
     </div>
     <div class="top-actions">
-      <button class="btn ghost" id="btn-vocab" type="button">📚 Kho từ vựng</button>
+      <button class="btn ghost" id="btn-vocab" type="button">📚 Dàn ý Ms. Gigi</button>
       <button class="btn ghost" id="btn-new" type="button">＋ Nhập đề khác</button>
       <button class="btn ghost" id="btn-key" type="button" aria-label="Cài đặt API key">⚙️</button>
     </div>
@@ -334,6 +346,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
               <h3>🧭 Phân tích &amp; hướng dẫn</h3>
               <p id="step-guide"></p>
             </div>
+            <div class="frame-box">
+              <h3>📐 Khung dàn ý Ms. Gigi · <span id="frame-name"></span></h3>
+              <p class="frame-rule" id="frame-rule"></p>
+              <ul class="frames" id="frame-list"></ul>
+            </div>
             <div class="vocab-box">
               <h3>📌 Từ vựng riêng cho đề này</h3>
               <div class="chips" id="step-vocab"></div>
@@ -350,7 +367,8 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             <label class="field"><span>Hoặc tự chỉnh sửa / soạn đoạn này</span>
               <textarea id="para" rows="6" placeholder="Chọn một gợi ý ở trên hoặc tự viết…"></textarea>
             </label>
-            <div class="row between small muted"><span id="para-count">0 từ</span><span id="para-hint"></span></div>
+            <div class="small muted"><span id="para-count">0 từ</span></div>
+            <div id="para-hint" aria-live="polite"></div>
           </div>
 
           <div class="row between nav">
@@ -399,7 +417,8 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 
   <dialog id="dlg-vocab" class="dlg wide">
     <div class="dlg-body">
-      <div class="row between"><h2>📚 Kho từ vựng &amp; quy tắc</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <div class="row between"><h2>📚 Dàn ý Ms. Gigi</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <div class="tabs" id="vocab-tabs" role="tablist"></div>
       <div id="vocab-content"></div>
     </div>
   </dialog>
@@ -527,54 +546,414 @@ window.CONTENT = (function () {
   // Bài mẫu có sẵn (đề minh hoạ tự soạn) để xem app hoạt động khi chưa chạy AI
   const demo = {
     task_type: 'maps',
+    outline: 'maps',
     subject: 'the village of Stokeford in 1930 and 2010',
     topic_vi: 'Hai bản đồ làng Stokeford năm 1930 và 2010.',
     prompt_text: 'The maps below show the village of Stokeford in 1930 and 2010. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
     steps: [
       {
-        title: 'Paraphrase đề: làng Stokeford, 1930 → 2010',
-        guide_vi: 'Viết 1 câu: đổi “show” thành “illustrate/compare”, giữ đúng tên làng Stokeford và hai mốc 1930, 2010. Không chép nguyên câu đề.',
-        vocab: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'the changes that took place in', meaning_vi: 'những thay đổi diễn ra ở' }, { phrase: 'between 1930 and 2010', meaning_vi: 'trong giai đoạn 1930–2010' }, { phrase: 'the layout of', meaning_vi: 'cách bố trí của' }],
+        title: 'Introduction: sự phát triển của làng Stokeford, 1930 → 2010',
+        guide_vi: 'Dùng khung: The maps illustrate the development of [place] between [year X] and [year Y]. Giữ đúng tên làng và hai mốc năm, không chép nguyên câu đề.',
+        vocab: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'the development of', meaning_vi: 'sự phát triển của' }, { phrase: 'the changes in', meaning_vi: 'những thay đổi ở' }, { phrase: 'between 1930 and 2010', meaning_vi: 'trong giai đoạn 1930–2010' }],
         options: [
-          'The two maps illustrate the changes that took place in the village of Stokeford between 1930 and 2010.',
-          'The maps compare the layout of the village of Stokeford in 1930 with its layout in 2010.',
-          'The diagrams show how the village of Stokeford developed over the 80-year period from 1930 to 2010.',
+          'The maps illustrate the development of the village of Stokeford between 1930 and 2010.',
+          'The maps illustrate the changes in the village of Stokeford between 1930 and 2010.',
+          'The two maps illustrate how the village of Stokeford developed over the 80-year period from 1930 to 2010.',
         ],
       },
       {
-        title: 'Overview: Stokeford chuyển từ làng nông nghiệp sang khu dân cư',
-        guide_vi: 'Hai ý lớn: (1) đất nông nghiệp phía nam biến thành khu dân cư, có thêm công trình mới; (2) đường chính giữ nguyên. Không đưa vị trí chi tiết hay năm cụ thể vào câu thứ hai.',
-        vocab: [{ phrase: 'experienced significant changes', meaning_vi: 'trải qua thay đổi lớn' }, { phrase: 'underwent development', meaning_vi: 'được phát triển' }, { phrase: 'remained unchanged', meaning_vi: 'không thay đổi' }, { phrase: 'residential', meaning_vi: 'thuộc khu dân cư' }],
+        title: 'Overview: thêm khu dân cư và công trình mới, đường chính giữ nguyên',
+        guide_vi: 'Dùng khung: Overall, the area underwent [significant] development, with [additions] and the [removal/redevelopment] of [công trình cũ]. Some areas, however, remained unchanged. Không đưa vị trí chi tiết.',
+        vocab: [{ phrase: 'underwent significant development', meaning_vi: 'được phát triển đáng kể' }, { phrase: 'the addition of', meaning_vi: 'sự bổ sung' }, { phrase: 'the redevelopment of', meaning_vi: 'sự tái phát triển' }, { phrase: 'remained unchanged', meaning_vi: 'không thay đổi' }],
         options: [
-          'Overall, Stokeford experienced significant changes over the period, becoming far more residential as its farmland gave way to housing. However, the main road running through the village remained unchanged.',
-          'Overall, the village underwent development with new facilities, the most noticeable being a large residential area and a retirement home. By contrast, the main road and the school site stayed in the same place.',
-          'Overall, Stokeford was transformed from a small farming community into a much larger residential village, while its basic road layout remained unchanged.',
+          'Overall, the village underwent significant development, with the addition of a retirement home and new housing and the redevelopment of its southern farmland. Some areas, however, remained unchanged.',
+          'Overall, the area underwent significant transformation, with the conversion of farmland into a residential area and the construction of new facilities. Meanwhile, the main road through the village remained unchanged.',
+          'Overall, Stokeford underwent considerable development, becoming far more residential, while its basic road layout remained unchanged.',
         ],
       },
       {
-        title: 'Body 1: Làng Stokeford năm 1930 (Map 1)',
-        guide_vi: 'Miêu tả vị trí các công trình chính trên bản đồ 1930: nhà dọc đường chính, trường ở trung tâm, bưu điện cạnh trường, đất nông nghiệp ở phía nam. Dùng công thức Thời gian + Vật thể + Hành động + Vị trí.',
-        vocab: [{ phrase: 'was located', meaning_vi: 'nằm ở' }, { phrase: 'along the main road', meaning_vi: 'dọc đường chính' }, { phrase: 'in the center of', meaning_vi: 'ở trung tâm' }, { phrase: 'next to / adjacent to', meaning_vi: 'bên cạnh' }, { phrase: 'was occupied by', meaning_vi: 'được chiếm bởi' }],
+        title: 'Body 1: bố cục làng Stokeford năm 1930 (chỉ bản đồ 1)',
+        guide_vi: 'Dùng khung: In [thời điểm 1], the layout of [khu vực] included several key features. → [Công trình] was located in … → … lay to the … of …, while … was situated in … → Additionally, … Chỉ tả vị trí, KHÔNG nói thay đổi.',
+        vocab: [{ phrase: 'the layout of … included several key features', meaning_vi: 'bố cục … gồm vài đặc điểm chính' }, { phrase: 'was located in', meaning_vi: 'nằm ở' }, { phrase: 'lay to the south of', meaning_vi: 'nằm về phía nam của' }, { phrase: 'was situated in', meaning_vi: 'nằm ở' }, { phrase: 'stood next to', meaning_vi: 'nằm cạnh' }],
         options: [
-          'In 1930, Stokeford was a small farming village. Houses were located along the main road, and a school could be seen in the center of the village, next to the post office. The area in the south of the village was occupied by farmland, which stretched as far as the edge of the map.',
-          'In 1930, there were only a few houses, all built along the main road. The village school stood in the middle of the village, with a post office adjacent to it, while the whole southern part of Stokeford was farmland. Apart from these buildings, the village had very few facilities.',
-          'Looking at the first map, Stokeford in 1930 consisted mainly of houses along the main road. In the center of the village, a school could be seen next to the post office. Moreover, a large area of farmland was located in the south, covering almost half of the village.',
+          'In 1930, the layout of the village included several key features. A row of houses was located along the main road, close to a school in the center of the village. A post office stood next to the school, while a large area of farmland was situated in the southern part of the village. Additionally, the main road ran through the middle of Stokeford and was surrounded by open fields.',
+          'In 1930, the layout of Stokeford included several key features. Most houses were located along the main road, and a school could be found in the center of the village, adjacent to the post office. Farmland lay to the south of the houses, while open fields were situated at the edge of the map.',
+          'In 1930, the layout of the village included several key features. The center was occupied by a school and a post office, while houses sat along the main road. Additionally, farmland covered almost the whole southern part of Stokeford, stretching as far as the edge of the map.',
         ],
       },
       {
-        title: 'Body 2: Những thay đổi đến năm 2010 (Map 2)',
-        guide_vi: 'Chọn 3-4 thay đổi chính: đất nông nghiệp → khu dân cư, viện dưỡng lão mới ở phía bắc, trường mở rộng về phía tây, bưu điện → cửa hàng. Kết bằng điểm giữ nguyên (đường chính). Đa dạng hóa: was built / was constructed.',
-        vocab: [{ phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was built / was constructed', meaning_vi: 'được xây dựng' }, { phrase: 'was expanded', meaning_vi: 'được mở rộng' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'to the west', meaning_vi: 'về phía tây' }],
+        title: 'Body 2: những thay đổi đến năm 2010 (bản đồ 2)',
+        guide_vi: 'Dùng khung: By [thời điểm 2], the area experienced significant changes, with … → … was [replaced by / converted into] …, which was located in … → … was [expanded] to …, while … remained unchanged in … → A new … was constructed in … Chỉ chọn 3-4 thay đổi chính.',
+        vocab: [{ phrase: 'experienced significant changes', meaning_vi: 'trải qua thay đổi lớn' }, { phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi chức năng thành' }, { phrase: 'was expanded to the west', meaning_vi: 'được mở rộng về phía tây' }, { phrase: 'was constructed in', meaning_vi: 'được xây ở' }],
         options: [
-          'By 2010, the farmland in the south had been transformed into a residential area. A new retirement home was built in the north of the village, and the school was expanded to the west. Moreover, the post office was converted into a shop, while the main road remained unchanged. As a result, the village became noticeably more densely populated.',
-          'In 2010, the most striking change was the conversion of the southern farmland into a large housing estate. A retirement home was constructed in the north, and the school was extended to the west. The post office next to the school was converted into a shop, while the main road running through the village remained unchanged.',
-          'Over the following eighty years, the southern farmland was redeveloped as a residential area. In addition, Stokeford saw the addition of a retirement home in the north, while the school grew larger to the west. Finally, the post office became a shop, but no significant changes occurred to the main road, which still ran through the middle of Stokeford.',
+          'By 2010, the village experienced significant changes, with several new constructions. The farmland in the south was transformed into a residential area, which was located on both sides of a new road. The school was expanded to the west, while the main road remained unchanged in the center. A new retirement home was constructed in the northern part of the village, opposite the houses along the main road.',
+          'By 2010, the area experienced significant changes, with new housing and facilities. The southern farmland was replaced by a large housing estate, and the post office next to the school was converted into a shop. The school was expanded to the west, while the main road remained unchanged. A new retirement home was constructed in the north of the village.',
+          'By 2010, Stokeford experienced significant changes, with several new constructions. Housing was built over the farmland in the south, and a retirement home was erected in the north. The school was enlarged to the west, while the post office was converted into a shop. These modifications resulted in a much more residential village with fewer open spaces.',
         ],
       },
     ],
   };
 
   return { demo, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips };
+})();
+</script>
+  <script>
+/* Dàn ý IELTS Writing Task 1 – Ms. Gigi (Lokilukita).
+ * Chép từ tài liệu "IELTS WRITING Ms.Gigi". Mọi gợi ý AI phải đi theo đúng dàn ý ở đây;
+ * giao diện cũng hiển thị khung câu từ file này (không phụ thuộc AI). */
+window.GIGI = (function () {
+  /* ---------- 6 dạng dàn ý ---------- */
+  const OUTLINES = {
+    trend: {
+      name: 'Line graph / Bar chart có thời gian',
+      short: 'Line / Bar (xu hướng)',
+      when: 'Biểu đồ có trục thời gian (nhiều năm): line graph, bar chart theo năm, table theo năm.',
+      intro: {
+        rule: '1 câu: Name + Verb + Object of Description + Time.',
+        frames: [
+          'The line graph / The bar chart + shows / illustrates / presents / demonstrates + the number of / the amount of / the quantity of / the percentage of / the proportion of / the figure for + [chủ thể] + from ... to ... / between ... and ... / over a period of ... years from ... to ...',
+        ],
+        notes: ['number of = đếm được; amount of = không đếm được; quantity of = cả hai', 'percentage of = % phần so với tổng; proportion of = tỷ lệ giữa các phần; figure for = số liệu tổng quan'],
+      },
+      overview: {
+        rule: '2 câu: 2 xu hướng khác nhau + cái cao nhất / phổ biến nhất. Không có số liệu.',
+        frames: [
+          'Overall, it is obvious that while [S] + [V], the opposite was true for [cái còn lại].',
+          'In addition, [...] was the most popular [...] at the end of the period.',
+          '(Nếu cùng xu hướng) All [...] show a similar trend in percentage changes.',
+        ],
+      },
+      body1: {
+        rule: 'Chia theo thời gian (hoặc theo nhóm xu hướng: Body 1 nhóm tăng trưởng). Viết số liệu NĂM ĐẦU TIÊN rồi xu hướng các năm tiếp theo.',
+        frames: [
+          'In [năm đầu], the percentage of [A] was [..]%, while the proportions for [B] and [C] were [..]% and [..]% respectively.',
+          'Over the next [..] years, [câu thể hiện xu hướng tăng/giảm và so sánh].',
+        ],
+      },
+      body2: {
+        rule: 'Giai đoạn còn lại (hoặc nhóm biến động/giảm), xu hướng + so sánh, kết bằng điểm cuối.',
+        frames: [
+          'From [..] to [..] (Between [..] and [..]), [câu thể hiện xu hướng tăng/giảm và so sánh].',
+          '[A] was overtaken by [B] in [năm]. / The two figures intersected at [điểm] in [năm].',
+        ],
+      },
+      rules: [
+        '4 xu thế: Tăng (rise, jump, grow, climb, go up, increase, soar) · Giảm (fall, drop, decline, decrease, go down, plunge, plummet) · Dao động (fluctuate) · Ổn định (remain stable, remain steady).',
+        'Trạng từ: sharply, quickly, rapidly, steeply / considerably, significantly, substantially / steadily, gradually, moderately / slightly, slowly.',
+        'Thêm số liệu: by (mức thay đổi: increased by 10%), to (mức đạt tới: rose to 10%), at (ổn định: remained at 10%), from ... to ...; around/about, nearly.',
+        '3 cấu trúc: S + V + adv (… increased significantly) · There + be + a + adj + noun + in … (There was a significant increase in …) · Time + saw/witnessed/experienced + a + adj + noun + in … (The first five years witnessed a significant increase in …).',
+        '“witness”: chủ ngữ là Period/Year/Decade ✅, Country/City/Market ✅, Chart/Graph ⚠️ không nên, Percentage/Number/Figure ❌, Age group ❌.',
+        'Kết hợp xu hướng: [xu hướng 1], followed by [xu hướng 2] · saw a sharp increase before leveling off at … · A was overtaken by B in [năm] · The gap between A and B narrowed until they met at the same level.',
+        'So sánh: whereas, while (2 xu hướng trái ngược), in contrast, compared to, respectively.',
+      ],
+      sample: `The line graph illustrates the percentage of commuters using cars, buses, and bicycles in Metro City between 2000 and 2025.
+Overall, it is obvious that while the proportion of car users witnessed a downward trend, the opposite was true for bus and bicycle commuters. In addition, bus commuting is projected to become the most popular method at the end of the period.
+In 2000, the percentage of car commuters was the highest at approximately 60%, while the proportions for bus and bicycle users were around 25% and 5% respectively. Over the next 10 years, the figure for car usage experienced a gradual decline to roughly 55%. In contrast, the percentages of people traveling by bus and bicycle saw a slight increase, reaching about 30% and 10%.
+From 2010 to 2025, the proportion of people driving cars continued to drop significantly, falling to about 35% at the end of the period. Meanwhile, the figures for bus and bicycle commuters experienced a steady growth. Notably, the proportion of bus users overtook that of car users in 2023, before climbing to nearly 40% in 2025, whereas the figure for bicycles ended at approximately 20%.`,
+    },
+
+    compare: {
+      name: 'Bar / Pie / Table so sánh (không thời gian)',
+      short: 'Bar / Pie / Table (so sánh)',
+      when: 'Số liệu tại một thời điểm hoặc vài thời điểm rời rạc để so sánh các hạng mục: pie chart, bar chart không theo năm, table, 2 biểu đồ.',
+      intro: {
+        rule: '1 câu: Name + Verb + Object of Description + Time.',
+        frames: ['The pie chart / The bar chart / The table + illustrates / shows + [chủ thể chính xác] + in [năm/nơi].'],
+      },
+      overview: {
+        rule: '1 câu: hạng mục cao nhất, thấp nhất, và nhóm giống/khác nhau. Không có số liệu. (2 biểu đồ: nối miếng to nhất của mỗi hình bằng While/Whereas.)',
+        frames: [
+          'Overall, [danh mục nổi bật nhất] had the [highest/lowest] [number/proportion/sales], while [danh mục khác] recorded the [lowest/highest] figures, and [danh mục khác] showed [similar/different] values.',
+          '(2 biểu đồ) While [A] and [B] are the most dominant [...] in the first chart, [C] is the [...] in the second one.',
+        ],
+      },
+      body1: {
+        rule: 'Đi từ số TO đến số NHỎ: quán quân → á quân → số trung bình. (2 biểu đồ: Body 1 = biểu đồ 1.)',
+        frames: [
+          'Looking at the [chart] more closely, [category A] accounted for [..]%, making it the dominant category.',
+          'This was followed by [category B] at [..]%, which was (nearly double / slightly lower / roughly the same as) [category C].',
+          'Meanwhile, [category D] represented [..]%, showing a noticeable difference compared with [another category].',
+        ],
+      },
+      body2: {
+        rule: 'Các số nhỏ còn lại + điểm nổi bật để so sánh. (2 biểu đồ: Body 2 = biểu đồ 2, đối chiếu ngược với biểu đồ 1, tả "thằng đột biến" và "thằng đặc biệt".)',
+        frames: [
+          'By contrast, the smallest proportion was seen in [category E], at only [..]%.',
+          'Similarly, [category F] also had a relatively modest figure, standing at [..]%.',
+          'It is also worth noting that [G] and [H] were identical, at [..]% each.',
+          'Another striking feature is that [the combined share of A and B exceeded half the total / one category was more than three times as large as another].',
+          '(2 biểu đồ) Turning to the [chart 2], the highest proportion/number was seen in [E], at [..]%. By contrast, [F] had the lowest figure, standing at [..]%.',
+        ],
+      },
+      rules: [
+        'Pie: “account for, make up, constitute, represent, a larger share than, the lion’s share” CHỈ dùng khi dữ liệu là % và tổng 100%. Không nói “Product A accounted for 500 units”.',
+        'Bar (số tuyệt đối): dùng outweigh, surpass, exceed, double, lag behind; recorded/registered, stood at, reached, attracted (người), sold/produced/earned; “There were 500 visitors in City A, compared to only 200 in City B.”',
+        'Số liệu không chính xác 100% → approximately, about, roughly. Chênh lệch nhỏ: slightly, marginally; lớn: far, significantly.',
+        'Tránh lặp higher than/lower than — xen kẽ outweigh, surpass, in contrast.',
+        'Phân số: 100% = all/every · 75% = three quarters · 50% = a half · 33% = about a third · 25% = a quarter · 0 = no/none.',
+        'MỨC ĐỘ 1 – cao nhất (mở đoạn): [Chủ thể] tops the list / ranks first, accounting for [số] · [Chủ thể] recorded/registered the highest figure/proportion, standing at [số] · [Chủ thể] was the most dominant motive/factor, at [số].',
+        'MỨC ĐỘ 2 – so sánh hơn + đối lập: While the figure for [A] was [số], that of [B] was significantly lower/higher, at [số] · The figure for [A] stood at [số]. In stark contrast, [B] registered only [số] · [A] was higher/lower than [B] ([số A] compared to [số B]).',
+        'MỨC ĐỘ 3 – gấp nhiều lần (Band 7+): The figure for [A] was double/triple/nearly triple that of [B] · [A] was [số] times higher than that of [B] · [A] was only a third/a quarter of the [B] total.',
+        'Câu ghép: mệnh đề quan hệ (…50%, which was the highest figure in the chart) · While/Whereas (While Group A accounted for 50%, Group B represented only 10%) · respectively (A and B stood at 10% and 20% respectively).',
+      ],
+      sample: `The pie charts illustrate the survey responses from foreign language teachers in Britain regarding the primary reasons their students choose to learn a foreign language, alongside their perceptions of recent changes in these motivations.
+Overall, it is evident that travel and business are the most dominant motives for language acquisition, whereas buying property overseas is perceived as the reason experiencing the most significant recent growth.
+Regarding the primary motives, travel tops the list, accounting for the highest proportion at 33%. Business is the second most common reason, registered at 26%, followed closely by purchasing real estate abroad at 19%. In stark contrast, personal development and social contacts each represent a mere 7%, while general interest accounts for the lowest figure at only 3%.
+Looking at the second chart, a striking 34% of teachers reported a recent increase in students learning languages to buy property overseas. Business also saw a notable rise according to 19% of respondents, while social contacts registered a 15% increase. Whereas travel was the most popular overall motive in the first chart, it was noted as a growing factor by only 3% of educators in the second one.`,
+    },
+
+    maps: {
+      name: 'Maps (thay đổi qua thời gian)',
+      short: 'Maps',
+      when: 'Hai (hoặc nhiều) bản đồ của một nơi ở các năm khác nhau, hoặc bản đồ hiện tại + quy hoạch.',
+      intro: {
+        rule: '1 câu.',
+        frames: ['The maps illustrate the development of [place] between [year X] and [year Y].', 'The maps illustrate the changes in [place] between [..] and [..].'],
+      },
+      overview: {
+        rule: '1 câu (+ câu ngắn giữ nguyên): thay đổi chính, không vị trí chi tiết.',
+        frames: [
+          'Overall, the area underwent [significant/considerable] development, with [new constructions / additions of facilities] and the [removal/redevelopment] of [công trình cũ]. Some areas, however, remained unchanged.',
+          'Overall, the area underwent significant transformation, with [main change 1] and [main change 2]. Meanwhile, [trend/contrast] was also noticeable.',
+        ],
+      },
+      body1: {
+        rule: 'CHỈ miêu tả vị trí các công trình trên bản đồ đầu tiên, không đề cập thay đổi.',
+        frames: [
+          'Mở đoạn: In [thời điểm 1], the layout of [khu vực] included several key features.',
+          'Chi tiết vị trí: [Công trình 1] was located in [the north/center], [adjacent to/close to] [Công trình 2].',
+          'Vị trí khác: [Công trình 3] lay to the [north/south] of [Công trình 4], while [Công trình 5] was situated in [the top-left corner / at the edge of the map].',
+          'Vị trí bổ sung: Additionally, [Công trình 6] stood next to [Công trình 7] and was surrounded by [Công trình 8].',
+        ],
+      },
+      body2: {
+        rule: 'Miêu tả thay đổi và vị trí trên bản đồ 2 (chỉ 3-4 thay đổi chính).',
+        frames: [
+          'Mở đoạn: By [thời điểm 2], the area experienced significant changes, with [new constructions/removals].',
+          'Thay đổi và vị trí: [Công trình 1] was [demolished / replaced by / converted into] [công trình mới], which was located in [the north].',
+          'Thay đổi khác: [Công trình 2] was [expanded/relocated] to [the south], while [Công trình 3] remained unchanged in [the center].',
+          'Vị trí bổ sung: A new [Công trình 4] was constructed in [the top-left corner], [next to/opposite] [Công trình 5].',
+          '(Kết quả) These modifications resulted in [a reduction in open space / more facilities for students].',
+        ],
+      },
+      rules: [
+        'In the North of the city = bên TRONG thành phố · To the North of the city = bên NGOÀI, lệch về hướng Bắc.',
+        'Có “side” → ON (on the northern side of the bridge) · Có “part” → IN (in the eastern part of the village).',
+        'Nhóm IN: center, middle, corner, part, area · AT: top, bottom, entrance, intersection, junction · ON: side, bank, edge, left/right-hand side · TO: north/south/east/west of [object].',
+        'Paraphrase vị trí: The house is located to the right of the tree · On the right-hand side of the tree, a house can be seen · The area to the right of the tree is occupied by a house.',
+        'Đồng nghĩa: xây mới erected // constructed / built · phá bỏ demolished // knocked down · mở rộng enlarged // expanded · thay thế replaced by // made way for · chuyển chỗ relocated to · hiện đại hoá modernized // renovated.',
+        'Lỗi hay gặp: liệt kê quá nhiều chi tiết · dùng hiện tại đơn (phải dùng quá khứ) · lặp từ · quên so sánh hai thời điểm.',
+        'Thời gian: In 1990 / In the first map · By 2020 / In the second map / In the final map · Over the 30 years / Over the two decades · From … to …',
+        'Mẹo: Thời gian + Vật thể + Hành động + Vị trí (In 1995, a cafe was located next to the library).',
+      ],
+      sample: `The maps illustrate the development of the village of Ryemouth between 1995 and present.
+Overall, the area underwent significant development, with the addition of new recreational facilities and the removal of the fishing port, while some residential areas remained unchanged.
+In 1995, the layout of the village included several key features. A housing area was located in the north-west, close to a main road and a small cluster of houses. A shop lay to the south of the housing area, while a forest park was situated in the center of the map. Additionally, a hotel stood next to the forest park, and a fish market stood next to a fishing port with a pier by the sea in the south.
+By present, the area experienced significant changes, with several new constructions and removals. The fish market and the fishing port in the south were demolished and replaced by new apartments, which were located along the coast. The shop was converted into a restaurant, while the hotel remained unchanged in the center-right. A new golf course was constructed in the north-east, and the forest park was replaced by tennis courts. Furthermore, a new car park was constructed next to the hotel.`,
+    },
+
+    floorplan: {
+      name: 'Maps dạng building / floor plan (1 sơ đồ)',
+      short: 'Floor plan',
+      when: 'Một sơ đồ mặt bằng tòa nhà/khu vực, không có thay đổi theo thời gian.',
+      intro: { rule: '1 câu.', frames: ['The diagram illustrates the layout of [building/area] and the arrangement of [rooms/facilities/exits].'] },
+      overview: {
+        rule: '1-2 câu: bố cục chung + đặc điểm nổi bật nhất.',
+        frames: [
+          'Overall, the building is divided into [..] main sections, including [..], [..] and [..].',
+          'The [most noticeable feature] is [central hall/exits/key room], and [additional feature] can also be observed.',
+          'Overall, the building has a symmetrical layout centred around a main hall. / Overall, the central area serves as the main access point, with most facilities arranged around it.',
+        ],
+      },
+      body1: {
+        rule: 'Các khu vực chính theo hướng và trung tâm.',
+        frames: [
+          'On the [north/south/west/east] side, there is [room/facility].',
+          'In the centre of the building, [main hall/lobby] is located, which connects to [other areas].',
+          'Surrounding this central area are [classrooms/offices/rooms].',
+        ],
+      },
+      body2: {
+        rule: 'Lối đi, kết nối và tiện ích phụ.',
+        frames: [
+          'The building is equipped with [stairs/lifts/emergency exits], providing access to [upper floors/outdoor area].',
+          'In addition, [corridor/pathway] runs through the [centre/side], linking [..] to [..].',
+          'There are also [fire exits/toilets/storage rooms] situated [in the corners/along the hallway].',
+        ],
+      },
+      rules: [
+        'Vị trí: to the left/right of …, adjacent to …, opposite …, between … and …, next to …, at the end of the corridor …, at the entrance …, near the main entrance …',
+        'Layout verbs: occupies, is positioned, is located, is situated, is found, lies.',
+        'Kết nối: is connected to, gives access to, leads to, opens into, branches off into, provides direct access to.',
+        'Kích thước: occupies the largest area, takes up most of the space, covers approximately half of the building, is considerably larger than …',
+      ],
+      sample: '',
+    },
+
+    process_man: {
+      name: 'Process nhân tạo (sản xuất)',
+      short: 'Process (nhân tạo)',
+      when: 'Quy trình sản xuất / chế biến có đầu vào và thành phẩm.',
+      intro: { rule: '1 câu.', frames: ['The diagram demonstrates / illustrates the process of [V-ing …].'] },
+      overview: {
+        rule: '1-2 câu: số giai đoạn, bắt đầu và kết thúc.',
+        frames: [
+          'Overall, this process comprises [số] main stages, beginning with [đầu vào] and ending with [đầu ra].',
+          'Overall, there are [..] main stages in the process, beginning with [..] and ending with [..].',
+        ],
+      },
+      body1: {
+        rule: 'Các bước đầu, dùng bị động thì hiện tại.',
+        frames: ['At the first stage in the process, [bước 1]. After that, [bước 2]. Following this, [bước 3].'],
+      },
+      body2: {
+        rule: 'Các bước còn lại đến thành phẩm.',
+        frames: [
+          'Subsequently, [bước 4]. Once this is completed, [bước 5] occurs, followed by [bước 6].',
+          'In the final stage, [bước cuối], which results in [thành phẩm].',
+        ],
+      },
+      rules: [
+        'Từ nối trình tự: First/Firstly/Initially · Next/Then · After that/Subsequently · Finally/In the final step.',
+        'Động từ (bị động hiện tại): is/are done, is/are produced, is transformed into, is carried out.',
+        'Đưa vào máy: be fed into, be introduced into · Di chuyển: be transferred to, be conveyed to, be moved to · Xử lý: undergo, be processed in, be subjected to.',
+        'Kéo dài nội dung: (1) thêm thời gian/địa điểm/dụng cụ có trong hình (dried using hot air in a special machine for 24 hours) · (2) mệnh đề rút gọn before V-ing / after being V3 / which is then … · (3) tả trạng thái trước và sau (the trimmed logs are fed into a machine to be cut into small wood chips) · (4) gom bước nhỏ thành giai đoạn lớn (The entire process can be divided into two main phases, starting with … and ending with …).',
+      ],
+      sample: `The diagram illustrates the process of how olive oil is produced.
+Overall, this process comprises several main stages, beginning with harvesting the olives and ending with storing the oil in a tank.
+At the first stage in the process, olives are harvested from trees and put into a collection vat. After that, they are moved to be de-leafed and washed. Following this, the olives are crushed in an olive mill to create olive paste. Next, the paste is put into a malaxer at a temperature of under 27°C.
+Subsequently, the mixture is pressed in a centrifugal press. From this stage, pomace is separated and transported to refining factories for further processing. Meanwhile, the remaining virgin oils are directed into two parallel stages: separation and decantation. Through these processes, waste water, solids, and other residues are removed. Finally, the cleaned oil is collected and stored in a storage tank.`,
+    },
+
+    process_nat: {
+      name: 'Process tự nhiên (vòng đời / chu trình)',
+      short: 'Process (tự nhiên)',
+      when: 'Vòng đời sinh vật, chu trình tự nhiên (nước, đá…), lặp lại.',
+      intro: { rule: '1 câu.', frames: ['The diagram illustrates the life cycle / natural process of [đối tượng].'] },
+      overview: {
+        rule: '1 câu: chu trình lặp lại, số giai đoạn, đầu và cuối.',
+        frames: ['Overall, this is a cyclical process with [số] stages, beginning with [A] and ending with [B], after which the cycle repeats itself.'],
+      },
+      body1: { rule: 'Các giai đoạn đầu.', frames: ['Initially, [bước 1]. Following this, [bước 2]. At the next stage, [bước 3].'] },
+      body2: {
+        rule: 'Các giai đoạn cuối, khép lại chu trình.',
+        frames: ['In the subsequent stage, [bước 4]. Finally, [bước cuối], which completes the cycle as it returns to the original stage.'],
+      },
+      rules: [
+        'Từ nối trình tự: Initially · Following this · At the next stage · In the subsequent stage · Finally.',
+        'Thêm chi tiết có trong hình: thời gian (for about 5 to 6 months), kích thước (between 3 and 8cm long), nơi sống (in the upper river).',
+      ],
+      sample: `The diagram illustrates the natural process of the life cycle of a salmon.
+Overall, this is a cyclical process with three main stages, beginning with eggs in the upper river and ending with the adult salmon in the open ocean, after which the cycle repeats itself.
+Initially, salmon eggs are laid in the upper river, where they stay for about 5 to 6 months. Following this, they hatch and develop into "fry", which are between 3 and 8cm long. At the next stage, these fry migrate to the lower river, where they grow into "smolt", reaching a length of 12 to 15cm. They stay in this fast-flowing water for about 4 years.
+In the subsequent stage, the salmon move to the open ocean, where they continue to develop for approximately 5 years. Finally, they reach the adult salmon stage, with a size of 70 to 76cm. This stage completes the cycle as they return to the upper river to lay new eggs.`,
+    },
+  };
+
+  /* ---------- Quy tắc chung cho mọi dạng ---------- */
+  const GENERAL = {
+    golden: [
+      'Quy tắc “trọc lốc”: không để danh từ sự vật đứng một mình làm chủ ngữ chỉ xu hướng. Sai: Petroleum increased → Đúng: Petroleum production increased.',
+      'Giữ nguyên vẹn chủ thể gốc (car sales, energy consumption, coffee production, visitor numbers); chỉ được bỏ từ chỉ tỷ lệ (percentage/proportion). Sai: Cars increased by 10% → Đúng: Car sales increased by 10%. Sai: Visitors increased → Đúng: The number of visitors increased. Sai: People unemployed rose → Đúng: The rate of unemployment rose.',
+      'Lần 1 (mở bài/overview) dùng từ sát đề nhất; lần 2 (body) mới thay bằng đồng nghĩa tương đương. Không dịch bừa: Spending ≠ Sales.',
+      'Xác định đúng chủ thể (“Chinese food”, không phải “Chinese” hay “Chinese restaurant”).',
+      'Không dùng văn mẫu chung chung: gọi đúng tên chủ thể, quốc gia, hạng mục, số liệu của đề.',
+    ],
+    subjects: [
+      { group: 'Sản xuất & tiêu thụ', items: 'The production/consumption/sales of + [thing] · [thing] + production/consumption levels · The amount/number of + [thing] + produced/consumed/sold · The figure for + [thing]' },
+      { group: 'Dân số & nhân khẩu', items: 'The proportion/percentage of the population aged + [age] · The + [age] + age group/bracket/category · The percentage of people/citizens who were aged + [age] · The figure for individuals in the + [age] + bracket' },
+      { group: 'Khảo sát & sở thích', items: 'The percentage/proportion of + [đối tượng] + choosing/selecting · The figure for + [lý do] + as a primary motive/factor · Market shares / Leisure preferences / Participation rates' },
+      { group: 'Kinh tế & chi tiêu', items: 'The expenditure on / spending on + [hạng mục] · The amount of money spent on + [hạng mục] · National/Household spending on + [hạng mục] · Food/Housing/Transport expenditure' },
+    ],
+    changeTricks: [
+      'Chiêu 1 (Noun → Verb): The consumption of water → How water was consumed.',
+      'Chiêu 2 (mệnh đề): chèn Who/Which/How giữa câu.',
+      'Chiêu 3 (tính từ quốc gia): The population of Japan → Japanese population; The energy consumption in France → French energy consumption.',
+    ],
+    synonyms: [
+      'Sales → Revenue; The amount sold (tiền hoặc số lượng bán ra)',
+      'Spending/Expenditure → Outlays; Money spent (chỉ khi đơn vị tiền tệ)',
+      'Purchases → The number of items bought; Consumer acquisitions',
+      'Production → Output; The amount produced · Generation (điện) → Electricity output · Manufacturing → Industrial production',
+      'Consumption → Use/Usage; Intake (đồ ăn/thức uống) · Demand → Consumer need; The level of demand',
+      'Population → The number of inhabitants; Residents · Visitors/Tourists → Arrivals; Holidaymakers · Rate (%) → Percentage/Proportion; Ratio',
+    ],
+    pieBar: [
+      'Dẫn đầu: [Chủ thể] + took the lead / led the chart + with + [%] (Chinese food took the lead with 34%).',
+      'Chiếm: [Chủ thể] + accounted for / made up / constituted + [%].',
+      'Đứng thứ hai: [Chủ thể] + ranked second, accounting for + [%].',
+      'Gộp câu: [Chủ thể 1] + V + [%], followed (closely) by + [Chủ thể 2] + at + [%].',
+      'Góc nhìn người khảo sát: [%] of people + chose/preferred/consumed + [Chủ thể] · Bị động: [Chủ thể] + was chosen / was preferred by + [%] of people.',
+    ],
+    trendBasic: [
+      'Tăng: [Chủ thể] + experienced/saw/witnessed + an upward trend / a significant increase.',
+      'Giảm: [Chủ thể] + underwent/saw/experienced + a sharp decline / a downward trend.',
+      'Động từ: rose/grew/surged/skyrocketed/climbed · dropped/fell/plummeted/decreased.',
+      'Đỉnh: reached/hit a peak of + [số] + in [năm] · Dao động/chững: fluctuated / remained stable / plateaued.',
+      'Mức độ: tăng increase/go up → rise/grow/climb → surge/soar/show marked growth · giảm decrease/go down → fall/drop/decline → plunge/show a marked decline · phục hồi show signs of recovery → recover/bounce back → see a rebound · ổn định stay the same → remain stable/level off → plateau · dao động fluctuate → fluctuate considerably/oscillate · đỉnh peak at / reach a peak of · đáy hit a low of / fall to its lowest point.',
+    ],
+    band7: [
+      'Biến động nối tiếp: S + V + adv, before [V-ing] + adv (The figure rose sharply to 50%, before dropping gradually to 20%).',
+      'Đạt đỉnh: S + peaked at + [số], which was the highest figure recorded in the chart.',
+      'Chạm đáy: S + hit a low of + [số], followed by a slight recovery to …',
+      'Hai xu hướng đối lập: S A + V + adv, whereas / in contrast, S B experienced an opposite trend.',
+      'Ổn định: S + experienced a period of stability / minor fluctuations around [số].',
+      'Bổ sung thông tin: S + V + [số], accounting for / making up [tỉ lệ], before reaching …',
+      'Không lặp chủ ngữ (phân từ): The number of users increased, reaching 50. Dấu phẩy trước before V-ing, accounting for, peaking at.',
+    ],
+  };
+
+  const STEP_KEYS = ['intro', 'overview', 'body1', 'body2'];
+
+  function outlineFor(taskType, hint) {
+    if (hint && OUTLINES[hint]) return hint;
+    if (taskType === 'maps') return 'maps';
+    if (taskType === 'process') return 'process_man';
+    if (taskType === 'line') return 'trend';
+    return 'compare';
+  }
+
+  /* Đoạn dàn ý đưa cho AI (tiếng Việt + khung tiếng Anh) */
+  function promptBlock(ids) {
+    const parts = ids.map(id => {
+      const o = OUTLINES[id];
+      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map(f => '    • ' + f).join('\n');
+      return `### OUTLINE "${id}": ${o.name}\nUse when: ${o.when}\n${STEP_KEYS.map(sec).join('\n')}\n  RULES:\n${o.rules.map(r => '    - ' + r).join('\n')}` +
+        (o.sample ? `\n  MODEL ESSAY (follow this style and paragraph plan):\n${o.sample.split('\n').map(l => '    ' + l).join('\n')}` : '');
+    });
+    return parts.join('\n\n');
+  }
+  function generalBlock() {
+    return [
+      'GOLDEN RULES (Ms. Gigi):', ...GENERAL.golden.map(r => '- ' + r),
+      'SUBJECT FORMULAS:', ...GENERAL.subjects.map(s => `- ${s.group}: ${s.items}`),
+      'PARAPHRASE TRICKS:', ...GENERAL.changeTricks.map(r => '- ' + r),
+      'SYNONYMS (same meaning only):', ...GENERAL.synonyms.map(r => '- ' + r),
+      'BAND 7+ SENTENCE UPGRADES:', ...GENERAL.band7.map(r => '- ' + r),
+    ].join('\n');
+  }
+
+  /* Kiểm tra nhanh một đoạn theo quy tắc Ms. Gigi */
+  function lint(text, outline, step) {
+    const t = String(text || '');
+    const out = [];
+    if (!t.trim()) return out;
+    const sentences = t.split(/(?<=[.!?])\s+/).filter(s => s.trim()).length;
+    if (step === 0 && sentences > 1) out.push('Introduction chỉ nên có 1 câu.');
+    if (step === 1 && !/^\s*overall\b/i.test(t)) out.push('Overview nên bắt đầu bằng “Overall,”.');
+    if (step === 1 && !/^process/.test(outline) && /\d/.test(t)) out.push('Overview không đưa số liệu.');
+    if (outline !== 'compare' && /\b(account(ed|s)? for|made up|makes? up|constitut(ed|es?))\b/i.test(t) && !/%|per ?cent|proportion|share/i.test(t)) out.push('“account for / make up / constitute” chỉ dùng cho tỷ lệ % (tổng 100%).');
+    if (/\b(accounted for|made up|constituted)\s+(about |around |approximately |nearly |only )?\d[\d.,]*(?![\d.,])(?!\s*(%|per ?cent))/i.test(t)) out.push('“accounted for / made up” + số tuyệt đối là sai — chỉ dùng với %. Dùng recorded / stood at / reached.');
+    if (/\b(the )?(percentage|number|figure|proportion|age group)\b[^.]{0,20}\bwitness(ed|es)?\b/i.test(t)) out.push('“witness” không đi với chủ ngữ Percentage/Number/Figure/Age group — dùng Period/Year/Country làm chủ ngữ.');
+    if (outline === 'maps' && step === 2 && /\b(was|were) (built|constructed|demolished|replaced|converted|expanded|removed|relocated)\b/i.test(t)) out.push('Body 1 (Maps) chỉ mô tả bản đồ đầu tiên, không đề cập thay đổi.');
+    if (/^process/.test(outline) && /\b(was|were)\b/i.test(t) && step > 1) out.push('Process dùng bị động thì hiện tại (is/are + V3), tránh was/were.');
+    if (outline === 'maps' && /\b(in|at) the (\w+ )?side\b/i.test(t)) out.push('Có “side” → dùng ON (on the northern side).');
+    if (outline === 'maps' && /\b(on|at) the (\w+ )?part\b/i.test(t)) out.push('Có “part” → dùng IN (in the eastern part).');
+    if (/\bthe given (chart|graph|diagram|map|table)\b/i.test(t)) out.push('Tránh “the given chart” — gọi đúng tên chủ thể của đề.');
+    return out;
+  }
+
+  return { OUTLINES, GENERAL, STEP_KEYS, outlineFor, promptBlock, generalBlock, lint };
 })();
 </script>
   <script>
@@ -598,45 +977,56 @@ window.AI = (function () {
     '8.0': 'Band 8.0+: sophisticated yet natural; precise, concise, flexible grammar, nominalisation, no memorised phrases.',
   };
 
-  // Từ vựng & cấu trúc trong dàn ý của giáo viên → AI ưu tiên dùng (bắt buộc với Maps)
-  function outlineNotes(type) {
+  const G = window.GIGI;
+  // Dạng đề người dùng chọn → các dàn ý Ms. Gigi có thể áp dụng
+  const OUTLINE_CANDIDATES = {
+    maps: ['maps', 'floorplan'],
+    process: ['process_man', 'process_nat'],
+    charts: ['trend', 'compare'],
+    auto: ['trend', 'compare', 'maps', 'floorplan', 'process_man', 'process_nat'],
+  };
+
+  // Từ vựng Maps trong dàn ý (bảng A/B) — bắt buộc khi đề là bản đồ
+  function mapsVocab() {
+    return `MAPS VOCABULARY (teacher's tables — use these, vary synonyms):
+- Change: ${C.changeVocab.map(v => v.phrase).join(', ')}; ${C.writingStructures.map(g => g.items.join(', ')).join('; ')}.
+- Position: ${C.positionVocab.map(v => v.phrase).join(', ')}; is located in, is situated in, lies in, stands next to, can be found in, is positioned between, sits along, lies to the north of, in close proximity to, on the outskirts of, extends across, at the far end of the map.`;
+  }
+  function outlineNotes(ids) {
     const structures = C.sentenceStructures.map(s => `${s.name} (${s.formula})`).join('; ');
-    let t = `Sentence structures to use: ${structures}. Tip: Time + Object + Action + Position.`;
-    if (type === 'maps' || type === 'auto') {
-      t += `\nIF THE TASK IS A MAP, use the teacher's vocabulary below (vary synonyms, do not repeat the same phrase):
-- Change verbs: ${C.changeVocab.map(v => v.phrase).join(', ')}.
-- Extra structures: ${C.writingStructures.map(g => g.items.join(', ')).join('; ')}.
-- Position phrases: ${C.positionVocab.map(v => v.phrase).join(', ')}.
-- Rules: "in the north of X" = inside X, "to the north of X" = outside X; "side" takes ON; "part" takes IN; IN: center, middle, corner, part, area; AT: top, bottom, entrance, intersection, junction; ON: side, bank, edge, left/right-hand side.
-- Body 1 describes the first map (positions); Body 2 describes the changes (change verbs + positions). Choose only the 3-4 main changes.`;
-    }
-    return t;
+    return `THE TEACHER'S OUTLINE (Ms. Gigi) — EVERY paragraph MUST follow it:
+${G.generalBlock()}
+Basic sentence structures: ${structures}.
+
+${G.promptBlock(ids)}
+${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   }
 
   const SHAPE = `{
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "outline": "trend" | "compare" | "maps" | "floorplan" | "process_man" | "process_nat",   // which Ms. Gigi outline you followed
   "subject": "the exact subject in English, e.g. 'water consumption in the USA and China'",
   "topic_vi": "one Vietnamese sentence: what the task shows",
   "prompt_text": "the task question exactly as written if visible, else ''",
   "steps": [  // exactly 4 items in this order: Introduction, Overview, Body 1, Body 2
     {
       "title": "Vietnamese title of what this paragraph does for THIS task",
-      "guide_vi": "Vietnamese guidance (2-4 sentences): what to write, which data to pick, how to group, traps",
+      "guide_vi": "Vietnamese guidance (2-4 sentences): which Ms. Gigi frame to use, which data to pick and in what order, traps",
       "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
       "options": [ "full paragraph option 1", "option 2", "option 3" ]              // 3 alternative paragraphs
     }
   ]
 }`;
 
-  const RULES = `You are a professional IELTS Writing Task 1 examiner and teacher for Vietnamese learners.
-Golden rule: NO generic template writing. Read the task (text and/or image) carefully and use the EXACT subjects,
-countries, categories, places, units and years from it in every option. Never write "the given chart" or placeholders like X/Y.
-Quote real figures from the visual (approximate with "about/around" if unclear). Never invent data that is not shown.
-Paragraph lengths: Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 2 sentences starting with "Overall,", no figures.
-Body 1 and Body 2 = 3-5 sentences each, grouping the data logically, with accurate figures and comparisons.
-Use the correct tense (past for past years, present perfect up to now, future for plans/projections, present simple passive for processes).
-Each of the 3 options must use different structures and vocabulary, but all must be accurate.
-All guidance and meanings in Vietnamese; all options in English.`;
+  const RULES = `You are an IELTS Writing Task 1 examiner helping a Vietnamese teacher, Ms. Gigi, whose students must write EXACTLY in her outline.
+1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs following that outline's frames, paragraph plan and rules.
+   Option 1 of every paragraph must follow her frames almost word for word (only fill the brackets with the task's real content).
+   Options 2 and 3 keep the same paragraph plan but use her other listed structures (Band 7+ upgrades, comparison levels, synonyms) for variety.
+2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
+3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
+4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
+5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
+6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, name the frame you used (e.g. "Dùng khung: In [năm đầu], the percentage of …").`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -658,12 +1048,13 @@ Reply with ONLY one JSON object:
   "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
 }`;
 
-  function buildPrompt({ text, type, band, visual }) {
+  function buildPrompt({ text, type, band, visual, detected }) {
     return `${RULES}
 
-Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}
+Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}${detected ? ' (image reader detected: ' + detected + ')' : ''}
 Target level: ${BAND[band] || BAND['7.0']}
-${outlineNotes(type)}
+
+${outlineNotes(OUTLINE_CANDIDATES[type] || OUTLINE_CANDIDATES.auto)}
 
 ${taskBlock(text, visual)}
 Reply with ONLY one JSON object in this shape:
@@ -678,13 +1069,14 @@ ${SHAPE}`;
 
 Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Target level: ${BAND[band] || BAND['7.0']}
-${outlineNotes(analysis.task_type === 'maps' ? 'maps' : 'charts')}
+
+${outlineNotes([analysis.outline || G.outlineFor(analysis.task_type)])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
 Paragraphs the student has already chosen:
 ${prev || '(none yet)'}
 
-Write 3 NEW options for the ${NAMES[stepIndex]} paragraph that fit with the chosen paragraphs and do not repeat their data.
+Write 3 NEW options for the ${NAMES[stepIndex]} paragraph, following the same Ms. Gigi outline ("${analysis.outline || G.outlineFor(analysis.task_type)}") frames for this paragraph, fitting with the chosen paragraphs and not repeating their data.
 Do not reuse these earlier options:
 - ${old}
 
@@ -844,8 +1236,10 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   }
 
   /* Bước 2: tạo gợi ý 4 đoạn từ chữ */
-  async function analyze({ text, type, band, visual, signal }) {
-    return validate(await ask(buildPrompt({ text, type, band, visual }), null, signal));
+  async function analyze({ text, type, band, visual, detected, signal }) {
+    const r = validate(await ask(buildPrompt({ text, type, band, visual, detected }), null, signal));
+    r.outline = G.outlineFor(r.task_type, r.outline);
+    return r;
   }
   async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
     const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
@@ -858,7 +1252,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
 </script>
   <script>
 (function () {
-  const C = window.CONTENT;
+  const C = window.CONTENT, G = window.GIGI;
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE = 'e-app.task1.v2';
@@ -955,11 +1349,11 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
       }
       stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
-      const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, signal: ctl.signal });
+      const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
-      toast(`AI nhận dạng: ${TYPE_VI[r.task_type] || r.task_type} — ${r.subject || ''}`, 3500);
+      toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
     } catch (e) {
       show('setup');
       if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
@@ -987,6 +1381,16 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     return out.replace(re, '<mark>$1</mark>');
   }
 
+  const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
+
+  function renderFrame(i) {
+    const o = G.OUTLINES[outlineOf(S.analysis)];
+    const sec = o[G.STEP_KEYS[i]];
+    $('#frame-name').textContent = o.name;
+    $('#frame-rule').textContent = sec.rule;
+    $('#frame-list').innerHTML = sec.frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
+  }
+
   function renderStep() {
     const a = S.analysis;
     if (!a) { show('setup'); return; }
@@ -996,6 +1400,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     $('#step-title').textContent = st.title || STEP_NAMES[i];
     $('#step-count').textContent = `Đoạn ${i + 1} / 4`;
     $('#step-guide').textContent = st.guide_vi;
+    renderFrame(i);
     $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
     $('#options').innerHTML = st.options.map((o, k) => {
       const on = S.paras[i] === o;
@@ -1015,12 +1420,12 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     const n = wc($('#para').value);
     $('#para-count').textContent = `${n} từ`;
     const i = S.step;
-    const hint = i === 0 && n > 45 ? 'Introduction nên chỉ 1 câu.' : i === 1 && /\d/.test($('#para').value) ? 'Overview không nên có số liệu.' : '';
-    $('#para-hint').textContent = hint;
+    const issues = G.lint($('#para').value, outlineOf(S.analysis), i);
+    $('#para-hint').innerHTML = issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('');
   }
   function renderSide() {
     const a = S.analysis;
-    $('#ref-topic').textContent = `${TYPE_VI[a.task_type] || ''}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
+    $('#ref-topic').textContent = `${G.OUTLINES[outlineOf(a)].short}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
     $('#ref-text').textContent = S.prompt || a.prompt_text || '';
     const vis = $('#ref-visual');
     if (S.visual && S.visual.text) {
@@ -1066,35 +1471,52 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
   function renderReview() {
     const a = S.analysis || {};
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
-    $('#review-meta').textContent = `${TYPE_VI[a.task_type] || ''}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
+    $('#review-meta').textContent = `Dàn ý Ms. Gigi: ${G.OUTLINES[outlineOf(a)].short}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
     const vocab = (a.steps || []).map(s => s.vocab).flat();
     $('#paper').innerHTML = STEP_NAMES.map((n, k) => `<div class="para-block">
       <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
-      ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}</div>`).join('');
+      ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
+      ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
   }
   function essayText() {
     return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
   }
 
-  /* ---------- Kho từ vựng ---------- */
+  /* ---------- Thư viện dàn ý Ms. Gigi ---------- */
+  let libTab = null;
   function renderVocab() {
-    const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
-    const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
-    const a = S.analysis;
-    const own = a ? (a.steps || []).map((s, k) => s.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${s.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
-    $('#vocab-content').innerHTML = `
-      <div class="rule-box"><h3>Quy tắc vàng: chống viết chung chung</h3>
-        <p>Mỗi câu phải gọi đúng tên chủ thể, quốc gia, hạng mục và số liệu của đề (ví dụ: <i>water consumption in the USA and China</i>, <i>the number of visitors to museums</i>). Không dùng “the given chart”.</p></div>
-      ${own ? `<div class="vsec"><h3>Từ vựng riêng cho đề đang làm</h3>${own}</div>` : ''}
-      <div class="vsec"><h3>Bảng cấu trúc câu</h3><div class="table-wrap"><table><thead><tr><th>Cấu trúc</th><th>Công thức</th><th>Ví dụ</th></tr></thead><tbody>
-        ${C.sentenceStructures.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.formula)}</td><td>${esc(s.example)}</td></tr>`).join('')}</tbody></table></div>
-        <p class="small" style="margin-top:6px"><b>Mẹo:</b> ${esc(C.formulaTip.formula)} — <i>${esc(C.formulaTip.example)}</i></p></div>
-      <div class="vsec"><h3>Maps · A. Từ vựng miêu tả sự thay đổi (Body 2)</h3>${table(C.changeVocab)}</div>
-      <div class="vsec"><h3>Maps · B. Từ vựng miêu tả vị trí (Body 1 và Body 2)</h3>${table(C.positionVocab)}</div>
-      <div class="vsec"><h3>Maps · Các cấu trúc viết</h3><ul>${C.writingStructures.map(g => `<li><b>${esc(g.group)}:</b> ${g.items.map(esc).join(' · ')}</li>`).join('')}</ul></div>
-      <div class="vsec"><h3>Lưu ý quan trọng</h3><ul>${C.rules.map(r => `<li><b>${esc(r.title)}</b> — ${r.points.join(' ')}</li>`).join('')}
-        ${C.prepGroups.map(g => `<li><b>${esc(g.group)}</b>: ${esc(g.use)}</li>`).join('')}</ul></div>
-      <div class="vsec"><h3>Mẹo áp dụng</h3><ul>${C.tips.map(t => `<li><b>${esc(t.title)}:</b> ${esc(t.text)}</li>`).join('')}</ul></div>`;
+    const cur = S.analysis ? outlineOf(S.analysis) : null;
+    const tabs = [['general', 'Quy tắc chung']].concat(Object.keys(G.OUTLINES).map(id => [id, G.OUTLINES[id].short])).concat([['mapsvocab', 'Từ vựng Maps']]);
+    if (!libTab) libTab = cur || 'general';
+    $('#vocab-tabs').innerHTML = tabs.map(([id, n]) => `<button type="button" class="tab ${id === libTab ? 'on' : ''}" data-libtab="${id}">${esc(n)}${id === cur ? ' •' : ''}</button>`).join('');
+    const ul = arr => `<ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    let html = '';
+    if (libTab === 'general') {
+      html = `<div class="rule-box"><h3>Quy tắc vàng</h3>${ul(G.GENERAL.golden)}</div>
+        <div class="vsec"><h3>Công thức chủ thể theo chủ đề</h3><ul>${G.GENERAL.subjects.map(x => `<li><b>${esc(x.group)}:</b> ${esc(x.items)}</li>`).join('')}</ul></div>
+        <div class="vsec"><h3>3 tuyệt chiêu đổi cấu trúc</h3>${ul(G.GENERAL.changeTricks)}</div>
+        <div class="vsec"><h3>Từ đồng nghĩa (không lệch nghĩa)</h3>${ul(G.GENERAL.synonyms)}</div>
+        <div class="vsec"><h3>Mô tả tăng / giảm</h3>${ul(G.GENERAL.trendBasic)}</div>
+        <div class="vsec"><h3>Pie / Bar: công thức S + V + O</h3>${ul(G.GENERAL.pieBar)}</div>
+        <div class="vsec"><h3>Nâng cấp ghép câu (Band 7+)</h3>${ul(G.GENERAL.band7)}</div>`;
+    } else if (libTab === 'mapsvocab') {
+      const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
+      const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
+      html = `<div class="vsec"><h3>A. Từ vựng miêu tả sự thay đổi (Body 2)</h3>${table(C.changeVocab)}</div>
+        <div class="vsec"><h3>B. Từ vựng miêu tả vị trí (Body 1 và Body 2)</h3>${table(C.positionVocab)}</div>
+        <div class="vsec"><h3>Các cấu trúc viết</h3><ul>${C.writingStructures.map(g => `<li><b>${esc(g.group)}:</b> ${g.items.map(esc).join(' · ')}</li>`).join('')}</ul></div>
+        <div class="vsec"><h3>Bảng cấu trúc câu</h3><div class="table-wrap"><table><thead><tr><th>Cấu trúc</th><th>Công thức</th><th>Ví dụ</th></tr></thead><tbody>
+          ${C.sentenceStructures.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.formula)}</td><td>${esc(x.example)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    } else {
+      const o = G.OUTLINES[libTab];
+      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('')}</ul></div>`;
+      html = `<p class="muted">${esc(o.when)}</p>
+        ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
+        <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
+        ${o.sample ? `<div class="vsec"><h3>Bài mẫu</h3><div class="paper">${o.sample.split('\n').map(p => `<div class="para-block"><p>${esc(p)}</p></div>`).join('')}</div></div>` : ''}`;
+    }
+    const own = S.analysis && !S.isDemo ? (S.analysis.steps || []).map((x, k) => x.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${x.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
+    $('#vocab-content').innerHTML = html + (own ? `<div class="vsec"><h3>Từ vựng riêng cho đề đang làm</h3>${own}</div>` : '');
   }
 
   /* ================= Image ================= */
@@ -1130,6 +1552,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
     const t = e.target.closest('button, a, .dropzone, [data-close]');
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
+    if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
     if (t.dataset.opt != null) {
       const o = S.analysis.steps[S.step].options[+t.dataset.opt];
@@ -1148,7 +1571,7 @@ Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
       case 'btn-next': go(1); return;
       case 'btn-regen': regen(t); return;
       case 'ref-img-btn': $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); return;
-      case 'btn-vocab': renderVocab(); $('#dlg-vocab').showModal(); return;
+      case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
       case 'api-save': AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); if (S.view === 'setup') renderSetup(); return;
       case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;

@@ -144,6 +144,18 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .progress span.on { background: var(--accent); border-color: var(--accent); }
 .step-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .step-head h2 { margin-top: 4px; }
+.frame-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; border: 1.5px solid var(--accent); background: var(--surface); }
+.frame-box h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; color: var(--accent); }
+.frame-box h3 span { text-transform: none; letter-spacing: 0; color: var(--text); }
+.frame-rule { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.frames { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-essay); font-size: 15px; }
+.slot { color: var(--accent); font-style: italic; }
+.warn-line { display: block; color: var(--warn); font-size: 13px; }
+.para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.vsec h3 .muted { font-weight: 400; font-size: 13px; }
 .guide, .vocab-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; }
 .guide { background: var(--ink-soft); }
 .vocab-box { background: var(--surface-2); border: 1px solid var(--border); }

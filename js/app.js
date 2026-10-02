@@ -1,5 +1,5 @@
 (function () {
-  const C = window.CONTENT;
+  const C = window.CONTENT, G = window.GIGI;
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE = 'e-app.task1.v2';
@@ -96,11 +96,11 @@
       }
       stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
-      const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, signal: ctl.signal });
+      const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
-      toast(`AI nhận dạng: ${TYPE_VI[r.task_type] || r.task_type} — ${r.subject || ''}`, 3500);
+      toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
     } catch (e) {
       show('setup');
       if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
@@ -128,6 +128,16 @@
     return out.replace(re, '<mark>$1</mark>');
   }
 
+  const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
+
+  function renderFrame(i) {
+    const o = G.OUTLINES[outlineOf(S.analysis)];
+    const sec = o[G.STEP_KEYS[i]];
+    $('#frame-name').textContent = o.name;
+    $('#frame-rule').textContent = sec.rule;
+    $('#frame-list').innerHTML = sec.frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
+  }
+
   function renderStep() {
     const a = S.analysis;
     if (!a) { show('setup'); return; }
@@ -137,6 +147,7 @@
     $('#step-title').textContent = st.title || STEP_NAMES[i];
     $('#step-count').textContent = `Đoạn ${i + 1} / 4`;
     $('#step-guide').textContent = st.guide_vi;
+    renderFrame(i);
     $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
     $('#options').innerHTML = st.options.map((o, k) => {
       const on = S.paras[i] === o;
@@ -156,12 +167,12 @@
     const n = wc($('#para').value);
     $('#para-count').textContent = `${n} từ`;
     const i = S.step;
-    const hint = i === 0 && n > 45 ? 'Introduction nên chỉ 1 câu.' : i === 1 && /\d/.test($('#para').value) ? 'Overview không nên có số liệu.' : '';
-    $('#para-hint').textContent = hint;
+    const issues = G.lint($('#para').value, outlineOf(S.analysis), i);
+    $('#para-hint').innerHTML = issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('');
   }
   function renderSide() {
     const a = S.analysis;
-    $('#ref-topic').textContent = `${TYPE_VI[a.task_type] || ''}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
+    $('#ref-topic').textContent = `${G.OUTLINES[outlineOf(a)].short}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
     $('#ref-text').textContent = S.prompt || a.prompt_text || '';
     const vis = $('#ref-visual');
     if (S.visual && S.visual.text) {
@@ -207,35 +218,52 @@
   function renderReview() {
     const a = S.analysis || {};
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
-    $('#review-meta').textContent = `${TYPE_VI[a.task_type] || ''}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
+    $('#review-meta').textContent = `Dàn ý Ms. Gigi: ${G.OUTLINES[outlineOf(a)].short}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
     const vocab = (a.steps || []).map(s => s.vocab).flat();
     $('#paper').innerHTML = STEP_NAMES.map((n, k) => `<div class="para-block">
       <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
-      ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}</div>`).join('');
+      ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
+      ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
   }
   function essayText() {
     return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
   }
 
-  /* ---------- Kho từ vựng ---------- */
+  /* ---------- Thư viện dàn ý Ms. Gigi ---------- */
+  let libTab = null;
   function renderVocab() {
-    const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
-    const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
-    const a = S.analysis;
-    const own = a ? (a.steps || []).map((s, k) => s.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${s.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
-    $('#vocab-content').innerHTML = `
-      <div class="rule-box"><h3>Quy tắc vàng: chống viết chung chung</h3>
-        <p>Mỗi câu phải gọi đúng tên chủ thể, quốc gia, hạng mục và số liệu của đề (ví dụ: <i>water consumption in the USA and China</i>, <i>the number of visitors to museums</i>). Không dùng “the given chart”.</p></div>
-      ${own ? `<div class="vsec"><h3>Từ vựng riêng cho đề đang làm</h3>${own}</div>` : ''}
-      <div class="vsec"><h3>Bảng cấu trúc câu</h3><div class="table-wrap"><table><thead><tr><th>Cấu trúc</th><th>Công thức</th><th>Ví dụ</th></tr></thead><tbody>
-        ${C.sentenceStructures.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.formula)}</td><td>${esc(s.example)}</td></tr>`).join('')}</tbody></table></div>
-        <p class="small" style="margin-top:6px"><b>Mẹo:</b> ${esc(C.formulaTip.formula)} — <i>${esc(C.formulaTip.example)}</i></p></div>
-      <div class="vsec"><h3>Maps · A. Từ vựng miêu tả sự thay đổi (Body 2)</h3>${table(C.changeVocab)}</div>
-      <div class="vsec"><h3>Maps · B. Từ vựng miêu tả vị trí (Body 1 và Body 2)</h3>${table(C.positionVocab)}</div>
-      <div class="vsec"><h3>Maps · Các cấu trúc viết</h3><ul>${C.writingStructures.map(g => `<li><b>${esc(g.group)}:</b> ${g.items.map(esc).join(' · ')}</li>`).join('')}</ul></div>
-      <div class="vsec"><h3>Lưu ý quan trọng</h3><ul>${C.rules.map(r => `<li><b>${esc(r.title)}</b> — ${r.points.join(' ')}</li>`).join('')}
-        ${C.prepGroups.map(g => `<li><b>${esc(g.group)}</b>: ${esc(g.use)}</li>`).join('')}</ul></div>
-      <div class="vsec"><h3>Mẹo áp dụng</h3><ul>${C.tips.map(t => `<li><b>${esc(t.title)}:</b> ${esc(t.text)}</li>`).join('')}</ul></div>`;
+    const cur = S.analysis ? outlineOf(S.analysis) : null;
+    const tabs = [['general', 'Quy tắc chung']].concat(Object.keys(G.OUTLINES).map(id => [id, G.OUTLINES[id].short])).concat([['mapsvocab', 'Từ vựng Maps']]);
+    if (!libTab) libTab = cur || 'general';
+    $('#vocab-tabs').innerHTML = tabs.map(([id, n]) => `<button type="button" class="tab ${id === libTab ? 'on' : ''}" data-libtab="${id}">${esc(n)}${id === cur ? ' •' : ''}</button>`).join('');
+    const ul = arr => `<ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    let html = '';
+    if (libTab === 'general') {
+      html = `<div class="rule-box"><h3>Quy tắc vàng</h3>${ul(G.GENERAL.golden)}</div>
+        <div class="vsec"><h3>Công thức chủ thể theo chủ đề</h3><ul>${G.GENERAL.subjects.map(x => `<li><b>${esc(x.group)}:</b> ${esc(x.items)}</li>`).join('')}</ul></div>
+        <div class="vsec"><h3>3 tuyệt chiêu đổi cấu trúc</h3>${ul(G.GENERAL.changeTricks)}</div>
+        <div class="vsec"><h3>Từ đồng nghĩa (không lệch nghĩa)</h3>${ul(G.GENERAL.synonyms)}</div>
+        <div class="vsec"><h3>Mô tả tăng / giảm</h3>${ul(G.GENERAL.trendBasic)}</div>
+        <div class="vsec"><h3>Pie / Bar: công thức S + V + O</h3>${ul(G.GENERAL.pieBar)}</div>
+        <div class="vsec"><h3>Nâng cấp ghép câu (Band 7+)</h3>${ul(G.GENERAL.band7)}</div>`;
+    } else if (libTab === 'mapsvocab') {
+      const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
+      const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
+      html = `<div class="vsec"><h3>A. Từ vựng miêu tả sự thay đổi (Body 2)</h3>${table(C.changeVocab)}</div>
+        <div class="vsec"><h3>B. Từ vựng miêu tả vị trí (Body 1 và Body 2)</h3>${table(C.positionVocab)}</div>
+        <div class="vsec"><h3>Các cấu trúc viết</h3><ul>${C.writingStructures.map(g => `<li><b>${esc(g.group)}:</b> ${g.items.map(esc).join(' · ')}</li>`).join('')}</ul></div>
+        <div class="vsec"><h3>Bảng cấu trúc câu</h3><div class="table-wrap"><table><thead><tr><th>Cấu trúc</th><th>Công thức</th><th>Ví dụ</th></tr></thead><tbody>
+          ${C.sentenceStructures.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.formula)}</td><td>${esc(x.example)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    } else {
+      const o = G.OUTLINES[libTab];
+      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('')}</ul></div>`;
+      html = `<p class="muted">${esc(o.when)}</p>
+        ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
+        <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
+        ${o.sample ? `<div class="vsec"><h3>Bài mẫu</h3><div class="paper">${o.sample.split('\n').map(p => `<div class="para-block"><p>${esc(p)}</p></div>`).join('')}</div></div>` : ''}`;
+    }
+    const own = S.analysis && !S.isDemo ? (S.analysis.steps || []).map((x, k) => x.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${x.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
+    $('#vocab-content').innerHTML = html + (own ? `<div class="vsec"><h3>Từ vựng riêng cho đề đang làm</h3>${own}</div>` : '');
   }
 
   /* ================= Image ================= */
@@ -271,6 +299,7 @@
     const t = e.target.closest('button, a, .dropzone, [data-close]');
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
+    if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
     if (t.dataset.opt != null) {
       const o = S.analysis.steps[S.step].options[+t.dataset.opt];
@@ -289,7 +318,7 @@
       case 'btn-next': go(1); return;
       case 'btn-regen': regen(t); return;
       case 'ref-img-btn': $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); return;
-      case 'btn-vocab': renderVocab(); $('#dlg-vocab').showModal(); return;
+      case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
       case 'api-save': AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); if (S.view === 'setup') renderSetup(); return;
       case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;

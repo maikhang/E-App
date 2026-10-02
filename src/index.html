@@ -16,11 +16,11 @@
       <span class="logo" aria-hidden="true">✍️</span>
       <div>
         <h1>Task 1 Writing Coach</h1>
-        <p class="sub">Đọc đề · Gợi ý từng đoạn bám sát đề · Band 6.0–8.0</p>
+        <p class="sub">Theo dàn ý Ms. Gigi · Gợi ý từng đoạn bám sát đề</p>
       </div>
     </div>
     <div class="top-actions">
-      <button class="btn ghost" id="btn-vocab" type="button">📚 Kho từ vựng</button>
+      <button class="btn ghost" id="btn-vocab" type="button">📚 Dàn ý Ms. Gigi</button>
       <button class="btn ghost" id="btn-new" type="button">＋ Nhập đề khác</button>
       <button class="btn ghost" id="btn-key" type="button" aria-label="Cài đặt API key">⚙️</button>
     </div>
@@ -103,6 +103,11 @@
               <h3>🧭 Phân tích &amp; hướng dẫn</h3>
               <p id="step-guide"></p>
             </div>
+            <div class="frame-box">
+              <h3>📐 Khung dàn ý Ms. Gigi · <span id="frame-name"></span></h3>
+              <p class="frame-rule" id="frame-rule"></p>
+              <ul class="frames" id="frame-list"></ul>
+            </div>
             <div class="vocab-box">
               <h3>📌 Từ vựng riêng cho đề này</h3>
               <div class="chips" id="step-vocab"></div>
@@ -119,7 +124,8 @@
             <label class="field"><span>Hoặc tự chỉnh sửa / soạn đoạn này</span>
               <textarea id="para" rows="6" placeholder="Chọn một gợi ý ở trên hoặc tự viết…"></textarea>
             </label>
-            <div class="row between small muted"><span id="para-count">0 từ</span><span id="para-hint"></span></div>
+            <div class="small muted"><span id="para-count">0 từ</span></div>
+            <div id="para-hint" aria-live="polite"></div>
           </div>
 
           <div class="row between nav">
@@ -168,7 +174,8 @@
 
   <dialog id="dlg-vocab" class="dlg wide">
     <div class="dlg-body">
-      <div class="row between"><h2>📚 Kho từ vựng &amp; quy tắc</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <div class="row between"><h2>📚 Dàn ý Ms. Gigi</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <div class="tabs" id="vocab-tabs" role="tablist"></div>
       <div id="vocab-content"></div>
     </div>
   </dialog>
@@ -197,6 +204,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/content.js"></script>
+  <script src="js/gigi.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
 </body>
