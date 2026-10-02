@@ -1,162 +1,102 @@
-/* Đọc & phân tích mọi đề Task 1 (maps, line, bar, pie, table, process, mixed):
- *  - AI (Claude): trong claude.ai dùng tài khoản người xem; mở file riêng thì cần API key.
- *  - OCR (Tesseract.js, miễn phí, chạy trong trình duyệt): chỉ đọc chữ của đề bài. */
+/* AI đọc đề & tạo gợi ý bám sát đề cho IELTS Writing Task 1.
+ *  - Mở trong claude.ai: dùng Claude của người xem (capability `sample`), không cần API key.
+ *  - Mở file riêng: cần Anthropic API key (lưu trong trình duyệt). */
 window.AI = (function () {
+  const C = window.CONTENT;
   const MODEL = 'claude-opus-5-5';
   const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm';
-  const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 
-  const posSchema = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['rel', 'dir', 'ref'],
-    properties: {
-      rel: { type: 'string', enum: ENGINE.RELATIONS.map(r => r.id).concat(['']) },
-      dir: { type: 'string', description: 'north|south|east|west|north-east|north-west|south-east|south-west, left|right, top|bottom, top-left|top-right|bottom-left|bottom-right, or empty' },
-      ref: { type: 'string', description: 'Reference object WITHOUT article, e.g. "river", "town", "main road"; empty if none' },
-    },
+  const TYPE_HINT = {
+    maps: 'MAPS (two or more maps / plans of a place).',
+    process: 'PROCESS (natural or manufacturing process, life cycle, diagram of how something works).',
+    charts: 'CHARTS & TABLES (line graph, bar chart, pie chart, table, or a mix of them).',
+    auto: 'Unknown — detect the type yourself.',
   };
-  const str = (description) => (description ? { type: 'string', description } : { type: 'string' });
-  const strArr = (description) => ({ type: 'array', description, items: { type: 'string' } });
-  const slotSchema = {
-    type: 'array',
-    items: {
-      type: 'object', additionalProperties: false, required: ['label', 'variants'],
-      properties: {
-        label: str('Vietnamese label: sentence number + its job, e.g. "Câu 2 · Xu hướng của nhóm tăng"'),
-        variants: {
-          type: 'array',
-          description: '2-3 alternative English sentences for this slot, each using a different structure.',
-          items: {
-            type: 'object', additionalProperties: false, required: ['text', 'structure'],
-            properties: { text: str(), structure: str('Structure / key phrase used, e.g. "Contrast (while)", "Passive Voice", "rose sharply"') },
-          },
-        },
-      },
-    },
-  };
-  const schema = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['task_type', 'prompt_text', 'topic_vi', 'place', 'year1', 'year2', 'tense', 'features', 'changes',
-      'key_features', 'overview_points', 'body1_focus', 'body2_focus', 'data_notes', 'sections', 'vocabulary', 'teacher_notes', 'common_mistakes'],
-    properties: {
-      task_type: { type: 'string', enum: ['maps', 'line', 'bar', 'pie', 'table', 'process', 'mixed'] },
-      prompt_text: str('The task question text exactly as written (empty if not visible).'),
-      topic_vi: str('One Vietnamese sentence: what the visual shows.'),
-      place: str('MAPS ONLY: place name with article, e.g. "the village of Chorleywood". Empty otherwise.'),
-      year1: str('First year / start of the period, or empty.'),
-      year2: str('Last year / end of the period, "present", or empty.'),
-      tense: { type: 'string', enum: ['past', 'perfect', 'future', 'present'] },
-      features: {
-        type: 'array',
-        description: 'MAPS ONLY: key features of MAP 1 with their positions (max 6). Empty for other types.',
-        items: { type: 'object', additionalProperties: false, required: ['name', 'pos'], properties: { name: str(), pos: posSchema } },
-      },
-      changes: {
-        type: 'array',
-        description: 'MAPS ONLY: changes visible on MAP 2 (max 8); mark the 3-4 most significant with main=true. Empty for other types.',
-        items: {
-          type: 'object', additionalProperties: false, required: ['type', 'subject', 'target', 'pos', 'main'],
-          properties: {
-            type: { type: 'string', enum: ENGINE.CHANGE_TYPES.map(c => c.id) },
-            subject: str('Old feature (from map 1) without article; empty for built/added.'),
-            target: str('New feature without article; empty if not applicable.'),
-            pos: posSchema,
-            main: { type: 'boolean' },
-          },
-        },
-      },
-      key_features: strArr('Vietnamese: the 3-5 most important things a student must notice (with the real figures).'),
-      overview_points: strArr('English notes: the 2 main points for the Overview (no figures).'),
-      body1_focus: str('Vietnamese: what Body 1 covers and why this grouping.'),
-      body2_focus: str('Vietnamese: what Body 2 covers.'),
-      data_notes: strArr('English: specific data to quote (highest, lowest, start/end values, stages), each one short.'),
-      sections: {
-        type: 'object', additionalProperties: false, required: ['intro', 'overview', 'body1', 'body2'],
-        description: 'Sentence-by-sentence suggestions. For MAPS return empty arrays (the app builds map sentences itself).',
-        properties: { intro: slotSchema, overview: slotSchema, body1: slotSchema, body2: slotSchema },
-      },
-      vocabulary: {
-        type: 'array', description: '8-14 phrases useful for THIS task.',
-        items: { type: 'object', additionalProperties: false, required: ['phrase', 'meaning_vi', 'example'], properties: { phrase: str(), meaning_vi: str(), example: str() } },
-      },
-      teacher_notes: strArr('Vietnamese: 3-5 teaching notes (how to group data, what to compare, traps in this visual).'),
-      common_mistakes: strArr('Vietnamese: 3-5 mistakes students typically make on this task, each with the correct form.'),
-    },
+  const BAND = {
+    '6.0': 'Band 6.0: clear, accurate sentences; common academic vocabulary; some complex sentences.',
+    '7.0': 'Band 7.0+: varied complex structures, precise collocations, accurate data, natural academic style.',
+    '8.0': 'Band 8.0+: sophisticated yet natural; precise, concise, flexible grammar, nominalisation, no memorised phrases.',
   };
 
-  const BAND_GUIDE = {
-    '5.5': 'Band 5.5-6 learners: short, clear sentences; common vocabulary; at most one clause per sentence.',
-    '6.5': 'Band 6.5-7 learners: mix simple and complex sentences; precise trend/comparison vocabulary; accurate figures.',
-    '7.5': 'Band 7.5+ learners: varied complex structures, nominalisation, precise collocations, concise and natural.',
-  };
-
-  const SYSTEM = `You are an IELTS Writing Task 1 teaching assistant for Vietnamese teachers and students.
-Read the task (text and/or image), identify its type, and prepare a lesson-ready analysis.
-
-Outline every answer must follow (4 paragraphs):
-1. Introduction: one sentence paraphrasing the prompt (illustrate/compare, between X and Y; never copy it).
-2. Overview: 1-2 sentences starting with "Overall," giving the 2 main features, with NO figures.
-3. Body 1 and 4. Body 2: the details, grouped logically (e.g. rising vs falling items, highest vs lowest, first map vs changes, first half vs second half of a process). 3-5 sentences each, quoting accurate figures.
-Prefer these sentence structures and name them in "structure": Passive Voice (S + was/were + V3), There was/were + N, Time Clause (In + [Year], S + V), Contrast (S + V..., while...), Addition (Moreover, S + V).
-Use the right tense: past for past years, present perfect when the end point is now, future for plans/projections, present simple (mostly passive) for processes and timeless diagrams.
-Never invent data: if a value is unclear, approximate with "about/around" and say so in teacher_notes.
-
-For MAPS tasks: fill place/year1/year2/tense/features/changes and leave "sections" arrays empty.
-- features: the important buildings/areas on the FIRST map and where they are.
-- changes: one type per item: built (new large building), added (small/extra facility), demolished, removed, replaced (X -> Y same place),
-  converted (same building, new function), transformed (big area change), expanded (bigger area), extended (roads/railways made longer),
-  relocated (moved; pos = new position), modernized, renovated, reduced, redeveloped (whole area rebuilt), unchanged.
-- Positions use these relation ids: ${ENGINE.RELATIONS.map(r => `${r.id} = "${r.label}"`).join('; ')}.
-  "in_dir" = inside the area; "to_dir" = outside the reference, towards that direction.
-- Use simple English nouns without articles ("school", "car park", "houses").
-For every other type: leave features/changes empty and fill "sections" with 1 intro slot, 1-2 overview slots, and 3-5 slots for each body paragraph.
-All explanations (labels, key_features, focus, notes, mistakes, meaning_vi) in Vietnamese; all model sentences in English.`;
-
-  function getKey() {
-    try { return localStorage.getItem('e-app.apiKey') || ''; } catch (e) { return ''; }
-  }
-  function setKey(k) {
-    try { k ? localStorage.setItem('e-app.apiKey', k) : localStorage.removeItem('e-app.apiKey'); } catch (e) { /* bỏ qua */ }
+  // Từ vựng & cấu trúc trong dàn ý của giáo viên → AI ưu tiên dùng (bắt buộc với Maps)
+  function outlineNotes(type) {
+    const structures = C.sentenceStructures.map(s => `${s.name} (${s.formula})`).join('; ');
+    let t = `Sentence structures to use: ${structures}. Tip: Time + Object + Action + Position.`;
+    if (type === 'maps' || type === 'auto') {
+      t += `\nIF THE TASK IS A MAP, use the teacher's vocabulary below (vary synonyms, do not repeat the same phrase):
+- Change verbs: ${C.changeVocab.map(v => v.phrase).join(', ')}.
+- Extra structures: ${C.writingStructures.map(g => g.items.join(', ')).join('; ')}.
+- Position phrases: ${C.positionVocab.map(v => v.phrase).join(', ')}.
+- Rules: "in the north of X" = inside X, "to the north of X" = outside X; "side" takes ON; "part" takes IN; IN: center, middle, corner, part, area; AT: top, bottom, entrance, intersection, junction; ON: side, bank, edge, left/right-hand side.
+- Body 1 describes the first map (positions); Body 2 describes the changes (change verbs + positions). Choose only the 3-4 main changes.`;
+    }
+    return t;
   }
 
-  let sdkPromise = null;
-  function loadSdk() {
-    if (!sdkPromise) sdkPromise = import(SDK_URL).then(m => m.default || m.Anthropic);
-    return sdkPromise;
+  const SHAPE = `{
+  "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "subject": "the exact subject in English, e.g. 'water consumption in the USA and China'",
+  "topic_vi": "one Vietnamese sentence: what the task shows",
+  "prompt_text": "the task question exactly as written if visible, else ''",
+  "steps": [  // exactly 4 items in this order: Introduction, Overview, Body 1, Body 2
+    {
+      "title": "Vietnamese title of what this paragraph does for THIS task",
+      "guide_vi": "Vietnamese guidance (2-4 sentences): what to write, which data to pick, how to group, traps",
+      "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
+      "options": [ "full paragraph option 1", "option 2", "option 3" ]              // 3 alternative paragraphs
+    }
+  ]
+}`;
+
+  const RULES = `You are a professional IELTS Writing Task 1 examiner and teacher for Vietnamese learners.
+Golden rule: NO generic template writing. Read the task (text and/or image) carefully and use the EXACT subjects,
+countries, categories, places, units and years from it in every option. Never write "the given chart" or placeholders like X/Y.
+Quote real figures from the visual (approximate with "about/around" if unclear). Never invent data that is not shown.
+Paragraph lengths: Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 2 sentences starting with "Overall,", no figures.
+Body 1 and Body 2 = 3-5 sentences each, grouping the data logically, with accurate figures and comparisons.
+Use the correct tense (past for past years, present perfect up to now, future for plans/projections, present simple passive for processes).
+Each of the 3 options must use different structures and vocabulary, but all must be accurate.
+All guidance and meanings in Vietnamese; all options in English.`;
+
+  function taskBlock(text, hasImage) {
+    return (hasImage ? 'The attached image is the task (the question and/or the visual).\n' : '') +
+      (text ? 'Task text:\n"""' + text + '"""\n' : '');
   }
 
-  /* image: { mediaType, base64 } | null */
-  async function analyze({ text, image, band }) {
-    const sample = await getSample();
-    if (sample) return analyzeWithSample(sample, { text, image, band });
-    const apiKey = getKey();
-    if (!apiKey) throw new Error('Chưa có API key. Bấm ⚙️ Cài đặt để nhập Anthropic API key.');
-    const Anthropic = await loadSdk();
-    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-    const content = [];
-    if (image) content.push({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } });
-    content.push({ type: 'text', text: 'Target level: ' + (BAND_GUIDE[band] || BAND_GUIDE['6.5']) + '\n\n' + (text ? 'Task text:\n' + text + '\n\n' : '') + 'Analyse this IELTS Writing Task 1 question.' });
+  function buildPrompt({ text, type, band, hasImage }) {
+    return `${RULES}
 
-    const response = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      system: SYSTEM,
-      messages: [{ role: 'user', content }],
-      output_config: { effort: 'medium', format: { type: 'json_schema', schema } },
-      // nếu bị bộ lọc an toàn từ chối, server tự chuyển sang model dự phòng
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-    });
-    if (response.stop_reason === 'refusal') throw new Error('AI từ chối xử lý ảnh này. Hãy nhập tay ở bước Phân tích.');
-    if (response.stop_reason === 'max_tokens') throw new Error('Kết quả AI bị cắt ngắn. Thử lại với ảnh rõ hơn.');
-    const block = response.content.find(b => b.type === 'text');
-    if (!block) throw new Error('AI không trả về kết quả.');
-    return JSON.parse(block.text);
+Task type selected by the user: ${TYPE_HINT[type] || TYPE_HINT.auto}
+Target level: ${BAND[band] || BAND['7.0']}
+${outlineNotes(type)}
+
+${taskBlock(text, hasImage)}
+Reply with ONLY one JSON object in this shape:
+${SHAPE}`;
   }
 
-  /* Khi mở trong claude.ai (Artifact): gọi Claude bằng tài khoản người xem, không cần API key. */
+  const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
+  function buildRegenPrompt({ text, band, hasImage, analysis, stepIndex, chosen }) {
+    const prev = chosen.map((p, i) => (p ? `${NAMES[i]}: ${p}` : '')).filter(Boolean).join('\n');
+    const old = (analysis.steps[stepIndex].options || []).join('\n- ');
+    return `${RULES}
+
+Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
+Target level: ${BAND[band] || BAND['7.0']}
+${outlineNotes(analysis.task_type === 'maps' ? 'maps' : 'charts')}
+
+${taskBlock(text || analysis.prompt_text, hasImage)}
+Paragraphs the student has already chosen:
+${prev || '(none yet)'}
+
+Write 3 NEW options for the ${NAMES[stepIndex]} paragraph that fit with the chosen paragraphs and do not repeat their data.
+Do not reuse these earlier options:
+- ${old}
+
+Reply with ONLY one JSON object: { "options": ["...", "...", "..."] }`;
+  }
+
+  /* ---------- Backends ---------- */
   let samplePromise = null;
   function getSample() {
     if (!samplePromise) {
@@ -166,12 +106,18 @@ All explanations (labels, key_features, focus, notes, mistakes, meaning_vi) in V
     }
     return samplePromise;
   }
-  async function sampleCaps() {
+  async function available() {
     const s = await getSample();
-    if (!s) return null;
-    const lim = await s.limits().catch(() => null);
-    return { images: !!(lim && lim.images) };
+    if (s) {
+      const lim = await s.limits().catch(() => null);
+      return { via: 'claude', images: !!(lim && lim.images) };
+    }
+    return { via: 'key', images: true };
   }
+
+  function getKey() { try { return localStorage.getItem('e-app.apiKey') || ''; } catch (e) { return ''; } }
+  function setKey(k) { try { k ? localStorage.setItem('e-app.apiKey', k) : localStorage.removeItem('e-app.apiKey'); } catch (e) { /* bỏ qua */ } }
+
   function dataUrlToBlob(url) {
     const [head, b64] = url.split(',');
     const type = (head.match(/data:([^;]+)/) || [])[1] || 'image/png';
@@ -180,42 +126,77 @@ All explanations (labels, key_features, focus, notes, mistakes, meaning_vi) in V
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     return new Blob([arr], { type });
   }
+
   const SAMPLE_ERRORS = {
-    not_granted: 'Bạn chưa cho phép trang dùng Claude. Tải lại trang và bấm Cho phép.',
+    not_granted: 'Bạn chưa cho phép trang dùng Claude. Tải lại trang, bấm lại nút và chọn Cho phép.',
     rate_limited: 'Đang gửi quá nhiều yêu cầu. Đợi một lát rồi thử lại.',
     images_unavailable: 'Chế độ xem này không gửi được ảnh. Hãy gõ đề vào ô văn bản.',
     image_rejected: 'Ảnh không đọc được. Hãy thử ảnh PNG/JPG khác.',
+    cancelled: 'Đã dừng.',
   };
-  async function analyzeWithSample(sample, { text, image, band }) {
-    const prompt = SYSTEM + '\n\n' + 'Target level: ' + (BAND_GUIDE[band] || BAND_GUIDE['6.5']) + '\n\n' + (text ? 'Task text:\n' + text + '\n\n' : '') +
-      (image ? 'The attached image is the task (question text and/or the two maps).\n' : '') +
-      'Reply with ONLY one JSON object matching this JSON Schema:\n' + JSON.stringify(schema);
-    try {
-      return await sample.json(prompt, Object.assign({ modelTier: 'default' }, image ? { images: dataUrlToBlob(image.dataUrl) } : {}));
-    } catch (e) {
-      throw new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không đọc được đề.');
-    }
+
+  function parseJson(text) {
+    const t = String(text || '').replace(/```json|```/g, '').trim();
+    const a = t.indexOf('{'), b = t.lastIndexOf('}');
+    return JSON.parse(a >= 0 ? t.slice(a, b + 1) : t);
   }
 
-  let tessPromise = null;
-  function loadTesseract() {
-    if (window.Tesseract) return Promise.resolve(window.Tesseract);
-    if (!tessPromise) {
-      tessPromise = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = TESSERACT_URL;
-        s.onload = () => resolve(window.Tesseract);
-        s.onerror = () => { tessPromise = null; reject(new Error('Không tải được thư viện OCR (cần mạng).')); };
-        document.head.appendChild(s);
-      });
+  async function ask(prompt, image, signal) {
+    const sample = await getSample();
+    if (sample) {
+      try {
+        const opts = { modelTier: 'default', signal };
+        if (image) opts.images = dataUrlToBlob(image.dataUrl);
+        return await sample.json(prompt, opts);
+      } catch (e) {
+        const err = new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không trả lời được. Thử lại.');
+        err.code = e && e.code;
+        throw err;
+      }
     }
-    return tessPromise;
-  }
-  async function ocr(dataUrl, onProgress) {
-    const T = await loadTesseract();
-    const res = await T.recognize(dataUrl, 'eng', { logger: m => m.status === 'recognizing text' && onProgress && onProgress(m.progress) });
-    return (res.data && res.data.text || '').replace(/\s+\n/g, '\n').trim();
+    const apiKey = getKey();
+    if (!apiKey) { const e = new Error('Cần Anthropic API key để dùng AI khi mở file ngoài claude.ai. Bấm ⚙️ để nhập.'); e.code = 'no_key'; throw e; }
+    const mod = await import(SDK_URL);
+    const Anthropic = mod.default || mod.Anthropic;
+    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+    const content = [];
+    if (image) content.push({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } });
+    content.push({ type: 'text', text: prompt });
+    const stream = client.beta.messages.stream({
+      model: MODEL,
+      max_tokens: 32000,
+      messages: [{ role: 'user', content }],
+      output_config: { effort: 'medium' },
+      // nếu bị bộ lọc an toàn từ chối, server tự chuyển sang model dự phòng
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+    }, { signal });
+    const msg = await stream.finalMessage();
+    if (msg.stop_reason === 'refusal') throw new Error('AI từ chối xử lý đề này.');
+    if (msg.stop_reason === 'max_tokens') throw new Error('Kết quả AI bị cắt ngắn. Thử lại.');
+    const block = msg.content.find(b => b.type === 'text');
+    if (!block) throw new Error('AI không trả về kết quả.');
+    return parseJson(block.text);
   }
 
-  return { analyze, ocr, getKey, setKey, sampleCaps, MODEL };
+  function validate(r) {
+    if (!r || !Array.isArray(r.steps) || r.steps.length < 4) throw new Error('AI trả về dữ liệu không đầy đủ. Bấm thử lại.');
+    r.steps = r.steps.slice(0, 4).map(s => ({
+      title: String(s.title || ''), guide_vi: String(s.guide_vi || ''),
+      vocab: Array.isArray(s.vocab) ? s.vocab.filter(v => v && v.phrase) : [],
+      options: Array.isArray(s.options) ? s.options.map(String).filter(Boolean) : [],
+    }));
+    return r;
+  }
+
+  async function analyze({ text, type, band, image, signal }) {
+    return validate(await ask(buildPrompt({ text, type, band, hasImage: !!image }), image, signal));
+  }
+  async function regenerate({ text, band, image, analysis, stepIndex, chosen, signal }) {
+    const r = await ask(buildRegenPrompt({ text, band, hasImage: !!image, analysis, stepIndex, chosen }), image, signal);
+    if (!r || !Array.isArray(r.options) || !r.options.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
+    return r.options.map(String);
+  }
+
+  return { analyze, regenerate, available, getKey, setKey };
 })();

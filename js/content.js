@@ -1,7 +1,7 @@
 /* Nội dung dàn ý Task 1 – dạng MAPS.
  * Chép nguyên văn từ tài liệu của người dùng (bảng từ vựng A, B, cấu trúc viết,
- * bảng cấu trúc câu, lưu ý quan trọng, mẹo áp dụng). Mọi gợi ý câu trong app
- * chỉ được ghép từ các cụm trong file này. */
+ * bảng cấu trúc câu, lưu ý quan trọng, mẹo áp dụng). AI dùng các cụm trong file này
+ * làm từ vựng ưu tiên (bắt buộc với dạng Maps); "Kho từ vựng" hiển thị toàn bộ. */
 window.CONTENT = (function () {
   // A. Từ vựng miêu tả sự thay đổi (Dùng chủ yếu trong Body 2)
   const changeVocab = [
@@ -94,104 +94,55 @@ window.CONTENT = (function () {
     { title: 'Thời gian', text: 'Dành 15 phút viết, 2 phút kiểm tra từ vựng và tính chính xác.' },
   ];
 
-  /* Dàn ý được sắp xếp theo đúng trình tự làm bài.
-   * Mỗi mục có phần "Trước khi viết" gom đúng công thức / từ vựng / lưu ý cần dùng cho mục đó. */
-  const outline = [
-    { id: 'prompt', num: '0', title: 'Đề bài', short: 'Đề bài', icon: '📝', goal: 'Nhập hoặc dán ảnh đề. App tự nhận địa điểm, năm và thì của bài.' },
-    { id: 'analyze', num: '1', title: 'Phân tích bản đồ', short: 'Phân tích', icon: '🔍', minutes: 3,
-      goal: 'So sánh 2 bản đồ: ghi chú vị trí công trình trên Map 1, ghi chú thay đổi + vị trí mới trên Map 2. Chỉ đánh dấu ⭐ 3-4 thay đổi chính.' },
-    { id: 'intro', num: '2', title: 'Introduction', short: 'Intro', icon: '①', minutes: 2, sentences: '1 câu',
-      goal: 'Paraphrase đề bài: bản đồ gì, ở đâu, năm nào.',
-      structures: ['time'], vocabIds: [] },
-    { id: 'overview', num: '3', title: 'Overview', short: 'Overview', icon: '②', minutes: 3, sentences: '1–2 câu',
-      goal: 'Tóm tắt thay đổi tổng thể + 2 thay đổi nổi bật nhất. Không đưa vị trí chi tiết.',
-      structures: ['contrast'], vocabIds: ['experienced', 'underwent', 'addition', 'unchanged'] },
-    { id: 'body1', num: '4', title: 'Body 1 – Map 1', short: 'Body 1', icon: '③', minutes: 5, sentences: '3–4 câu',
-      goal: 'Miêu tả bản đồ thứ nhất: các công trình chính nằm ở đâu.',
-      structures: ['time', 'there', 'passive', 'addition', 'contrast'], vocabIds: [], usePositions: true },
-    { id: 'body2', num: '5', title: 'Body 2 – Thay đổi', short: 'Body 2', icon: '④', minutes: 5, sentences: '4–5 câu',
-      goal: 'Miêu tả các thay đổi trên Map 2 (xây mới, phá bỏ, mở rộng…) và vị trí mới.',
-      structures: ['time', 'passive', 'there', 'addition', 'contrast'], vocabIds: changeVocab.map(v => v.id), usePositions: true },
-    { id: 'check', num: '6', title: 'Kiểm tra', short: 'Kiểm tra', icon: '✅', minutes: 2,
-      goal: 'Kiểm tra từ vựng, giới từ (IN/AT/ON/TO), lặp từ và độ dài bài.' },
-  ];
-
-
-  // Ví dụ kết quả phân tích AI cho dạng Line graph (đề và số liệu minh hoạ, tự soạn)
-  const sampleLine = {
-    task_type: 'line',
-    prompt_text: 'The graph below shows the number of international visitors to three cities in Vietnam between 2010 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
-    topic_vi: 'Số lượng khách quốc tế đến Hà Nội, Đà Nẵng và Huế giai đoạn 2010–2020.',
-    place: '', year1: '2010', year2: '2020', tense: 'past', features: [], changes: [],
-    key_features: [
-      'Hà Nội luôn cao nhất: tăng từ 1,5 triệu (2010) lên 4 triệu (2019), rồi giảm mạnh còn 1 triệu năm 2020.',
-      'Đà Nẵng tăng nhanh nhất: từ 0,5 triệu lên 3,5 triệu (2019), gần đuổi kịp Hà Nội.',
-      'Huế gần như ổn định quanh 0,8–1 triệu suốt giai đoạn.',
-      'Cả ba thành phố đều giảm vào năm 2020.',
-    ],
-    overview_points: [
-      'Hanoi and Da Nang saw strong growth until 2019, while Hue changed little.',
-      'All three cities experienced a sharp fall in 2020, and Hanoi remained the most popular throughout.',
-    ],
-    body1_focus: 'Hai thành phố tăng mạnh (Hà Nội, Đà Nẵng) từ 2010 đến 2019 — nhóm có xu hướng giống nhau.',
-    body2_focus: 'Huế (ổn định) và cú giảm chung của cả ba thành phố năm 2020.',
-    data_notes: ['Hanoi: 1.5m (2010) → 4m (2019) → 1m (2020)', 'Da Nang: 0.5m (2010) → 3.5m (2019) → 0.8m (2020)', 'Hue: about 0.8m–1m, 0.3m in 2020'],
-    sections: {
-      intro: [{ label: 'Câu 1 · Paraphrase đề', variants: [
-        { text: 'The line graph illustrates how many international tourists visited three Vietnamese cities between 2010 and 2020.', structure: 'Paraphrase' },
-        { text: 'The graph compares the number of foreign visitors to Hanoi, Da Nang and Hue over a ten-year period from 2010.', structure: 'Paraphrase' },
-      ] }],
-      overview: [{ label: 'Câu 1 · Hai đặc điểm nổi bật', variants: [
-        { text: 'Overall, Hanoi and Da Nang saw substantial growth until 2019, while visitor numbers to Hue remained relatively stable.', structure: 'Contrast (while)' },
-        { text: 'Overall, Hanoi was the most popular destination throughout the period, and all three cities experienced a sharp decline in 2020.', structure: 'Addition' },
-      ] }],
-      body1: [
-        { label: 'Câu 1 · Hà Nội: điểm xuất phát và xu hướng', variants: [
-          { text: 'In 2010, Hanoi received around 1.5 million international visitors, and this figure rose steadily to a peak of 4 million in 2019.', structure: 'Time Clause' },
-          { text: 'There were around 1.5 million foreign tourists in Hanoi in 2010, a figure which climbed steadily to 4 million by 2019.', structure: 'There was/were' },
-        ] },
-        { label: 'Câu 2 · Đà Nẵng: tăng nhanh nhất', variants: [
-          { text: 'Da Nang, meanwhile, recorded the most dramatic increase, from only 0.5 million to 3.5 million over the same period.', structure: 'Comparison' },
-          { text: 'Moreover, the number of visitors to Da Nang grew sevenfold, reaching 3.5 million in 2019.', structure: 'Addition' },
-        ] },
-        { label: 'Câu 3 · So sánh hai thành phố', variants: [
-          { text: 'As a result, the gap between the two cities narrowed considerably, while Hanoi still remained ahead.', structure: 'Contrast (while)' },
-        ] },
-      ],
-      body2: [
-        { label: 'Câu 1 · Huế: ổn định', variants: [
-          { text: 'By contrast, the figure for Hue fluctuated only slightly, staying at around 0.8 to 1 million between 2010 and 2019.', structure: 'Contrast' },
-          { text: 'Hue attracted between 0.8 and 1 million international tourists each year, while the other two cities grew rapidly.', structure: 'Contrast (while)' },
-        ] },
-        { label: 'Câu 2 · Cú giảm năm 2020', variants: [
-          { text: 'In 2020, visitor numbers fell sharply in all three cities, with Hanoi dropping to 1 million and Da Nang to 0.8 million.', structure: 'Time Clause' },
-          { text: 'Moreover, all three destinations experienced a dramatic decline in 2020, when Hue welcomed only 0.3 million visitors.', structure: 'Addition' },
-        ] },
-      ],
-    },
-    vocabulary: [
-      { phrase: 'rose steadily', meaning_vi: 'tăng đều', example: 'The figure rose steadily to 4 million.' },
-      { phrase: 'reach a peak of', meaning_vi: 'đạt đỉnh', example: 'Visitors reached a peak of 4 million in 2019.' },
-      { phrase: 'the most dramatic increase', meaning_vi: 'mức tăng mạnh nhất', example: 'Da Nang recorded the most dramatic increase.' },
-      { phrase: 'fluctuated', meaning_vi: 'dao động', example: 'The figure for Hue fluctuated slightly.' },
-      { phrase: 'fell sharply', meaning_vi: 'giảm mạnh', example: 'Numbers fell sharply in 2020.' },
-      { phrase: 'remained relatively stable', meaning_vi: 'tương đối ổn định', example: 'Hue remained relatively stable.' },
-      { phrase: 'the gap narrowed', meaning_vi: 'khoảng cách thu hẹp', example: 'The gap between the two cities narrowed.' },
-      { phrase: 'sevenfold', meaning_vi: 'gấp bảy lần', example: 'The number grew sevenfold.' },
-    ],
-    teacher_notes: [
-      'Nhóm Hà Nội + Đà Nẵng vào Body 1 vì cùng xu hướng tăng; Huế + năm 2020 vào Body 2.',
-      'Nhắc học viên mô tả cả điểm đầu, đỉnh và điểm cuối của mỗi đường.',
-      'Năm 2020 là điểm bất thường — phải nhắc tới trong Overview.',
-      'Không cần giải thích nguyên nhân (COVID-19) vì đề không cho thông tin này.',
-    ],
-    common_mistakes: [
-      '“The number of tourists increased to 4 million people” → bỏ “people”, dùng “4 million”.',
-      'Dùng “raise” thay vì “rise”: “rose” (nội động từ), không phải “raised”.',
-      'Viết Overview có số liệu → Overview chỉ nêu xu hướng.',
-      'Liệt kê từng năm một → chọn điểm đầu, đỉnh, điểm cuối.',
+  // Bài mẫu có sẵn (đề minh hoạ tự soạn) để xem app hoạt động khi chưa chạy AI
+  const demo = {
+    task_type: 'maps',
+    subject: 'the village of Stokeford in 1930 and 2010',
+    topic_vi: 'Hai bản đồ làng Stokeford năm 1930 và 2010.',
+    prompt_text: 'The maps below show the village of Stokeford in 1930 and 2010. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+    steps: [
+      {
+        title: 'Paraphrase đề: làng Stokeford, 1930 → 2010',
+        guide_vi: 'Viết 1 câu: đổi “show” thành “illustrate/compare”, giữ đúng tên làng Stokeford và hai mốc 1930, 2010. Không chép nguyên câu đề.',
+        vocab: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'the changes that took place in', meaning_vi: 'những thay đổi diễn ra ở' }, { phrase: 'between 1930 and 2010', meaning_vi: 'trong giai đoạn 1930–2010' }, { phrase: 'the layout of', meaning_vi: 'cách bố trí của' }],
+        options: [
+          'The two maps illustrate the changes that took place in the village of Stokeford between 1930 and 2010.',
+          'The maps compare the layout of the village of Stokeford in 1930 with its layout in 2010.',
+          'The diagrams show how the village of Stokeford developed over the 80-year period from 1930 to 2010.',
+        ],
+      },
+      {
+        title: 'Overview: Stokeford chuyển từ làng nông nghiệp sang khu dân cư',
+        guide_vi: 'Hai ý lớn: (1) đất nông nghiệp phía nam biến thành khu dân cư, có thêm công trình mới; (2) đường chính giữ nguyên. Không đưa vị trí chi tiết hay năm cụ thể vào câu thứ hai.',
+        vocab: [{ phrase: 'experienced significant changes', meaning_vi: 'trải qua thay đổi lớn' }, { phrase: 'underwent development', meaning_vi: 'được phát triển' }, { phrase: 'remained unchanged', meaning_vi: 'không thay đổi' }, { phrase: 'residential', meaning_vi: 'thuộc khu dân cư' }],
+        options: [
+          'Overall, Stokeford experienced significant changes over the period, becoming far more residential as its farmland gave way to housing. However, the main road running through the village remained unchanged.',
+          'Overall, the village underwent development with new facilities, the most noticeable being a large residential area and a retirement home. By contrast, the main road and the school site stayed in the same place.',
+          'Overall, Stokeford was transformed from a small farming community into a much larger residential village, while its basic road layout remained unchanged.',
+        ],
+      },
+      {
+        title: 'Body 1: Làng Stokeford năm 1930 (Map 1)',
+        guide_vi: 'Miêu tả vị trí các công trình chính trên bản đồ 1930: nhà dọc đường chính, trường ở trung tâm, bưu điện cạnh trường, đất nông nghiệp ở phía nam. Dùng công thức Thời gian + Vật thể + Hành động + Vị trí.',
+        vocab: [{ phrase: 'was located', meaning_vi: 'nằm ở' }, { phrase: 'along the main road', meaning_vi: 'dọc đường chính' }, { phrase: 'in the center of', meaning_vi: 'ở trung tâm' }, { phrase: 'next to / adjacent to', meaning_vi: 'bên cạnh' }, { phrase: 'was occupied by', meaning_vi: 'được chiếm bởi' }],
+        options: [
+          'In 1930, Stokeford was a small farming village. Houses were located along the main road, and a school could be seen in the center of the village, next to the post office. The area in the south of the village was occupied by farmland, which stretched as far as the edge of the map.',
+          'In 1930, there were only a few houses, all built along the main road. The village school stood in the middle of the village, with a post office adjacent to it, while the whole southern part of Stokeford was farmland. Apart from these buildings, the village had very few facilities.',
+          'Looking at the first map, Stokeford in 1930 consisted mainly of houses along the main road. In the center of the village, a school could be seen next to the post office. Moreover, a large area of farmland was located in the south, covering almost half of the village.',
+        ],
+      },
+      {
+        title: 'Body 2: Những thay đổi đến năm 2010 (Map 2)',
+        guide_vi: 'Chọn 3-4 thay đổi chính: đất nông nghiệp → khu dân cư, viện dưỡng lão mới ở phía bắc, trường mở rộng về phía tây, bưu điện → cửa hàng. Kết bằng điểm giữ nguyên (đường chính). Đa dạng hóa: was built / was constructed.',
+        vocab: [{ phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was built / was constructed', meaning_vi: 'được xây dựng' }, { phrase: 'was expanded', meaning_vi: 'được mở rộng' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'to the west', meaning_vi: 'về phía tây' }],
+        options: [
+          'By 2010, the farmland in the south had been transformed into a residential area. A new retirement home was built in the north of the village, and the school was expanded to the west. Moreover, the post office was converted into a shop, while the main road remained unchanged. As a result, the village became noticeably more densely populated.',
+          'In 2010, the most striking change was the conversion of the southern farmland into a large housing estate. A retirement home was constructed in the north, and the school was extended to the west. The post office next to the school was converted into a shop, while the main road running through the village remained unchanged.',
+          'Over the following eighty years, the southern farmland was redeveloped as a residential area. In addition, Stokeford saw the addition of a retirement home in the north, while the school grew larger to the west. Finally, the post office became a shop, but no significant changes occurred to the main road, which still ran through the middle of Stokeford.',
+        ],
+      },
     ],
   };
 
-  return { sampleLine, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips, outline };
+  return { demo, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips };
 })();

@@ -1,539 +1,221 @@
 (function () {
-  const C = window.CONTENT, E = window.ENGINE;
-  const $ = (s, el = document) => el.querySelector(s);
+  const C = window.CONTENT;
+  const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const uid = () => Math.random().toString(36).slice(2, 9);
-  const STORE = 'e-app.maps.v1';
-  const WRITING = ['intro', 'overview', 'body1', 'body2'];
+  const STORE = 'e-app.task1.v2';
+  const STEP_NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
+  const STEP_HINT = ['1 câu paraphrase đề', '2 câu, bắt đầu “Overall,”, không số liệu', '3–5 câu, có số liệu', '3–5 câu, số liệu + so sánh'];
+  const TYPE_VI = { maps: 'Maps', process: 'Process', line: 'Line graph', bar: 'Bar chart', pie: 'Pie chart', table: 'Table', mixed: 'Mixed' };
 
-  const TASK_TYPES = [
-    { id: 'maps', label: '🗺️ Maps' }, { id: 'line', label: '📈 Line graph' }, { id: 'bar', label: '📊 Bar chart' },
-    { id: 'pie', label: '🥧 Pie chart' }, { id: 'table', label: '🧮 Table' }, { id: 'process', label: '🔁 Process' }, { id: 'mixed', label: '🧩 Mixed' },
-  ];
-  const typeLabel = id => ((TASK_TYPES.find(t => t.id === id) || TASK_TYPES[0]).label).replace(/^\S+\s/, '');
-  const isMaps = () => S.type === 'maps';
-
-  /* Dàn ý: Maps dùng đúng dàn ý trong content.js; các dạng khác cùng 4 đoạn nhưng nội dung do AI phân tích */
-  const GENERIC = {
-    prompt: { goal: 'Dán ảnh hoặc gõ đề bất kỳ. AI tự nhận dạng loại đề (line, bar, pie, table, process, mixed, maps) và phân tích.' },
-    analyze: { title: 'Phân tích đề (AI)', short: 'Phân tích', goal: 'Đặc điểm chính, số liệu cần dẫn, cách chia 2 đoạn thân bài, ghi chú giảng dạy và lỗi hay gặp.' },
-    intro: { structures: [] },
-    overview: { goal: 'Bắt đầu bằng “Overall,” — nêu 2 đặc điểm nổi bật nhất, không đưa số liệu.' },
-    body1: { title: 'Body 1', goal: 'Nhóm thông tin thứ nhất, có số liệu cụ thể.' },
-    body2: { title: 'Body 2', goal: 'Nhóm thông tin thứ hai, có số liệu và so sánh.' },
-  };
-  function OUT() {
-    return isMaps() ? C.outline : C.outline.map(o => Object.assign({}, o, GENERIC[o.id] || {}));
-  }
-
+  /* ================= State ================= */
   function blank() {
-    return {
-      step: 'prompt', view: 'outline', type: 'maps', band: '6.5', ai: null,
-      promptText: '', image: null,
-      place: '', year1: '', year2: '', tense: 'past',
-      features: [newFeature()], changes: [newChange()],
-      draft: { intro: '', overview: '', body1: '', body2: '' },
-      checks: {},
-    };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
   }
-  function newFeature() { return { id: uid(), name: '', pos: { rel: 'in_dir', dir: 'north', ref: '' } }; }
-  function newChange() { return { id: uid(), type: 'built', subject: '', target: '', pos: { rel: 'in_dir', dir: 'north', ref: '' }, main: false }; }
-
   let S = load();
   function load() {
-    try {
-      const raw = localStorage.getItem(STORE);
-      if (raw) return Object.assign(blank(), JSON.parse(raw));
-    } catch (e) { /* bỏ qua */ }
+    try { const raw = localStorage.getItem(STORE); if (raw) return Object.assign(blank(), JSON.parse(raw)); } catch (e) { /* bỏ qua */ }
     return blank();
   }
-  let saveTimer = null;
+  let saveT = null;
   function save() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
       try { localStorage.setItem(STORE, JSON.stringify(S)); }
-      catch (e) {
-        // ảnh quá lớn → lưu mà không kèm ảnh
-        try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ }
-      }
-    }, 250);
+      catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+    }, 200);
   }
-
   function toast(msg, ms = 2600) {
-    const t = $('#toast');
-    t.textContent = msg; t.classList.add('show');
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
   }
+  const wc = s => (String(s || '').match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
 
-  /* ================= Highlight ================= */
-  const TERMS = E.highlightTerms();
-  const TERM_RE = new RegExp('\\b(' + TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi');
-  let hlCache = { ai: undefined, re: TERM_RE };
-  function termRe() {
-    if (hlCache.ai === S.ai) return hlCache.re;
-    const extra = (S.ai && S.ai.vocabulary || []).map(v => String(v.phrase || '').replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(x => x.length > 2);
-    const all = [...new Set(TERMS.concat(extra))].sort((a, b) => b.length - a.length);
-    hlCache = { ai: S.ai, re: new RegExp('\\b(' + all.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi') };
-    return hlCache.re;
-  }
-  const hl = s => esc(s).replace(termRe(), '<mark>$1</mark>');
+  let AVAIL = { via: 'key', images: true };
 
-  /* ================= Top / stepper ================= */
-  function renderTypes() {
-    $('#types').innerHTML = TASK_TYPES.map(t =>
-      `<button type="button" class="type ${S.type === t.id ? 'active' : ''}" data-type="${t.id}">${esc(t.label)}</button>`).join('');
+  /* ================= Views ================= */
+  function show(view) {
+    S.view = view; save();
+    for (const v of ['setup', 'loading', 'wizard', 'review']) $('#view-' + v).hidden = v !== view;
+    if (view === 'setup') renderSetup();
+    if (view === 'wizard') renderStep();
+    if (view === 'review') renderReview();
+    window.scrollTo({ top: 0 });
   }
 
-  function stepDone(id) {
-    if (id === 'prompt') return !!(S.promptText.trim() || S.image || S.place);
-    if (id === 'analyze') return isMaps() ? S.features.some(f => f.name.trim()) && S.changes.some(c => (c.subject || c.target).trim()) : !!S.ai;
-    if (WRITING.includes(id)) return !!S.draft[id].trim();
-    return false;
+  /* ---------- Setup ---------- */
+  function renderSetup() {
+    document.querySelectorAll('input[name=type]').forEach(r => { r.checked = r.value === S.type; });
+    $('#prompt').value = S.prompt;
+    $('#band').value = S.band;
+    renderImage();
+    const note = $('#setup-note');
+    note.classList.remove('err');
+    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
+    else note.innerHTML = AI.getKey() ? 'Đang dùng Anthropic API key đã lưu (⚙️ để đổi).' : 'Mở ngoài claude.ai: cần Anthropic API key để dùng AI — bấm ⚙️ ở góc trên. Không có key vẫn bấm được “Xem bài mẫu”.';
   }
-  function renderStepper() {
-    const parts = [`<p class="label">Dàn ý Task 1 · ${esc(typeLabel(S.type))}</p>`];
-    OUT().forEach((o, i) => {
-      if (i) parts.push('<div class="connector"></div>');
-      const active = S.view === 'outline' && S.step === o.id;
-      const meta = [o.minutes ? `${o.minutes} phút` : '', o.sentences || ''].filter(Boolean).join(' · ');
-      parts.push(`<button type="button" class="step ${active ? 'active' : ''} ${stepDone(o.id) ? 'done' : ''}" data-step="${o.id}">
-        <span class="num">${stepDone(o.id) && !active ? '✓' : o.num}</span>
-        <span>${esc(o.title)}${meta ? `<span class="meta">${esc(meta)}</span>` : ''}</span></button>`);
-    });
-    $('#stepper').innerHTML = parts.join('');
+  function renderImage() {
+    const img = $('#img-preview');
+    if (S.image) { img.src = S.image.dataUrl; img.hidden = false; $('#drop-empty').hidden = true; $('#img-clear').hidden = false; }
+    else { img.removeAttribute('src'); img.hidden = true; $('#drop-empty').hidden = false; $('#img-clear').hidden = true; }
   }
 
-  /* ================= Main ================= */
-  function render() {
-    renderStepper();
-    const main = $('#main');
-    if (S.view === 'library') main.innerHTML = libraryView();
-    else {
-      const o = OUT().find(x => x.id === S.step) || OUT()[0];
-      const body = {
-        prompt: promptView, analyze: analyzeView, intro: writeView, overview: writeView, body1: writeView, body2: writeView, check: checkView,
-      }[o.id](o);
-      main.innerHTML = headerCard(o) + body + navCard(o);
+  /* ---------- Analyse ---------- */
+  let ctl = null, tick = null;
+  async function analyze() {
+    S.prompt = $('#prompt').value.trim();
+    if (!S.prompt && !S.image) { showSetupError('Hãy dán đề bài hoặc ảnh đề trước khi bấm.'); return; }
+    if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
+    if (S.image && AVAIL.via === 'claude' && !AVAIL.images) {
+      if (!S.prompt) { showSetupError('Chế độ xem này không gửi được ảnh. Hãy gõ đề vào ô văn bản.'); return; }
     }
-    renderTypes();
-    renderEssay();
-    restoreTimer();
+    show('loading');
+    const t0 = Date.now();
+    $('#elapsed').textContent = '0 giây';
+    tick = setInterval(() => { $('#elapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' giây'; }, 1000);
+    ctl = new AbortController();
+    try {
+      const image = S.image && (AVAIL.via !== 'claude' || AVAIL.images) ? S.image : null;
+      const r = await AI.analyze({ text: S.prompt, type: S.type, band: S.band, image, signal: ctl.signal });
+      S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
+      if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
+      show('wizard');
+      toast(`AI nhận dạng: ${TYPE_VI[r.task_type] || r.task_type} — ${r.subject || ''}`, 3500);
+    } catch (e) {
+      show('setup');
+      if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.'));
+    } finally {
+      clearInterval(tick); ctl = null;
+    }
+  }
+  function showSetupError(msg) { const n = $('#setup-note'); n.textContent = msg; n.classList.add('err'); }
+
+  function loadDemo() {
+    S = Object.assign(blank(), { band: S.band, type: 'maps', prompt: C.demo.prompt_text, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
+    show('wizard');
+    toast('Đang xem bài mẫu (đề minh hoạ). Bấm “Nhập đề khác” để dùng đề của bạn.', 3500);
   }
 
-  function headerCard(o) {
-    return `<section class="card"><div class="head">
-      <div><span class="kicker">Bước ${esc(o.num)}${o.sentences ? ' · ' + esc(o.sentences) : ''}</span><h2>${esc(o.icon)} ${esc(o.title)}</h2>
-      <p class="goal">${esc(o.goal)}</p></div>
-      ${o.minutes ? `<button type="button" class="btn sm timer" id="timer" data-min="${o.minutes}">⏱ ${o.minutes}:00</button>` : ''}
-    </div></section>`;
-  }
-  function navCard(o) {
-    const out = OUT();
-    const i = out.findIndex(x => x.id === o.id);
-    const prev = out[i - 1], next = out[i + 1];
-    return `<div class="row" style="justify-content:space-between">
-      ${prev ? `<button type="button" class="btn" data-step="${prev.id}">← ${esc(prev.title)}</button>` : '<span></span>'}
-      ${next ? `<button type="button" class="btn primary" data-step="${next.id}">${esc(next.title)} →</button>` : ''}
-    </div>`;
+  /* ---------- Wizard ---------- */
+  // Tô đậm từ vựng riêng của đề trong các gợi ý
+  function hl(text, vocab) {
+    let out = esc(text);
+    const terms = (vocab || []).map(v => String(v.phrase || '').split('/')).flat()
+      .map(t => t.replace(/\(.*?\)|\[.*?\]|\.{3}|…/g, '').trim()).filter(t => t.length > 2)
+      .sort((a, b) => b.length - a.length);
+    if (!terms.length) return out;
+    const re = new RegExp('\\b(' + terms.map(t => esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'gi');
+    return out.replace(re, '<mark>$1</mark>');
   }
 
-  /* ---------- Bước 0: Đề bài ---------- */
-  function promptView() {
-    const img = S.image;
-    return `<section class="card">
-      <h3>Đề bài</h3>
-      <label class="field"><span>Gõ hoặc dán đề (tiếng Anh)</span>
-        <textarea id="prompt-text" rows="4" placeholder="The maps below show the village of ... in 1990 and 2010. Summarise the information by selecting and reporting the main features...">${esc(S.promptText)}</textarea>
-      </label>
-      <div style="height:12px"></div>
-      <div class="dropzone" id="dropzone">
-        ${img ? `<img src="${esc(img.dataUrl)}" alt="Ảnh đề bài">` : '<div style="font-size:34px">🖼️</div>'}
-        <p class="hint">${img ? 'Ảnh đề đã sẵn sàng.' : 'Dán ảnh đề bằng <kbd>Ctrl</kbd>+<kbd>V</kbd> (<kbd>⌘</kbd>+<kbd>V</kbd>), kéo thả, hoặc chọn ảnh.'}</p>
-        <div class="row" style="justify-content:center">
-          <label class="btn sm">📁 Chọn / chụp ảnh<input type="file" id="file" accept="image/*" hidden></label>
-          ${IN_CLAUDE ? '' : '<button type="button" class="btn sm" id="paste-btn">📋 Dán ảnh</button>'}
-          ${img ? '<button type="button" class="btn sm" id="img-clear">✕ Xoá ảnh</button>' : ''}
-        </div>
-      </div>
-      <div style="height:12px"></div>
-      <div class="row">
-        <label class="field" style="flex-direction:row;align-items:center;gap:6px"><span>Trình độ</span>
-          <select id="band">${['5.5', '6.5', '7.5'].map(b => `<option value="${b}" ${S.band === b ? 'selected' : ''}>Band ${b}${b === '7.5' ? '+' : b === '5.5' ? '–6' : '–7'}</option>`).join('')}</select></label>
-        <button type="button" class="btn primary" id="ai-btn" ${img || S.promptText.trim() ? '' : 'disabled'}>🤖 AI phân tích đề</button>
-        ${SAMPLE ? '' : `<button type="button" class="btn" id="ocr-btn" ${img ? '' : 'disabled'}>🔤 Đọc chữ trong ảnh (OCR)</button>`}
-        <button type="button" class="btn ghost" id="sample-btn">${isMaps() ? 'Dùng đề mẫu' : 'Xem ví dụ phân tích (Line graph)'}</button>
-        <button type="button" class="btn ghost" id="reset-btn">Làm bài mới</button>
-      </div>
-      <p class="muted small" id="ai-status">AI đọc mọi dạng đề Task 1, tự nhận dạng loại đề và soạn phân tích + gợi ý câu theo trình độ. ${SAMPLE ? 'Dùng tài khoản Claude của bạn, không cần API key.' : 'Cần API key ở ⚙️. OCR miễn phí chỉ đọc chữ của đề.'}${!isMaps() && !SAMPLE && !AI.getKey() ? ' <b>Dạng ' + esc(typeLabel(S.type)) + ' cần AI để gợi ý câu.</b>' : ''}</p>
-    </section>
-    ${isMaps() ? '' : '<!--'}<section class="card">
-      <h3>Thông tin đề <span class="muted small">(tự nhận từ đề — sửa nếu sai)</span></h3>
-      <div class="grid-4">
-        <label class="field"><span>Địa điểm</span><input type="text" data-f="place" value="${esc(S.place)}" placeholder="the village of Stokeford"></label>
-        <label class="field"><span>Năm Map 1</span><input type="text" data-f="year1" value="${esc(S.year1)}" placeholder="1930"></label>
-        <label class="field"><span>Năm Map 2</span><input type="text" data-f="year2" value="${esc(S.year2)}" placeholder="2010 / present"></label>
-        <label class="field"><span>Thì của bài</span>
-          <select data-f="tense">
-            <option value="past" ${S.tense === 'past' ? 'selected' : ''}>Quá khứ đơn (2 năm đã qua)</option>
-            <option value="perfect" ${S.tense === 'perfect' ? 'selected' : ''}>Hiện tại hoàn thành (Map 2 = hiện nay)</option>
-            <option value="future" ${S.tense === 'future' ? 'selected' : ''}>Tương lai (bản đồ dự kiến)</option>
-          </select></label>
-      </div>
-      <p class="muted small" style="margin-bottom:0">Thì quyết định dạng động từ: <b>was built</b> · <b>has been built</b> · <b>will be built</b>.</p>
-    </section>${isMaps() ? '' : '-->'}`;
+  function renderStep() {
+    const a = S.analysis;
+    if (!a) { show('setup'); return; }
+    const i = S.step, st = a.steps[i];
+    $('#progress').innerHTML = STEP_NAMES.map((_, k) => `<span class="${k <= i ? 'on' : ''}"></span>`).join('');
+    $('#step-kicker').textContent = `Đoạn ${i + 1}: ${STEP_NAMES[i]} · ${STEP_HINT[i]}`;
+    $('#step-title').textContent = st.title || STEP_NAMES[i];
+    $('#step-count').textContent = `Đoạn ${i + 1} / 4`;
+    $('#step-guide').textContent = st.guide_vi;
+    $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
+    $('#options').innerHTML = st.options.map((o, k) => {
+      const on = S.paras[i] === o;
+      return `<button type="button" class="opt" role="radio" aria-checked="${on}" data-opt="${k}"><span class="dot" aria-hidden="true"></span>
+        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${hl(o, st.vocab)}</span></span></button>`;
+    }).join('');
+    $('#para').value = S.paras[i];
+    updateCount();
+    $('#btn-prev').hidden = i === 0;
+    $('#btn-next').textContent = i === 3 ? 'Xem bài hoàn chỉnh ✓' : `${STEP_NAMES[i + 1]} →`;
+    $('#btn-regen').hidden = S.isDemo;
+    $('#regen-note').textContent = '';
+    $('#regen-note').classList.remove('err');
+    renderSide();
+  }
+  function updateCount() {
+    const n = wc($('#para').value);
+    $('#para-count').textContent = `${n} từ`;
+    const i = S.step;
+    const hint = i === 0 && n > 45 ? 'Introduction nên chỉ 1 câu.' : i === 1 && /\d/.test($('#para').value) ? 'Overview không nên có số liệu.' : '';
+    $('#para-hint').textContent = hint;
+  }
+  function renderSide() {
+    const a = S.analysis;
+    $('#ref-topic').textContent = `${TYPE_VI[a.task_type] || ''}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
+    $('#ref-text').textContent = S.prompt || a.prompt_text || '';
+    if (S.image) { $('#ref-img').src = S.image.dataUrl; $('#ref-img-btn').hidden = false; } else $('#ref-img-btn').hidden = true;
+    const total = S.paras.reduce((n, p) => n + wc(p), 0);
+    $('#mini-count').textContent = `${total} / 150 từ`;
+    $('#mini').innerHTML = STEP_NAMES.map((n, k) => `<li class="${k === S.step ? 'cur' : ''}">${n}${S.paras[k] ? `<p>${esc(S.paras[k])}</p>` : ' <span class="ph">— chưa viết</span>'}</li>`).join('');
   }
 
-  /* ---------- Bước 1: Phân tích ---------- */
-  function relOptions(sel) {
-    const groups = {};
-    E.RELATIONS.forEach(r => (groups[r.group] = groups[r.group] || []).push(r));
-    return Object.entries(groups).map(([g, rs]) => `<optgroup label="${esc(g)}">${rs.map(r =>
-      `<option value="${r.id}" ${r.id === sel ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}</optgroup>`).join('');
-  }
-  function posPicker(kind, item, allowNone) {
-    const p = item.pos || {};
-    const r = E.REL[p.rel];
-    const dirSel = r && r.dirs ? `<select data-k="${kind}" data-id="${item.id}" data-p="dir">${r.dirs.map(d => `<option ${d === p.dir ? 'selected' : ''}>${d}</option>`).join('')}</select>` : '';
-    const refPh = !r ? '' : r.ref === 'map' ? 'the map (mặc định)' : r.ref === 'opt' ? 'tham chiếu (tuỳ chọn)' : 'tham chiếu: river, main road…';
-    const refInp = r && r.ref !== 'no' ? `<input type="text" list="refs" data-k="${kind}" data-id="${item.id}" data-p="ref" value="${esc(p.ref || '')}" placeholder="${refPh}">` : '';
-    const cls = !r ? 'bare' : !r.dirs ? 'no-dir' : r.ref === 'no' ? 'no-ref' : '';
-    return `<div class="pos ${cls}">
-      <select data-k="${kind}" data-id="${item.id}" data-p="rel">${allowNone ? `<option value="" ${!p.rel ? 'selected' : ''}>— không cần vị trí —</option>` : ''}${relOptions(p.rel)}</select>
-      ${dirSel}${refInp}</div>`;
-  }
-  function analyzeView() {
-    if (!isMaps()) return aiAnalysisView();
-    const names = S.features.map(f => E.cleanNoun(f.name)).filter(Boolean);
-    const refs = [...new Set(names.concat(['map', 'town', 'village', 'river', 'main road', 'railway', 'lake', 'park', 'school', 'beach', 'forest']))];
-    const mains = S.changes.filter(c => c.main).length;
-    const tip = C.tips[0];
-    return `<datalist id="refs">${refs.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
-    <datalist id="feats">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
-    <section class="card">
-      <details class="prep" open><summary>Trước khi phân tích</summary>
-        <div class="prep-grid">
-          <div class="prep-box"><h4>${esc(tip.title)}</h4><p style="margin:0 0 4px">${esc(tip.text)}</p><ul>${tip.sub.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>
-          <div class="prep-box"><h4>${esc(C.tips[1].title)}</h4><p style="margin:0">${esc(C.tips[1].text)}</p></div>
-          ${rulesBox()}
-        </div>
-      </details>
-    </section>
-    ${S.ai && S.ai.task_type === 'maps' ? teachingCards() : ''}
-    <section class="card">
-      <div class="head"><h3>🗺️ Map 1${S.year1 ? ' (' + esc(S.year1) + ')' : ''} — công trình &amp; vị trí <span class="muted small">→ dùng cho Body 1</span></h3>
-        <button type="button" class="btn sm" data-act="add-feature">＋ Thêm công trình</button></div>
-      <div class="items">${S.features.map(f => `<div class="item">
-        <div class="item-grid">
-          <label class="field"><span>Công trình (tiếng Anh)</span><input type="text" data-k="feature" data-id="${f.id}" data-p="name" value="${esc(f.name)}" placeholder="school, houses, car park…"></label>
-          <label class="field"><span>Vị trí</span>${posPicker('feature', f, false)}</label>
-          <button type="button" class="icon-btn" data-act="del-feature" data-id="${f.id}" aria-label="Xoá">✕</button>
-        </div>
-        <div class="preview" data-preview="${f.id}">${esc(featurePreview(f))}</div></div>`).join('')}</div>
-    </section>
-    <section class="card">
-      <div class="head"><h3>🗺️ Map 2${S.year2 ? ' (' + esc(S.year2) + ')' : ''} — thay đổi <span class="muted small">→ dùng cho Overview &amp; Body 2</span></h3>
-        <button type="button" class="btn sm" data-act="add-change">＋ Thêm thay đổi</button></div>
-      <p class="muted small" style="margin-top:0">⭐ Đánh dấu 3-4 thay đổi chính (đang chọn <b>${mains}</b>) — chúng sẽ lên Overview và được viết trước trong Body 2.</p>
-      <div class="items">${S.changes.map(changeRow).join('')}</div>
-    </section>`;
-  }
-  function featurePreview(f) {
-    const n = E.cleanNoun(f.name);
-    if (!n) return '';
-    const p = E.posText(f.pos);
-    return `→ “${n} ${p}”`;
-  }
-  function changeRow(c) {
-    const t = E.CHANGE_TYPES.find(x => x.id === c.type) || E.CHANGE_TYPES[0];
-    const needX = t.need.includes('X'), needY = t.need.includes('Y') || t.optY;
-    return `<div class="item ${c.main ? 'main' : ''}">
-      <div class="change-grid">
-        <label class="field"><span>Loại thay đổi</span><select data-k="change" data-id="${c.id}" data-p="type">${E.CHANGE_TYPES.map(x =>
-          `<option value="${x.id}" ${x.id === c.type ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></label>
-        ${needX ? `<label class="field"><span>Công trình cũ (X)</span><input type="text" list="feats" data-k="change" data-id="${c.id}" data-p="subject" value="${esc(c.subject)}" placeholder="factory"></label>` : '<span></span>'}
-        ${needY ? `<label class="field"><span>${t.optY ? 'Thay bằng (tuỳ chọn)' : 'Công trình mới (Y)'}</span><input type="text" data-k="change" data-id="${c.id}" data-p="target" value="${esc(c.target)}" placeholder="museum"></label>` : '<span></span>'}
-        <button type="button" class="star ${c.main ? 'on' : ''}" data-act="star" data-id="${c.id}" title="Thay đổi chính">⭐ Chính</button>
-        <button type="button" class="icon-btn" data-act="del-change" data-id="${c.id}" aria-label="Xoá">✕</button>
-      </div>
-      ${t.pos ? `<label class="field" style="margin-top:8px"><span>${c.type === 'relocated' ? 'Vị trí mới' : c.type === 'expanded' || c.type === 'extended' ? 'Hướng mở rộng / kéo dài' : 'Vị trí'}</span>${posPicker('change', c, true)}</label>` : ''}
-      <div class="preview" data-preview="${c.id}">${esc(changePreview(c))}</div></div>`;
-  }
-  function changePreview(c) {
-    const st = Object.assign({}, S, { changes: [c] });
-    const slots = E.body2Sentences(st);
-    const v = slots[1] && slots[1].variants[0];
-    return v ? '→ ' + v.text : '';
+  function go(delta) {
+    S.paras[S.step] = $('#para').value.trim();
+    if (delta > 0 && !S.paras[S.step]) { toast('Hãy chọn 1 gợi ý hoặc tự viết đoạn này trước khi tiếp tục.'); return; }
+    save();
+    if (delta > 0 && S.step === 3) { show('review'); return; }
+    S.step = Math.min(3, Math.max(0, S.step + delta));
+    save(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /* ---------- Phân tích AI (mọi dạng đề) ---------- */
-  const li = arr => (arr || []).filter(Boolean).map(x => `<li>${esc(x)}</li>`).join('');
-  function teachingCards() {
-    const a = S.ai;
-    return `<section class="card">
-      <div class="head"><h3>🧑‍🏫 Ghi chú giảng dạy</h3>
-        <div class="row"><button type="button" class="btn sm" data-act="copy-lesson">📋 Sao chép phân tích</button>
-        <button type="button" class="btn sm ghost" data-act="reanalyze">↻ Phân tích lại</button></div></div>
-      <div class="prep-grid" style="margin-top:10px">
-        <div class="prep-box"><h4>Điểm cần dạy</h4><ul>${li(a.teacher_notes)}</ul></div>
-        <div class="prep-box"><h4>Lỗi học viên hay mắc</h4><ul>${li(a.common_mistakes)}</ul></div>
-      </div></section>`;
-  }
-  function aiAnalysisView() {
-    const a = S.ai;
-    if (!a) {
-      return `<section class="card"><div class="empty">Chưa có phân tích cho đề ${esc(typeLabel(S.type))}.
-        <button type="button" class="btn sm primary" data-step="prompt">Dán đề và bấm “AI phân tích đề” →</button></div></section>`;
+  async function regen(btn) {
+    if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
+    S.paras[S.step] = $('#para').value.trim();
+    const note = $('#regen-note');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang viết gợi ý mới…';
+    note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
+    try {
+      const image = S.image && (AVAIL.via !== 'claude' || AVAIL.images) ? S.image : null;
+      const opts = await AI.regenerate({ text: S.prompt, band: S.band, image, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
+      S.analysis.steps[S.step].options = opts.concat(S.analysis.steps[S.step].options.filter(o => o === S.paras[S.step]));
+      save(); renderStep();
+      toast('Đã có 3 gợi ý mới.');
+    } catch (e) {
+      note.textContent = '⚠️ ' + (e.message || 'Không tạo được gợi ý mới.'); note.classList.add('err');
+    } finally {
+      btn.disabled = false; btn.textContent = '↻ Gợi ý khác';
     }
-    const vocab = (a.vocabulary || []);
-    return `<section class="card">
-      <div class="head"><div><span class="kicker">${esc(typeLabel(a.task_type))}${a.year1 ? ' · ' + esc(a.year1) + (a.year2 ? '–' + esc(a.year2) : '') : ''} · thì: ${esc({ past: 'quá khứ', perfect: 'hiện tại hoàn thành', future: 'tương lai', present: 'hiện tại' }[a.tense] || a.tense)}</span>
-        <h3 style="margin-top:4px">${esc(a.topic_vi)}</h3></div></div>
-      ${a.prompt_text ? `<p class="muted small" style="margin:4px 0 0"><i>${esc(a.prompt_text)}</i></p>` : ''}
-      <div class="prep-grid" style="margin-top:12px">
-        <div class="prep-box"><h4>Đặc điểm chính</h4><ul>${li(a.key_features)}</ul></div>
-        <div class="prep-box"><h4>Overview nên nêu</h4><ul>${li(a.overview_points)}</ul></div>
-        <div class="prep-box"><h4>Chia đoạn thân bài</h4><p style="margin:0 0 6px"><b>Body 1:</b> ${esc(a.body1_focus)}</p><p style="margin:0"><b>Body 2:</b> ${esc(a.body2_focus)}</p></div>
-        <div class="prep-box"><h4>Số liệu cần dẫn</h4><ul>${li(a.data_notes)}</ul></div>
-      </div>
-    </section>
-    ${teachingCards()}
-    <section class="card"><h3>Từ vựng cho đề này</h3>
-      <div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
-      ${vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi)}</td><td>${esc(v.example)}</td></tr>`).join('')}</tbody></table></div>
-    </section>`;
-  }
-  function aiPrep(id) {
-    const a = S.ai;
-    if (!a) return '<p class="muted">Chưa có phân tích AI — quay lại bước Đề bài.</p>';
-    const focus = { intro: '', overview: '', body1: a.body1_focus, body2: a.body2_focus }[id];
-    const boxes = [];
-    if (id === 'intro') boxes.push(`<div class="prep-box"><h4>Đề gốc</h4><p style="margin:0">${esc(a.prompt_text || S.promptText)}</p></div>`,
-      `<div class="prep-box"><h4>Cách paraphrase</h4><ul><li>show → <b>illustrate / compare / give information about</b></li><li>from X to Y → <b>between X and Y</b></li><li>Không chép nguyên câu đề, không thêm nhận xét.</li></ul></div>`);
-    if (id === 'overview') boxes.push(`<div class="prep-box"><h4>2 ý cho Overview</h4><ul>${li(a.overview_points)}</ul><p class="muted small" style="margin:6px 0 0">Bắt đầu bằng “Overall,” · không đưa số liệu.</p></div>`);
-    if (focus) boxes.push(`<div class="prep-box"><h4>Đoạn này viết gì</h4><p style="margin:0">${esc(focus)}</p></div>`,
-      `<div class="prep-box"><h4>Số liệu cần dẫn</h4><ul>${li(a.data_notes)}</ul></div>`);
-    boxes.push(structuresBox(['passive', 'there', 'time', 'contrast', 'addition']));
-    const vocab = (a.vocabulary || []).map((v, i) => ({ id: String(i), phrase: v.phrase, meaning: v.meaning_vi, usage: '', example: v.example, note: '' }));
-    if (vocab.length) boxes.push(`<div class="prep-box"><h4>Từ vựng cho đề này</h4>${vocabChips(vocab, 'ai')}</div>`);
-    return `<div class="prep-grid">${boxes.join('')}</div>`;
-  }
-  function lessonText() {
-    const a = S.ai || {};
-    const sec = (t, arr) => arr && arr.length ? `\n${t}\n` + arr.map(x => '- ' + x).join('\n') + '\n' : '';
-    let out = `PHÂN TÍCH ĐỀ – ${typeLabel(a.task_type || S.type)} (Band ${S.band})\n${a.prompt_text || S.promptText}\n\n${a.topic_vi || ''}\n`;
-    out += sec('Đặc điểm chính:', a.key_features) + sec('Overview:', a.overview_points);
-    if (a.body1_focus) out += `\nBody 1: ${a.body1_focus}\nBody 2: ${a.body2_focus}\n`;
-    out += sec('Số liệu cần dẫn:', a.data_notes) + sec('Ghi chú giảng dạy:', a.teacher_notes) + sec('Lỗi hay gặp:', a.common_mistakes);
-    out += sec('Từ vựng:', (a.vocabulary || []).map(v => `${v.phrase} – ${v.meaning_vi} (${v.example})`));
-    if (a.sections) {
-      for (const k of WRITING) {
-        const sl = slotsFor(k);
-        if (!sl.length) continue;
-        out += `\n${k.toUpperCase()}\n` + sl.map(x => `${x.label}\n` + x.variants.map(v => '  • ' + v.text).join('\n')).join('\n') + '\n';
-      }
-    }
-    return out.trim();
   }
 
-  /* ---------- Bước 2–5: Viết ---------- */
-  function vocabChips(list, key) {
-    return `<div class="chips">${list.map(v => `<button type="button" class="chip" data-chip="${key}:${v.id}">${esc(v.phrase)}</button>`).join('')}</div><div class="chip-detail" data-chip-detail="${key}"></div>`;
+  /* ---------- Review ---------- */
+  function renderReview() {
+    const a = S.analysis || {};
+    const total = S.paras.reduce((n, p) => n + wc(p), 0);
+    $('#review-meta').textContent = `${TYPE_VI[a.task_type] || ''}${a.subject ? ' · ' + a.subject : ''} · ${total} từ${total < 150 ? ' (Task 1 cần tối thiểu 150 từ)' : ''}`;
+    const vocab = (a.steps || []).map(s => s.vocab).flat();
+    $('#paper').innerHTML = STEP_NAMES.map((n, k) => `<div class="para-block">
+      <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
+      ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}</div>`).join('');
   }
-  function structuresBox(ids) {
-    const rows = C.sentenceStructures.filter(s => ids.includes(s.id));
-    return `<div class="prep-box"><h4>Cấu trúc câu</h4><ul>${rows.map(s => `<li><b>${esc(s.name)}</b>: ${esc(s.formula)}<br><span class="muted small">${esc(s.example)}</span></li>`).join('')}</ul></div>`;
-  }
-  function rulesBox() {
-    return `<div class="prep-box"><h4>Lưu ý giới từ</h4><ul>
-      <li><b>In</b> the north of X = bên <b>trong</b> X · <b>To</b> the north of X = bên <b>ngoài</b> X</li>
-      <li>Có <b>side</b> → <b>On</b> · Có <b>part</b> → <b>In</b></li>
-      ${C.prepGroups.map(g => `<li><b>${esc(g.group)}</b>: ${esc(g.use)}</li>`).join('')}</ul></div>`;
-  }
-  function paraphraseBox() {
-    return `<div class="prep-box"><h4>Paraphrase vị trí</h4><ul>${C.paraphrasing.ways.map(w => `<li><b>${esc(w.name)}:</b> ${w.text}</li>`).join('')}</ul></div>`;
-  }
-  function prepFor(id) {
-    if (!isMaps()) return aiPrep(id);
-    if (id === 'intro') {
-      return `<div class="prep-grid">
-        <div class="prep-box"><h4>Đề gốc</h4><p style="margin:0">${S.promptText.trim() ? esc(S.promptText.trim().split(/(?<=\.)\s/)[0]) : '<span class="muted">Chưa nhập đề — quay lại bước 0.</span>'}</p></div>
-        <div class="prep-box"><h4>Cách paraphrase</h4><ul>
-          <li>show → <b>illustrate / compare</b></li><li>maps below → <b>the two maps</b></li>
-          <li>in 1990 and 2010 → <b>between 1990 and 2010</b></li><li>Không chép nguyên câu đề, không thêm nhận xét.</li></ul></div>
-        <div class="prep-box"><h4>Thì của bài</h4><p style="margin:0">${S.tense === 'past' ? 'Quá khứ đơn: <b>was built</b>' : S.tense === 'perfect' ? 'Hiện tại hoàn thành: <b>has been built</b>' : 'Tương lai: <b>will be built</b>'}</p></div>
-      </div>`;
-    }
-    if (id === 'overview') {
-      const ov = C.changeVocab.filter(v => v.sections.includes('overview'));
-      const mains = S.changes.filter(c => c.main && (c.subject || c.target));
-      return `<div class="prep-grid">
-        <div class="prep-box"><h4>Từ vựng Overview</h4>${vocabChips(ov, 'change')}</div>
-        ${structuresBox(['contrast'])}
-        <div class="prep-box"><h4>Thay đổi chính ⭐ (${mains.length})</h4>${mains.length ? `<ul>${mains.map(c => `<li>${esc(E.cleanNoun(c.subject) || E.cleanNoun(c.target))} — ${esc((E.CHANGE_TYPES.find(t => t.id === c.type) || {}).label || '')}</li>`).join('')}</ul>` : '<p class="muted" style="margin:0">Chưa đánh dấu ⭐ ở bước Phân tích — app tạm lấy 3 thay đổi đầu tiên.</p>'}
-          <p class="muted small" style="margin:6px 0 0">${esc(C.tips[1].text)}</p></div>
-      </div>`;
-    }
-    if (id === 'body1') {
-      return `<div class="prep-grid">
-        <div class="prep-box"><h4>Công thức</h4><p class="formula" style="margin:0 0 6px">${esc(C.formulaTip.formula)}</p><p class="muted small" style="margin:0"><i>${esc(C.formulaTip.example)}</i></p></div>
-        ${structuresBox(['time', 'there', 'passive', 'addition', 'contrast'])}
-        ${paraphraseBox()}
-        <div class="prep-box"><h4>Từ vựng vị trí (B)</h4>${vocabChips(C.positionVocab, 'pos')}</div>
-        ${rulesBox()}
-        <div class="prep-box"><h4>${esc(C.tips[3].title)}</h4><p style="margin:0">${esc(C.tips[3].text)}</p></div>
-      </div>`;
-    }
-    if (id === 'body2') {
-      const grp = (ids) => C.changeVocab.filter(v => ids.includes(v.id));
-      return `<div class="prep-grid">
-        <div class="prep-box"><h4>Xuất hiện</h4>${vocabChips(grp(['built', 'constructed', 'added', 'addition']), 'change')}</div>
-        <div class="prep-box"><h4>Biến mất / thay thế</h4>${vocabChips(grp(['demolished', 'removed', 'replaced', 'converted', 'transformed']), 'change')}</div>
-        <div class="prep-box"><h4>Thay đổi kích thước / vị trí</h4>${vocabChips(grp(['expanded', 'extended', 'relocated', 'reduced', 'modernized', 'renovated', 'redeveloped']), 'change')}</div>
-        <div class="prep-box"><h4>Tổng quát / giữ nguyên</h4>${vocabChips(grp(['experienced', 'underwent', 'unchanged']), 'change')}</div>
-        <div class="prep-box"><h4>Cấu trúc viết (dạng map)</h4><ul>${C.writingStructures.map(g => `<li><b>${esc(g.group)}:</b> ${g.items.map(esc).join(' · ')}</li>`).join('')}</ul></div>
-        ${structuresBox(['time', 'passive', 'there', 'addition', 'contrast'])}
-        <div class="prep-box"><h4>${esc(C.tips[2].title)}</h4><p style="margin:0">${esc(C.tips[2].text)}</p></div>
-      </div>`;
-    }
-    return '';
-  }
-  function slotsFor(id) {
-    if (!isMaps()) {
-      const list = (S.ai && S.ai.sections && S.ai.sections[id]) || [];
-      return list.map(sl => ({ label: sl.label, variants: (sl.variants || []).map(v => ({ text: v.text, tags: v.structure ? [v.structure] : [] })) }));
-    }
-    if (id === 'intro') return [{ label: 'Câu 1 · Paraphrase đề bài', variants: E.introSentences(S) }];
-    if (id === 'overview') return E.overviewSentences(S);
-    if (id === 'body1') return E.body1Sentences(S);
-    if (id === 'body2') return E.body2Sentences(S);
-    return [];
-  }
-  function writeView(o) {
-    const slots = slotsFor(o.id);
-    const draft = S.draft[o.id] || '';
-    const needData = !isMaps() ? !S.ai : (o.id === 'body1' && !S.features.some(f => f.name.trim())) || ((o.id === 'body2') && !S.changes.some(c => (c.subject || c.target).trim()));
-    return `<section class="card"><details class="prep" open><summary>📌 Trước khi viết ${esc(o.title)}</summary>${prepFor(o.id)}</details></section>
-    <section class="card">
-      <div class="head"><h3>✍️ Gợi ý từng câu</h3><span class="muted small">Chọn 1 phương án mỗi câu · từ trong dàn ý được <mark>tô vàng</mark></span></div>
-      ${needData ? (isMaps() ? `<div class="empty">Chưa có dữ liệu bản đồ. <button type="button" class="btn sm" data-step="analyze">Điền ở bước Phân tích →</button></div>`
-        : `<div class="empty">Chưa có phân tích AI cho đề này. <button type="button" class="btn sm" data-step="prompt">Dán đề và bấm “AI phân tích đề” →</button></div>`) : ''}
-      <div class="slots">${slots.map((s, si) => `<div class="slot">
-        <div class="slot-head"><span>${esc(s.label)}</span>${s.optional ? '<span class="opt">tuỳ chọn</span>' : ''}</div>
-        ${s.variants.map((v, vi) => {
-          const used = draft.includes(v.text);
-          return `<div class="variant ${used ? 'used' : ''}"><div class="txt"><p class="sent">${hl(v.text)}</p>
-            <div class="tags">${(v.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div></div>
-            <button type="button" class="btn sm ${used ? '' : 'primary'} use" data-use="${o.id}:${si}:${vi}">${used ? '✓ Đã dùng' : '＋ Dùng'}</button></div>`;
-        }).join('')}</div>`).join('')}</div>
-    </section>
-    <section class="card section-draft">
-      <div class="head"><h3>Đoạn ${esc(o.title)} của bạn</h3><span class="count" id="sec-count">${wc(draft)} từ</span></div>
-      <textarea id="sec-draft" data-sec="${o.id}" rows="6" placeholder="Bấm “＋ Dùng” ở trên hoặc tự viết tại đây…">${esc(draft)}</textarea>
-      <div class="row" style="margin-top:8px"><button type="button" class="btn sm ghost" data-act="clear-sec">Xoá đoạn này</button></div>
-    </section>`;
-  }
-
-  /* ---------- Bước 6: Kiểm tra ---------- */
   function essayText() {
-    return WRITING.map(k => S.draft[k].trim()).filter(Boolean).join('\n\n');
-  }
-  function checkView() {
-    const r = E.check(essayText(), isMaps() ? S : { tense: (S.ai && S.ai.tense) || 'past', changes: [] });
-    const items = [
-      'Introduction paraphrase đề, không chép nguyên văn',
-      'Overview có xu hướng chung + 2 thay đổi nổi bật, không có vị trí chi tiết',
-      'Chỉ chọn 3-4 thay đổi chính',
-      'Body 1 dùng từ vị trí, Body 2 dùng từ thay đổi + vị trí',
-      'Đã xen kẽ từ đồng nghĩa (was built / was constructed, next to / adjacent to)',
-      'Thì động từ thống nhất với năm của đề',
-      'In / To / On / At dùng đúng quy tắc',
-    ];
-    return `<section class="card">
-      <h3>🔎 Kiểm tra tự động</h3>
-      <ul class="issues">${r.issues.map(i => `<li class="${i.level}">${esc(i.msg)}</li>`).join('')}</ul>
-      <p class="muted small" style="margin-bottom:0">Cấu trúc đã dùng: ${r.used.length ? r.used.map(u => `<span class="tag">${esc(u)}</span>`).join(' ') : '—'}</p>
-    </section>
-    <section class="card checklist">
-      <h3>☑️ Tự kiểm tra (${esc(C.tips[4].text)})</h3>
-      ${items.map((t, i) => `<label><input type="checkbox" data-check="${i}" ${S.checks[i] ? 'checked' : ''}> <span>${esc(t)}</span></label>`).join('')}
-    </section>
-    <section class="card">
-      <div class="head"><h3>Bài hoàn chỉnh</h3><button type="button" class="btn sm primary" data-act="copy">📋 Sao chép bài</button></div>
-      <div style="white-space:pre-wrap; margin-top:8px">${essayText() ? hl(essayText()) : '<span class="muted">Chưa có nội dung.</span>'}</div>
-    </section>`;
+    return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
   }
 
-  /* ---------- Thư viện ---------- */
-  function libraryView() {
-    const q = (S.libQ || '').toLowerCase();
-    const match = (...xs) => !q || xs.join(' ').toLowerCase().includes(q);
-    const vt = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.filter(v => match(v.phrase, v.meaning, v.usage, v.example, v.note)).map(v =>
-      `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} Ví dụ: “${esc(v.example)}”</td><td>${esc(v.note)}</td></tr>`).join('')}</tbody></table></div>`;
-    return `<section class="card"><div class="head"><div><span class="kicker">Thư viện</span><h2>📚 Dàn ý &amp; từ vựng Maps</h2></div>
-      <button type="button" class="btn" data-step="${esc(S.step)}">← Quay lại bài</button></div>
-      <div style="height:10px"></div><input type="text" class="lib-search" id="lib-q" placeholder="Tìm từ, ví dụ…" value="${esc(S.libQ || '')}"></section>
-    <section class="card"><h3>A. Từ vựng miêu tả sự thay đổi (Dùng chủ yếu trong Body 2)</h3>${vt(C.changeVocab)}</section>
-    <section class="card"><h3>B. Từ vựng miêu tả vị trí (Dùng trong Body 1 và Body 2)</h3>${vt(C.positionVocab)}</section>
-    <section class="card"><h3>Các cấu trúc viết</h3><p class="muted" style="margin-top:0">Dạng map thường yêu cầu miêu tả các sự thay đổi, vì vậy cần sử dụng các cụm từ phù hợp để nói về sự thay đổi hoặc sự xuất hiện, biến mất của các đối tượng.</p>
-      ${C.writingStructures.map(g => `<p style="margin:8px 0 2px"><b>${esc(g.group)}:</b></p><ul style="margin:0">${g.items.map(i => `<li>"${esc(i)}"</li>`).join('')}</ul>`).join('')}</section>
-    <section class="card"><h3>Bảng cấu trúc câu</h3><div class="table-wrap"><table><thead><tr><th>Tên cấu trúc</th><th>Công thức</th><th>Ví dụ</th></tr></thead><tbody>
-      ${C.sentenceStructures.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.formula)}</td><td>${esc(s.example)}</td></tr>`).join('')}</tbody></table></div>
-      <p><b>Mẹo:</b> Khi làm bài thi, hãy kết hợp: <span class="formula">${esc(C.formulaTip.formula)}</span><br><i>Ví dụ: ${esc(C.formulaTip.example)}</i></p></section>
-    <section class="card"><h3>Lưu ý quan trọng Task 1</h3>
-      ${C.rules.map(r => `<p style="margin:10px 0 2px"><b>${esc(r.title)}</b></p><ul style="margin:0">${r.points.map(p => `<li>${p}</li>`).join('')}</ul>`).join('')}
-      <div class="table-wrap" style="margin-top:12px"><table><tbody>${C.prepGroups.map(g => `<tr><td>${esc(g.group)}</td><td>Dùng cho: ${esc(g.use)}</td></tr>`).join('')}</tbody></table></div>
-      <p style="margin:12px 0 2px"><b>Mẹo ghi điểm (Paraphrasing):</b> ${esc(C.paraphrasing.intro)}</p>
-      <ul style="margin:0">${C.paraphrasing.ways.map(w => `<li><i>${esc(w.name)}:</i> ${w.text}</li>`).join('')}</ul></section>
-    <section class="card"><h3>Mẹo áp dụng dàn ý và từ vựng</h3><ul>${C.tips.map(t => `<li><b>${esc(t.title)}:</b> ${esc(t.text)}${t.sub ? `<ul>${t.sub.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ul></section>`;
+  /* ---------- Kho từ vựng ---------- */
+  function renderVocab() {
+    const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
+    const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
+    const a = S.analysis;
+    const own = a ? (a.steps || []).map((s, k) => s.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${s.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
+    $('#vocab-content').innerHTML = `
+      <div class="rule-box"><h3>Quy tắc vàng: chống viết chung chung</h3>
+        <p>Mỗi câu phải gọi đúng tên chủ thể, quốc gia, hạng mục và số liệu của đề (ví dụ: <i>water consumption in the USA and China</i>, <i>the number of visitors to museums</i>). Không dùng “the given chart”.</p></div>
+      ${own ? `<div class="vsec"><h3>Từ vựng riêng cho đề đang làm</h3>${own}</div>` : ''}
+      <div class="vsec"><h3>Bảng cấu trúc câu</h3><div class="table-wrap"><table><thead><tr><th>Cấu trúc</th><th>Công thức</th><th>Ví dụ</th></tr></thead><tbody>
+        ${C.sentenceStructures.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.formula)}</td><td>${esc(s.example)}</td></tr>`).join('')}</tbody></table></div>
+        <p class="small" style="margin-top:6px"><b>Mẹo:</b> ${esc(C.formulaTip.formula)} — <i>${esc(C.formulaTip.example)}</i></p></div>
+      <div class="vsec"><h3>Maps · A. Từ vựng miêu tả sự thay đổi (Body 2)</h3>${table(C.changeVocab)}</div>
+      <div class="vsec"><h3>Maps · B. Từ vựng miêu tả vị trí (Body 1 và Body 2)</h3>${table(C.positionVocab)}</div>
+      <div class="vsec"><h3>Maps · Các cấu trúc viết</h3><ul>${C.writingStructures.map(g => `<li><b>${esc(g.group)}:</b> ${g.items.map(esc).join(' · ')}</li>`).join('')}</ul></div>
+      <div class="vsec"><h3>Lưu ý quan trọng</h3><ul>${C.rules.map(r => `<li><b>${esc(r.title)}</b> — ${r.points.join(' ')}</li>`).join('')}
+        ${C.prepGroups.map(g => `<li><b>${esc(g.group)}</b>: ${esc(g.use)}</li>`).join('')}</ul></div>
+      <div class="vsec"><h3>Mẹo áp dụng</h3><ul>${C.tips.map(t => `<li><b>${esc(t.title)}:</b> ${esc(t.text)}</li>`).join('')}</ul></div>`;
   }
 
-  /* ================= Essay panel ================= */
-  function wc(s) { return (String(s).match(/[A-Za-z][A-Za-z'-]*/g) || []).length; }
-  function renderEssay() {
-    const total = wc(essayText());
-    const pct = Math.min(100, Math.round(total / 150 * 100));
-    const titles = { intro: 'Introduction', overview: 'Overview', body1: 'Body 1', body2: 'Body 2' };
-    $('#essay').innerHTML = `<div class="card">
-      <div class="head"><div><span class="kicker">Bài viết của bạn</span><div class="wc">${total} <span class="muted small">/ 150 từ</span></div></div>
-        <button type="button" class="btn sm" data-act="copy">📋 Sao chép</button></div>
-      <div class="bar"><span style="width:${pct}%"></span></div>
-      ${WRITING.map(k => `<div class="essay-sec ${S.step === k && S.view === 'outline' ? 'current' : ''}"><h4><span>${titles[k]}</span><span>${wc(S.draft[k])} từ</span></h4>
-        ${S.draft[k].trim() ? `<p>${esc(S.draft[k].trim())}</p>` : `<p class="ph"><a href="#" data-step="${k}">Viết ${titles[k]} →</a></p>`}</div>`).join('')}
-    </div>`;
-  }
-
-  /* ================= Timer ================= */
-  let timer = { end: 0, step: null, iv: null };
-  function restoreTimer() {
-    const el = $('#timer');
-    if (!el) return;
-    if (timer.step === S.step && timer.end) tick();
-  }
-  function tick() {
-    const el = $('#timer');
-    const left = Math.round((timer.end - Date.now()) / 1000);
-    if (!el || timer.step !== S.step) return;
-    const a = Math.abs(left);
-    el.textContent = (left < 0 ? '⏰ +' : '⏱ ') + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
-    el.classList.toggle('running', left >= 0);
-    el.classList.toggle('over', left < 0);
-  }
-  function startTimer(min) {
-    clearInterval(timer.iv);
-    if (timer.step === S.step && timer.end) { timer = { end: 0, step: null, iv: null }; render(); return; }
-    timer = { end: Date.now() + min * 60000, step: S.step, iv: setInterval(tick, 1000) };
-    tick();
-  }
-
-  /* ================= Image handling ================= */
-  function setImageFromFile(file) {
+  /* ================= Image ================= */
+  function takeFile(file) {
     if (!file || !/^image\//.test(file.type)) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      downscale(reader.result, file.type).then(img => {
-        S.image = img; save(); render(); toast('Đã nhận ảnh đề.');
-      });
-    };
+    reader.onload = () => downscale(reader.result, file.type).then(img => { S.image = img; save(); renderImage(); toast('Đã nhận ảnh đề bài.'); });
     reader.readAsDataURL(file);
   }
   // Thu nhỏ ảnh (cạnh dài ≤ 1600px) để gửi AI nhanh hơn và lưu được
@@ -541,7 +223,7 @@
     return new Promise(resolve => {
       const im = new Image();
       im.onload = () => {
-        const max = 1600, scale = Math.min(1, max / Math.max(im.width, im.height));
+        const scale = Math.min(1, 1600 / Math.max(im.width, im.height));
         const cv = document.createElement('canvas');
         cv.width = Math.round(im.width * scale); cv.height = Math.round(im.height * scale);
         cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
@@ -554,286 +236,77 @@
     });
   }
 
-  function applyDetect() {
-    const d = E.detectFromPrompt(S.promptText);
-    let changed = false;
-    for (const k of ['place', 'year1', 'year2', 'tense']) {
-      if (d[k] && !S['_manual_' + k] && S[k] !== d[k]) { S[k] = d[k]; changed = true; }
-    }
-    return changed;
-  }
-
-  function applyAI(r) {
-    if (!r || typeof r !== 'object') throw new Error('AI trả về dữ liệu không hợp lệ. Thử lại.');
-    const types = TASK_TYPES.map(t => t.id);
-    S.type = types.includes(r.task_type) ? r.task_type : S.type;
-    S.ai = r;
-    if (r.prompt_text && !S.promptText.trim()) S.promptText = r.prompt_text;
-    if (S.type !== 'maps') { if (r.tense) S.tense = r.tense; return; }
-    for (const k of ['place', 'year1', 'year2']) if (r[k]) S[k] = r[k];
-    if (r.tense) S.tense = r.tense;
-    const fixPos = p => {
-      if (!p || !p.rel || !E.REL[p.rel]) return { rel: '', dir: '', ref: '' };
-      const rr = E.REL[p.rel];
-      return { rel: p.rel, dir: rr.dirs ? (rr.dirs.includes(p.dir) ? p.dir : rr.dirs[0]) : '', ref: p.ref || '' };
-    };
-    if (r.features && r.features.length) S.features = r.features.map(f => ({ id: uid(), name: f.name, pos: fixPos(f.pos) }));
-    if (r.changes && r.changes.length) S.changes = r.changes.map(c => ({ id: uid(), type: c.type, subject: c.subject || '', target: c.target || '', pos: fixPos(c.pos), main: !!c.main }));
-  }
-
-  function loadSample() {
-    S = blank();
-    S.promptText = 'The maps below show the village of Stokeford in 1930 and 2010. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.';
-    applyDetect();
-    S.features = [
-      { id: uid(), name: 'houses', pos: { rel: 'along', dir: '', ref: 'main road' } },
-      { id: uid(), name: 'school', pos: { rel: 'center', dir: '', ref: 'the village' } },
-      { id: uid(), name: 'post office', pos: { rel: 'next_to', dir: '', ref: 'school' } },
-      { id: uid(), name: 'farmland', pos: { rel: 'in_dir', dir: 'south', ref: 'the village' } },
-    ];
-    S.changes = [
-      { id: uid(), type: 'transformed', subject: 'farmland', target: 'residential area', pos: { rel: '', dir: '', ref: '' }, main: true },
-      { id: uid(), type: 'built', subject: '', target: 'retirement home', pos: { rel: 'in_dir', dir: 'north', ref: 'the village' }, main: true },
-      { id: uid(), type: 'expanded', subject: 'school', target: '', pos: { rel: 'to_dir', dir: 'west', ref: '' }, main: true },
-      { id: uid(), type: 'converted', subject: 'post office', target: 'shop', pos: { rel: '', dir: '', ref: '' }, main: false },
-      { id: uid(), type: 'unchanged', subject: 'main road', target: '', pos: { rel: '', dir: '', ref: '' }, main: false },
-    ];
-    save(); render(); toast('Đã nạp đề mẫu Stokeford 1930 – 2010.');
-  }
+  /* ================= Dialogs ================= */
+  function openKey() { $('#api-key').value = AI.getKey(); $('#dlg-key').showModal(); }
 
   /* ================= Events ================= */
-  function go(step) {
-    S.view = 'outline'; S.step = step; save(); render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-  function findItem(kind, id) { return (kind === 'feature' ? S.features : S.changes).find(x => x.id === id); }
-
   document.addEventListener('click', async e => {
-    const t = e.target.closest('button, a, [data-step]');
+    const t = e.target.closest('button, a, .dropzone, [data-close]');
     if (!t) return;
-    if (t.dataset.step) { e.preventDefault(); go(t.dataset.step); return; }
-    if (t.dataset.type) {
-      if (S.type === t.dataset.type) return;
-      S.type = t.dataset.type; S.view = 'outline';
-      // dạng chưa có phân tích AI → về bước Đề bài để dán đề
-      if (S.type !== 'maps' && (!S.ai || S.ai.task_type !== S.type)) S.step = 'prompt';
-      save(); render(); return;
-    }
-    if (t.id === 'btn-library') { S.view = S.view === 'library' ? 'outline' : 'library'; render(); return; }
-    if (t.id === 'btn-settings') { $('#api-key').value = AI.getKey(); $('#settings').showModal(); return; }
-    if (t.id === 'api-save') { AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); return; }
-    if (t.id === 'api-clear') { AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return; }
-    if (t.id === 'timer') { startTimer(+t.dataset.min); return; }
-    if (t.id === 'sample-btn') {
-      if (isMaps()) { loadSample(); return; }
-      const band = S.band; S = blank(); S.band = band;
-      S.promptText = C.sampleLine.prompt_text;
-      applyAI(JSON.parse(JSON.stringify(C.sampleLine)));
-      save(); go('analyze'); toast('Đã nạp ví dụ phân tích Line graph (số liệu minh hoạ).', 3500);
+    if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
+    if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
+    if (t.dataset.opt != null) {
+      const o = S.analysis.steps[S.step].options[+t.dataset.opt];
+      S.paras[S.step] = o; $('#para').value = o; save();
+      document.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-checked', String(b === t)));
+      updateCount(); renderSide();
       return;
     }
-    if (t.id === 'reset-btn') {
-      if (t.dataset.armed) { S = blank(); save(); render(); toast('Đã xoá, bắt đầu bài mới.'); return; }
-      t.dataset.armed = '1'; t.textContent = 'Bấm lần nữa để xoá hết'; t.classList.add('danger');
-      setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.textContent = 'Làm bài mới'; t.classList.remove('danger'); } }, 3000);
-      return;
-    }
-    if (t.id === 'img-clear') { S.image = null; save(); render(); return; }
-    if (t.id === 'paste-btn') { pasteFromClipboard(); return; }
-    if (t.id === 'ocr-btn') { runOCR(t); return; }
-    if (t.id === 'ai-btn') { runAI(t); return; }
-    if (t.dataset.chip) { showChip(t); return; }
-    if (t.dataset.use) { useSentence(t.dataset.use); return; }
-    const act = t.dataset.act;
-    if (!act) return;
-    if (act === 'add-feature') { S.features.push(newFeature()); save(); render(); return; }
-    if (act === 'add-change') { S.changes.push(newChange()); save(); render(); return; }
-    if (act === 'del-feature') { S.features = S.features.filter(f => f.id !== t.dataset.id); if (!S.features.length) S.features.push(newFeature()); save(); render(); return; }
-    if (act === 'del-change') { S.changes = S.changes.filter(c => c.id !== t.dataset.id); if (!S.changes.length) S.changes.push(newChange()); save(); render(); return; }
-    if (act === 'star') {
-      const c = findItem('change', t.dataset.id);
-      c.main = !c.main;
-      if (c.main && S.changes.filter(x => x.main).length > 4) toast('Mẹo: chỉ nên chọn 3-4 thay đổi chính.');
-      save(); render(); return;
-    }
-    if (act === 'copy-lesson') {
-      try { await navigator.clipboard.writeText(lessonText()); toast('Đã sao chép phân tích.'); }
-      catch (err) { toast('Không sao chép được — hãy bôi đen và copy thủ công.'); }
-      return;
-    }
-    if (act === 'reanalyze') { go('prompt'); setTimeout(() => { const b = $('#ai-btn'); if (b && !b.disabled) runAI(b); }, 0); return; }
-    if (act === 'clear-sec') { S.draft[S.step] = ''; save(); render(); return; }
-    if (act === 'copy') {
-      const txt = essayText();
-      if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }
-      try { await navigator.clipboard.writeText(txt); toast('Đã sao chép bài viết.'); }
-      catch (err) { toast('Không sao chép được — hãy bôi đen và copy thủ công.'); }
-    }
-  });
-
-  function showChip(btn) {
-    const [key, id] = btn.dataset.chip.split(':');
-    const list = key === 'pos' ? C.positionVocab : key === 'ai'
-      ? ((S.ai && S.ai.vocabulary) || []).map((x, i) => ({ id: String(i), phrase: x.phrase, meaning: x.meaning_vi, usage: '', example: x.example, note: '' }))
-      : C.changeVocab;
-    const v = list.find(x => x.id === id);
-    const box = btn.closest('.prep-box').querySelector('[data-chip-detail]');
-    const wasOn = btn.classList.contains('on');
-    btn.closest('.chips').querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
-    if (wasOn) { box.innerHTML = ''; return; }
-    btn.classList.add('on');
-    box.innerHTML = `<b>${esc(v.phrase)}</b> — ${esc(v.meaning)}<br>${esc(v.usage)} <i>“${esc(v.example)}”</i><br><span class="muted">${esc(v.note)}</span>`;
-  }
-
-  function useSentence(ref) {
-    const [sec, si, vi] = ref.split(':');
-    const slot = slotsFor(sec)[+si];
-    const v = slot && slot.variants[+vi];
-    if (!v) return;
-    let d = S.draft[sec] || '';
-    if (d.includes(v.text)) { S.draft[sec] = d.replace(v.text, '').replace(/\s{2,}/g, ' ').trim(); }
-    else {
-      // bỏ phương án khác của cùng câu nếu đã dùng → mỗi câu chỉ 1 phương án
-      slot.variants.forEach(o => { if (o !== v && d.includes(o.text)) d = d.replace(o.text, '').replace(/\s{2,}/g, ' ').trim(); });
-      S.draft[sec] = (d ? d.replace(/\s+$/, '') + ' ' : '') + v.text;
-    }
-    save();
-    const y = window.scrollY;
-    render();
-    window.scrollTo(0, y);
-  }
-
-  document.addEventListener('input', e => {
-    const t = e.target;
-    if (t.id === 'prompt-text') {
-      S.promptText = t.value;
-      const changed = applyDetect();
-      save();
-      if (changed) {
-        ['place', 'year1', 'year2', 'tense'].forEach(k => { const el = document.querySelector(`[data-f="${k}"]`); if (el && el !== t) el.value = S[k]; });
+    switch (t.id) {
+      case 'dropzone': $('#file').click(); return;
+      case 'img-clear': S.image = null; save(); renderImage(); return;
+      case 'btn-analyze': analyze(); return;
+      case 'btn-demo': loadDemo(); return;
+      case 'btn-stop': if (ctl) ctl.abort(); return;
+      case 'btn-prev': go(-1); return;
+      case 'btn-next': go(1); return;
+      case 'btn-regen': regen(t); return;
+      case 'ref-img-btn': $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); return;
+      case 'btn-vocab': renderVocab(); $('#dlg-vocab').showModal(); return;
+      case 'btn-key': openKey(); return;
+      case 'api-save': AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); if (S.view === 'setup') renderSetup(); return;
+      case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;
+      case 'btn-new': case 'btn-new-2': {
+        if (S.view === 'loading') return;
+        const keep = { band: S.band, type: S.type };
+        S = Object.assign(blank(), keep); save(); show('setup'); $('#prompt').focus(); return;
       }
-      const ai = $('#ai-btn'); if (ai) ai.disabled = !(S.image || S.promptText.trim());
-      renderStepper();
-      return;
-    }
-    if (t.dataset.f) { S[t.dataset.f] = t.value; S['_manual_' + t.dataset.f] = true; save(); renderStepper(); return; }
-    if (t.id === 'sec-draft') {
-      S.draft[t.dataset.sec] = t.value; save();
-      $('#sec-count').textContent = wc(t.value) + ' từ';
-      renderEssay(); renderStepper();
-      return;
-    }
-    if (t.id === 'lib-q') {
-      S.libQ = t.value;
-      const pos = t.selectionStart;
-      render();
-      const n = $('#lib-q'); n.focus(); n.setSelectionRange(pos, pos);
-      return;
-    }
-    if (t.dataset.k && t.tagName === 'INPUT') {
-      const it = findItem(t.dataset.k, t.dataset.id);
-      if (!it) return;
-      if (t.dataset.p === 'ref') it.pos.ref = t.value; else it[t.dataset.p] = t.value;
-      save();
-      const pv = document.querySelector(`[data-preview="${it.id}"]`);
-      if (pv) pv.textContent = t.dataset.k === 'feature' ? featurePreview(it) : changePreview(it);
-      renderStepper();
+      case 'btn-copy': {
+        const txt = essayText();
+        if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }
+        try { await navigator.clipboard.writeText(txt); toast('Đã sao chép toàn bộ bài viết.'); }
+        catch (err) {
+          const r = document.createRange(); r.selectNodeContents($('#paper'));
+          const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+          toast('Đã bôi đen bài viết — nhấn Ctrl+C để sao chép.');
+        }
+      }
     }
   });
-
-  document.addEventListener('change', e => {
-    const t = e.target;
-    if (t.dataset.check != null) { S.checks[t.dataset.check] = t.checked; save(); return; }
-    if (t.id === 'file') { setImageFromFile(t.files[0]); return; }
-    if (t.id === 'band') { S.band = t.value; save(); return; }
-    if (t.dataset.f === 'tense') { S.tense = t.value; S._manual_tense = true; save(); return; }
-    if (t.dataset.k && t.tagName === 'SELECT') {
-      const it = findItem(t.dataset.k, t.dataset.id);
-      if (!it) return;
-      const p = t.dataset.p;
-      if (p === 'rel') {
-        const r = E.REL[t.value];
-        it.pos = { rel: t.value, dir: r && r.dirs ? (r.dirs.includes(it.pos.dir) ? it.pos.dir : r.dirs[0]) : '', ref: it.pos.ref || '' };
-      } else if (p === 'dir') it.pos.dir = t.value;
-      else it[p] = t.value;
-      save(); render();
-    }
+  $('#dropzone').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#file').click(); } });
+  $('#file').addEventListener('change', e => { takeFile(e.target.files[0]); e.target.value = ''; });
+  $('#prompt').addEventListener('input', e => { S.prompt = e.target.value; save(); });
+  $('#band').addEventListener('change', e => { S.band = e.target.value; save(); });
+  $('#types').addEventListener('change', e => { if (e.target.name === 'type') { S.type = e.target.value; save(); } });
+  $('#para').addEventListener('input', e => {
+    S.paras[S.step] = e.target.value; save();
+    document.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-checked', String(S.analysis.steps[S.step].options[+b.dataset.opt] === e.target.value)));
+    updateCount(); renderSide();
   });
-
-  // Dán ảnh bằng Ctrl+V ở bất kỳ đâu
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];
     const img = items.find(i => i.type.startsWith('image/'));
-    if (!img) return;
-    e.preventDefault();
-    if (S.view !== 'outline' || S.step !== 'prompt') { S.view = 'outline'; S.step = 'prompt'; }
-    setImageFromFile(img.getAsFile());
+    if (!img || S.view !== 'setup') return;
+    e.preventDefault(); takeFile(img.getAsFile());
   });
-  async function pasteFromClipboard() {
-    if (!navigator.clipboard || !navigator.clipboard.read) { toast('Trình duyệt chưa hỗ trợ — hãy nhấn Ctrl+V hoặc chọn ảnh.'); return; }
-    try {
-      const items = await navigator.clipboard.read();
-      for (const it of items) {
-        const type = it.types.find(x => x.startsWith('image/'));
-        if (type) { setImageFromFile(new File([await it.getType(type)], 'paste', { type })); return; }
-      }
-      toast('Clipboard không có ảnh.');
-    } catch (err) { toast('Không đọc được clipboard — hãy nhấn Ctrl+V hoặc chọn ảnh.'); }
-  }
+  const dz = $('#dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); takeFile(e.dataTransfer.files[0]); });
 
-  // Kéo thả
-  document.addEventListener('dragover', e => { const z = e.target.closest && e.target.closest('#dropzone'); if (z) { e.preventDefault(); z.classList.add('drag'); } });
-  document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('#dropzone'); if (z) z.classList.remove('drag'); });
-  document.addEventListener('drop', e => {
-    const z = e.target.closest && e.target.closest('#dropzone');
-    if (!z) return;
-    e.preventDefault(); z.classList.remove('drag');
-    setImageFromFile(e.dataTransfer.files[0]);
-  });
-
-  async function runOCR(btn) {
-    if (!S.image) return;
-    const status = $('#ai-status');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang đọc chữ…';
-    try {
-      const text = await AI.ocr(S.image.dataUrl, p => { status.textContent = `OCR: ${Math.round(p * 100)}%`; });
-      if (!text) throw new Error('Không thấy chữ trong ảnh.');
-      S.promptText = text;
-      applyDetect(); save(); render();
-      toast('Đã đọc chữ của đề. Kiểm tra lại phần Thông tin đề.');
-    } catch (err) {
-      btn.disabled = false; btn.textContent = '🔤 Đọc chữ trong ảnh (OCR)';
-      status.textContent = '⚠️ ' + err.message;
-    }
-  }
-
-  async function runAI(btn) {
-    if (!SAMPLE && !AI.getKey()) { $('#api-key').value = ''; $('#settings').showModal(); return; }
-    const status = $('#ai-status');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> AI đang phân tích…';
-    status.textContent = 'Thường mất 30–90 giây (đọc ảnh, phân tích số liệu, soạn câu gợi ý).';
-    try {
-      const r = await AI.analyze({ text: S.promptText.trim(), image: S.image, band: S.band });
-      applyAI(r);
-      save();
-      toast(`AI nhận dạng: ${typeLabel(S.type)} — xem phân tích.`, 3500);
-      go('analyze');
-    } catch (err) {
-      btn.disabled = false; btn.textContent = '🤖 AI phân tích đề';
-      status.textContent = '⚠️ ' + (err && err.message ? err.message : String(err));
-    }
-  }
-
-  // Trong claude.ai: dùng Claude của người xem (không cần key), ẩn nút cài đặt key
+  /* ================= Start ================= */
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
-  let SAMPLE = null;
-  if (IN_CLAUDE) $('#btn-settings').hidden = true;
-
-  renderTypes();
-  render();
-  AI.sampleCaps().then(caps => {
-    if (!caps) return;
-    SAMPLE = caps;
-    if (S.view === 'outline' && S.step === 'prompt') render();
-  });
+  if (IN_CLAUDE) $('#btn-key').hidden = true;
+  show(S.view === 'loading' ? 'setup' : (S.view !== 'setup' && !S.analysis ? 'setup' : S.view));
+  AI.available().then(a => { AVAIL = a; if (a.via === 'claude') $('#btn-key').hidden = true; if (S.view === 'setup') renderSetup(); });
 })();

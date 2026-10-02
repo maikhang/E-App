@@ -2,12 +2,12 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Task 1 Writing Coach</title>
-  <meta name="description" content="Gợi ý từng câu IELTS Writing Task 1 theo dàn ý – bắt đầu với dạng Maps.">
+  <meta name="description" content="Dán đề IELTS Writing Task 1, AI đọc đề và gợi ý từng đoạn bám sát đề.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,44 +16,182 @@
       <span class="logo" aria-hidden="true">✍️</span>
       <div>
         <h1>Task 1 Writing Coach</h1>
-        <p class="sub">Gợi ý từng câu theo dàn ý</p>
+        <p class="sub">Đọc đề · Gợi ý từng đoạn bám sát đề · Band 6.0–8.0</p>
       </div>
     </div>
-    <nav class="types" id="types" aria-label="Dạng bài"></nav>
     <div class="top-actions">
-      <button class="btn ghost" id="btn-library" type="button">📚 Thư viện</button>
-      <button class="btn ghost" id="btn-settings" type="button" aria-label="Cài đặt">⚙️</button>
+      <button class="btn ghost" id="btn-vocab" type="button">📚 Kho từ vựng</button>
+      <button class="btn ghost" id="btn-new" type="button">＋ Nhập đề khác</button>
+      <button class="btn ghost" id="btn-key" type="button" aria-label="Cài đặt API key">⚙️</button>
     </div>
   </header>
 
-  <div class="layout">
-    <aside class="stepper" id="stepper" aria-label="Dàn ý"></aside>
-    <main class="main" id="main"></main>
-    <aside class="essay" id="essay" aria-label="Bài viết"></aside>
-  </div>
+  <main class="wrap">
+    <!-- 1. Nhập đề -->
+    <section id="view-setup" class="view">
+      <div class="card hero">
+        <span class="kicker">Bước 1 · Đề bài</span>
+        <h2>Dán đề bài hoặc ảnh đề</h2>
+        <p class="muted">Nhập đầy đủ đề có tên đối tượng, quốc gia, hạng mục và mốc năm — hoặc dán ảnh đề. AI đọc đề và viết gợi ý bám sát đúng đề của bạn.</p>
 
-  <dialog id="settings">
-    <form method="dialog" class="dialog-body">
-      <h2>Cài đặt AI đọc ảnh đề</h2>
-      <p class="muted">Để AI tự đọc <b>bản đồ trong ảnh</b> và điền sẵn phần Phân tích, nhập Anthropic API key của bạn
-        (lấy tại <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>).
-        Key chỉ lưu trong trình duyệt này và chỉ được gửi tới api.anthropic.com.</p>
-      <label class="field">
-        <span>API key</span>
-        <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
-      </label>
-      <p class="muted small">Không có key vẫn dùng được: nút “Đọc chữ (OCR)” đọc chữ của đề miễn phí, còn công trình trên bản đồ bạn tự nhập ở bước Phân tích.</p>
+        <fieldset class="types" id="types">
+          <legend>Dạng đề</legend>
+          <label class="type-card"><input type="radio" name="type" value="maps"><span class="tag">Dạng 1</span><b>🗺️ Maps</b><small>Bản đồ</small></label>
+          <label class="type-card"><input type="radio" name="type" value="process"><span class="tag">Dạng 2</span><b>🔁 Process</b><small>Quy trình</small></label>
+          <label class="type-card"><input type="radio" name="type" value="charts"><span class="tag">Dạng 3</span><b>📊 Charts &amp; Tables</b><small>Line, bar, pie, table</small></label>
+          <label class="type-card"><input type="radio" name="type" value="auto"><span class="tag">Tổng hợp</span><b>✨ Tự nhận dạng</b><small>AI tự xác định</small></label>
+        </fieldset>
+
+        <div class="grid-2">
+          <label class="field"><span>Dán đề bài đầy đủ</span>
+            <textarea id="prompt" rows="7" placeholder="The graph below shows water consumption in the USA and China between 1990 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."></textarea>
+          </label>
+          <div class="field"><span>Hoặc tải lên / dán ảnh đề</span>
+            <div class="dropzone" id="dropzone" tabindex="0">
+              <img id="img-preview" alt="Ảnh đề bài" hidden>
+              <div id="drop-empty">
+                <div class="drop-icon" aria-hidden="true">🖼️</div>
+                <p>Bấm để chọn ảnh, kéo thả, hoặc dán bằng <kbd>Ctrl</kbd>+<kbd>V</kbd></p>
+              </div>
+              <input type="file" id="file" accept="image/*" hidden>
+            </div>
+            <button type="button" class="btn sm ghost" id="img-clear" hidden>✕ Xoá ảnh</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <label class="field inline"><span>Trình độ</span>
+            <select id="band">
+              <option value="6.0">Band 6.0</option>
+              <option value="7.0" selected>Band 7.0+</option>
+              <option value="8.0">Band 8.0+</option>
+            </select>
+          </label>
+          <button type="button" class="btn primary lg" id="btn-analyze">🤖 AI đọc đề &amp; tạo gợi ý</button>
+          <button type="button" class="btn ghost" id="btn-demo">Xem bài mẫu</button>
+        </div>
+        <p class="note" id="setup-note"></p>
+      </div>
+    </section>
+
+    <!-- 2. Đang phân tích -->
+    <section id="view-loading" class="view" hidden>
+      <div class="card loading">
+        <div class="spinner big" aria-hidden="true"></div>
+        <h2>AI đang đọc đề của bạn…</h2>
+        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–90 giây.</p>
+        <p class="elapsed" id="elapsed">0 giây</p>
+        <button type="button" class="btn" id="btn-stop">Dừng</button>
+      </div>
+    </section>
+
+    <!-- 3. Viết từng đoạn -->
+    <section id="view-wizard" class="view" hidden>
+      <div class="wizard">
+        <div class="col-main">
+          <div class="card">
+            <div class="progress" id="progress" aria-hidden="true"></div>
+            <div class="step-head">
+              <div>
+                <span class="kicker" id="step-kicker"></span>
+                <h2 id="step-title"></h2>
+              </div>
+              <span class="pill" id="step-count"></span>
+            </div>
+            <div class="guide">
+              <h3>🧭 Phân tích &amp; hướng dẫn</h3>
+              <p id="step-guide"></p>
+            </div>
+            <div class="vocab-box">
+              <h3>📌 Từ vựng riêng cho đề này</h3>
+              <div class="chips" id="step-vocab"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row between">
+              <h3>Chọn gợi ý bám sát đề</h3>
+              <button type="button" class="btn sm" id="btn-regen">↻ Gợi ý khác</button>
+            </div>
+            <div class="options" id="options" role="radiogroup" aria-label="Gợi ý"></div>
+            <p class="note" id="regen-note"></p>
+            <label class="field"><span>Hoặc tự chỉnh sửa / soạn đoạn này</span>
+              <textarea id="para" rows="6" placeholder="Chọn một gợi ý ở trên hoặc tự viết…"></textarea>
+            </label>
+            <div class="row between small muted"><span id="para-count">0 từ</span><span id="para-hint"></span></div>
+          </div>
+
+          <div class="row between nav">
+            <button type="button" class="btn" id="btn-prev">← Đoạn trước</button>
+            <button type="button" class="btn primary" id="btn-next">Đoạn tiếp theo →</button>
+          </div>
+        </div>
+
+        <aside class="col-side">
+          <div class="card ref">
+            <h3>Đề bài gốc</h3>
+            <p class="topic" id="ref-topic"></p>
+            <button type="button" class="ref-img" id="ref-img-btn" hidden><img id="ref-img" alt="Ảnh đề bài gốc"><span>🔍 Phóng to</span></button>
+            <p class="ref-text" id="ref-text"></p>
+          </div>
+          <div class="card mini-essay">
+            <div class="row between"><h3>Bài đang viết</h3><span class="small muted" id="mini-count">0 từ</span></div>
+            <ol id="mini"></ol>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 4. Bài hoàn chỉnh -->
+    <section id="view-review" class="view" hidden>
+      <div class="card review">
+        <div class="row between">
+          <div>
+            <span class="kicker">Hoàn thành</span>
+            <h2>Bài viết hoàn chỉnh bám sát đề</h2>
+            <p class="muted" id="review-meta"></p>
+          </div>
+          <div class="row">
+            <button type="button" class="btn primary" id="btn-copy">📋 Sao chép toàn bộ bài</button>
+            <button type="button" class="btn" id="btn-new-2">＋ Nhập đề khác</button>
+          </div>
+        </div>
+        <div class="paper" id="paper"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dlg-vocab" class="dlg wide">
+    <div class="dlg-body">
+      <div class="row between"><h2>📚 Kho từ vựng &amp; quy tắc</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <div id="vocab-content"></div>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-key" class="dlg">
+    <form method="dialog" class="dlg-body">
+      <h2>Cài đặt Anthropic API key</h2>
+      <p class="muted">Chỉ cần khi mở file này ngoài claude.ai. Key lấy tại
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>,
+        chỉ lưu trong trình duyệt này và chỉ gửi tới api.anthropic.com.</p>
+      <label class="field"><span>API key</span><input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off"></label>
       <div class="row end">
-        <button class="btn ghost" value="clear" id="api-clear" type="button">Xoá key</button>
-        <button class="btn primary" value="save" id="api-save">Lưu</button>
+        <button class="btn ghost" type="button" id="api-clear">Xoá key</button>
+        <button class="btn primary" id="api-save" value="save">Lưu</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="dlg-img" class="dlg wide">
+    <div class="dlg-body">
+      <div class="row between"><h2>Ảnh đề bài gốc</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <img id="dlg-img-src" alt="Ảnh đề bài gốc" class="full-img">
+    </div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/content.js"></script>
-  <script src="js/engine.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
 </body>
