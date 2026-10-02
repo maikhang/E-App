@@ -3,7 +3,8 @@
 Web app gợi ý **từng câu** cho IELTS Writing Task 1, bám đúng dàn ý & từ vựng của bạn. Bắt đầu với dạng **Maps** (các dạng khác: sắp có).
 
 ## Chạy
-Mở `index.html` bằng trình duyệt (không cần cài đặt). Hoặc `python3 -m http.server` rồi vào `http://localhost:8000`.
+`index.html` là **một file duy nhất** (đã gộp CSS + JS), mở trực tiếp bằng trình duyệt là chạy.
+Sửa mã trong `src/`, `css/`, `js/` rồi chạy `python3 build.py` để tạo lại `index.html` và `dist/task1-coach.html` (bản đăng trên claude.ai, AI đọc ảnh không cần API key).
 
 ## Quy trình trong app (theo dàn ý)
 0. **Đề bài** – gõ/dán đề, hoặc dán ảnh (Ctrl+V / kéo thả / chọn ảnh). App tự nhận địa điểm, năm, thì.

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task 1 Writing Coach</title>
+  <meta name="description" content="Gợi ý từng câu IELTS Writing Task 1 theo dàn ý – bắt đầu với dạng Maps.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">✍️</span>
+      <div>
+        <h1>Task 1 Writing Coach</h1>
+        <p class="sub">Gợi ý từng câu theo dàn ý</p>
+      </div>
+    </div>
+    <nav class="types" id="types" aria-label="Dạng bài"></nav>
+    <div class="top-actions">
+      <button class="btn ghost" id="btn-library" type="button">📚 Thư viện</button>
+      <button class="btn ghost" id="btn-settings" type="button" aria-label="Cài đặt">⚙️</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="stepper" id="stepper" aria-label="Dàn ý"></aside>
+    <main class="main" id="main"></main>
+    <aside class="essay" id="essay" aria-label="Bài viết"></aside>
+  </div>
+
+  <dialog id="settings">
+    <form method="dialog" class="dialog-body">
+      <h2>Cài đặt AI đọc ảnh đề</h2>
+      <p class="muted">Để AI tự đọc <b>bản đồ trong ảnh</b> và điền sẵn phần Phân tích, nhập Anthropic API key của bạn
+        (lấy tại <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>).
+        Key chỉ lưu trong trình duyệt này và chỉ được gửi tới api.anthropic.com.</p>
+      <label class="field">
+        <span>API key</span>
+        <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+      </label>
+      <p class="muted small">Không có key vẫn dùng được: nút “Đọc chữ (OCR)” đọc chữ của đề miễn phí, còn công trình trên bản đồ bạn tự nhập ở bước Phân tích.</p>
+      <div class="row end">
+        <button class="btn ghost" value="clear" id="api-clear" type="button">Xoá key</button>
+        <button class="btn primary" value="save" id="api-save">Lưu</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/content.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

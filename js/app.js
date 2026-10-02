@@ -127,18 +127,18 @@
         <p class="hint">${img ? 'Ảnh đề đã sẵn sàng.' : 'Dán ảnh đề bằng <kbd>Ctrl</kbd>+<kbd>V</kbd> (<kbd>⌘</kbd>+<kbd>V</kbd>), kéo thả, hoặc chọn ảnh.'}</p>
         <div class="row" style="justify-content:center">
           <label class="btn sm">📁 Chọn / chụp ảnh<input type="file" id="file" accept="image/*" hidden></label>
-          <button type="button" class="btn sm" id="paste-btn">📋 Dán ảnh</button>
+          ${IN_CLAUDE ? '' : '<button type="button" class="btn sm" id="paste-btn">📋 Dán ảnh</button>'}
           ${img ? '<button type="button" class="btn sm" id="img-clear">✕ Xoá ảnh</button>' : ''}
         </div>
       </div>
       <div style="height:12px"></div>
       <div class="row">
         <button type="button" class="btn primary" id="ai-btn" ${img || S.promptText.trim() ? '' : 'disabled'}>🤖 AI đọc đề + bản đồ</button>
-        <button type="button" class="btn" id="ocr-btn" ${img ? '' : 'disabled'}>🔤 Đọc chữ trong ảnh (OCR)</button>
+        ${SAMPLE ? '' : `<button type="button" class="btn" id="ocr-btn" ${img ? '' : 'disabled'}>🔤 Đọc chữ trong ảnh (OCR)</button>`}
         <button type="button" class="btn ghost" id="sample-btn">Dùng đề mẫu</button>
         <button type="button" class="btn ghost" id="reset-btn">Làm bài mới</button>
       </div>
-      <p class="muted small" id="ai-status">AI tự điền công trình + thay đổi vào bước Phân tích (cần API key ở ⚙️). OCR miễn phí chỉ đọc chữ của đề.</p>
+      <p class="muted small" id="ai-status">${SAMPLE ? 'AI đọc ảnh đề và tự điền công trình + thay đổi vào bước Phân tích. Dùng tài khoản Claude của bạn, không cần API key.' : 'AI tự điền công trình + thay đổi vào bước Phân tích (cần API key ở ⚙️). OCR miễn phí chỉ đọc chữ của đề.'}</p>
     </section>
     <section class="card">
       <h3>Thông tin đề <span class="muted small">(tự nhận từ đề — sửa nếu sai)</span></h3>
@@ -509,7 +509,12 @@
     if (t.id === 'api-clear') { AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return; }
     if (t.id === 'timer') { startTimer(+t.dataset.min); return; }
     if (t.id === 'sample-btn') { loadSample(); return; }
-    if (t.id === 'reset-btn') { if (confirm('Xoá toàn bộ bài hiện tại và làm bài mới?')) { S = blank(); save(); render(); } return; }
+    if (t.id === 'reset-btn') {
+      if (t.dataset.armed) { S = blank(); save(); render(); toast('Đã xoá, bắt đầu bài mới.'); return; }
+      t.dataset.armed = '1'; t.textContent = 'Bấm lần nữa để xoá hết'; t.classList.add('danger');
+      setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.textContent = 'Làm bài mới'; t.classList.remove('danger'); } }, 3000);
+      return;
+    }
     if (t.id === 'img-clear') { S.image = null; save(); render(); return; }
     if (t.id === 'paste-btn') { pasteFromClipboard(); return; }
     if (t.id === 'ocr-btn') { runOCR(t); return; }
@@ -671,7 +676,7 @@
   }
 
   async function runAI(btn) {
-    if (!AI.getKey()) { $('#api-key').value = ''; $('#settings').showModal(); return; }
+    if (!SAMPLE && !AI.getKey()) { $('#api-key').value = ''; $('#settings').showModal(); return; }
     const status = $('#ai-status');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> AI đang đọc đề…';
     status.textContent = 'Có thể mất 10–40 giây.';
@@ -687,6 +692,16 @@
     }
   }
 
+  // Trong claude.ai: dùng Claude của người xem (không cần key), ẩn nút cài đặt key
+  const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
+  let SAMPLE = null;
+  if (IN_CLAUDE) $('#btn-settings').hidden = true;
+
   renderTypes();
   render();
+  AI.sampleCaps().then(caps => {
+    if (!caps) return;
+    SAMPLE = caps;
+    if (S.view === 'outline' && S.step === 'prompt') render();
+  });
 })();

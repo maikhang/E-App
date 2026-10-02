@@ -77,6 +77,8 @@ If the image is not a map task, return empty arrays and whatever text you can re
 
   /* image: { mediaType, base64 } | null */
   async function analyze({ text, image }) {
+    const sample = await getSample();
+    if (sample) return analyzeWithSample(sample, { text, image });
     const apiKey = getKey();
     if (!apiKey) throw new Error('Chưa có API key. Bấm ⚙️ Cài đặt để nhập Anthropic API key.');
     const Anthropic = await loadSdk();
@@ -102,6 +104,47 @@ If the image is not a map task, return empty arrays and whatever text you can re
     return JSON.parse(block.text);
   }
 
+  /* Khi mở trong claude.ai (Artifact): gọi Claude bằng tài khoản người xem, không cần API key. */
+  let samplePromise = null;
+  function getSample() {
+    if (!samplePromise) {
+      samplePromise = (window.claude && typeof window.claude.use === 'function')
+        ? window.claude.use('sample').catch(() => null)
+        : Promise.resolve(null);
+    }
+    return samplePromise;
+  }
+  async function sampleCaps() {
+    const s = await getSample();
+    if (!s) return null;
+    const lim = await s.limits().catch(() => null);
+    return { images: !!(lim && lim.images) };
+  }
+  function dataUrlToBlob(url) {
+    const [head, b64] = url.split(',');
+    const type = (head.match(/data:([^;]+)/) || [])[1] || 'image/png';
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type });
+  }
+  const SAMPLE_ERRORS = {
+    not_granted: 'Bạn chưa cho phép trang dùng Claude. Tải lại trang và bấm Cho phép.',
+    rate_limited: 'Đang gửi quá nhiều yêu cầu. Đợi một lát rồi thử lại.',
+    images_unavailable: 'Chế độ xem này không gửi được ảnh. Hãy gõ đề vào ô văn bản.',
+    image_rejected: 'Ảnh không đọc được. Hãy thử ảnh PNG/JPG khác.',
+  };
+  async function analyzeWithSample(sample, { text, image }) {
+    const prompt = SYSTEM + '\n\n' + (text ? 'Task text:\n' + text + '\n\n' : '') +
+      (image ? 'The attached image is the task (question text and/or the two maps).\n' : '') +
+      'Reply with ONLY one JSON object matching this JSON Schema:\n' + JSON.stringify(schema);
+    try {
+      return await sample.json(prompt, image ? { images: dataUrlToBlob(image.dataUrl) } : {});
+    } catch (e) {
+      throw new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không đọc được đề.');
+    }
+  }
+
   let tessPromise = null;
   function loadTesseract() {
     if (window.Tesseract) return Promise.resolve(window.Tesseract);
@@ -122,5 +165,5 @@ If the image is not a map task, return empty arrays and whatever text you can re
     return (res.data && res.data.text || '').replace(/\s+\n/g, '\n').trim();
   }
 
-  return { analyze, ocr, getKey, setKey, MODEL };
+  return { analyze, ocr, getKey, setKey, sampleCaps, MODEL };
 })();

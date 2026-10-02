@@ -50,7 +50,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- Top bar ---------- */
 .topbar {
-  position: sticky; top: 0; z-index: 20;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
   display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
@@ -76,6 +76,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn.ghost { background: transparent; }
 .btn.sm { padding: 4px 10px; font-size: 13px; border-radius: 8px; }
+.btn.danger { background: var(--err-soft); color: var(--err); border-color: var(--err); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .icon-btn { border: none; background: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; color: var(--muted); }
 .icon-btn:hover { background: var(--surface-2); color: var(--err); }
