@@ -1,4 +1,4 @@
-# Task 1 Writing Coach
+# Ms. Nhi Gigi – IELTS Writing Task 1
 
 Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) → AI đọc đề → gợi ý **từng đoạn bám sát đề** để chọn hoặc tự sửa → bài hoàn chỉnh.
 

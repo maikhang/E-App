@@ -4,18 +4,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Task 1 Writing Coach</title>
+  <meta name="color-scheme" content="light">
+  <title>Ms. Nhi Gigi</title>
   <meta name="description" content="Dán đề IELTS Writing Task 1, AI đọc đề và gợi ý từng đoạn bám sát đề.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
   <style>
-/* Layout: một cột trung tâm; bước viết chia 2 cột (đoạn đang viết | đề gốc + bài đang viết) */
+/* Giao diện sáng cố định (không đổi theo chế độ tối của máy). Layout: một cột trung tâm; bước viết chia 2 cột (đoạn đang viết | đề gốc + bài đang viết) */
 :root {
-  --bg: #eef2ea;
+  --bg: #f7faf5;
   --surface: #ffffff;
-  --surface-2: #f5f8f1;
-  --border: #d8e1d1;
+  --surface-2: #f3f8f0;
+  --border: #dfe8d9;
   --text: #1d281b;
   --muted: #5b6957;
   --accent: #2f6f45;
@@ -33,18 +34,6 @@
   --font-ui: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-essay: "Lora", Georgia, "Times New Roman", serif;
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #131913; --surface: #1b231b; --surface-2: #212b21; --border: #324032; --text: #e5eee2; --muted: #9db09a;
-    --accent: #7dc792; --accent-ink: #0e1a11; --accent-soft: #233a2a; --ink-soft: #2a281f; --warn: #f0b94a; --warn-soft: #3a2f16;
-    --err: #ff8a80; --err-soft: #3b1f1d; --mark: #4a4114; --mark-ink: #ffe9a3; --shadow: none; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #131913; --surface: #1b231b; --surface-2: #212b21; --border: #324032; --text: #e5eee2; --muted: #9db09a;
-  --accent: #7dc792; --accent-ink: #0e1a11; --accent-soft: #233a2a; --ink-soft: #2a281f; --warn: #f0b94a; --warn-soft: #3a2f16;
-  --err: #ff8a80; --err-soft: #3b1f1d; --mark: #4a4114; --mark-ink: #ffe9a3; --shadow: none; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -269,8 +258,8 @@ td:first-child { font-weight: 600; white-space: nowrap; }
     <div class="brand">
       <span class="logo" aria-hidden="true">✍️</span>
       <div>
-        <h1>Task 1 Writing Coach</h1>
-        <p class="sub">Theo dàn ý Ms. Gigi · Gợi ý từng đoạn bám sát đề</p>
+        <h1>Ms. Nhi Gigi</h1>
+        <p class="sub">IELTS Writing Task 1 · Gợi ý từng câu theo dàn ý</p>
       </div>
     </div>
     <div class="top-actions">
