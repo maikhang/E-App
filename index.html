@@ -412,11 +412,13 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             <p class="muted" id="review-meta"></p>
           </div>
           <div class="row">
-            <button type="button" class="btn primary" id="btn-copy">📋 Sao chép toàn bộ bài</button>
+            <button type="button" class="btn primary" id="btn-copy-lesson">📚 Sao chép bài học hoàn chỉnh</button>
+            <button type="button" class="btn" id="btn-copy">📋 Chỉ sao chép bài viết</button>
             <button type="button" class="btn" id="btn-new-2">＋ Nhập đề khác</button>
           </div>
         </div>
         <div class="paper" id="paper"></div>
+        <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm: đề bài → bài viết → khung dàn ý từng đoạn kèm câu tương ứng → từ vựng → từ paraphrase (có nghĩa tiếng Việt). Dán vào Zalo, Messenger, Word hoặc Google Docs đều giữ bố cục.</p>
       </div>
       <div class="card">
         <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3>
@@ -1589,6 +1591,94 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
     }
   }
 
+  /* ---------- Bài học hoàn chỉnh (sao chép gửi học sinh) ---------- */
+  // Câu của đoạn đã chọn, gắn với khung K1, K2… (nếu học sinh không sửa gợi ý)
+  function chosenParts(k) {
+    const st = S.analysis && S.analysis.steps[k];
+    if (!st) return null;
+    const idx = st.options.indexOf(S.paras[k]);
+    return idx >= 0 && st.parts && st.parts[idx] ? st.parts[idx] : null;
+  }
+  function lessonData() {
+    const a = S.analysis || {};
+    const o = G.OUTLINES[outlineOf(a)];
+    return {
+      a, o,
+      words: S.paras.reduce((n, p) => n + wc(p), 0),
+      prompt: S.prompt || a.prompt_text || '',
+      sections: STEP_NAMES.map((name, k) => ({
+        name, para: (S.paras[k] || '').trim(),
+        frames: o[G.STEP_KEYS[k]].frames, rule: o[G.STEP_KEYS[k]].rule,
+        parts: chosenParts(k),
+        vocab: (a.steps && a.steps[k] && a.steps[k].vocab) || [],
+      })),
+      paraphrase: a.paraphrase || [],
+    };
+  }
+  const NUM = ['①', '②', '③', '④'];
+  function lessonPlain() {
+    const d = lessonData();
+    const line = '━━━━━━━━━━━━━━━━━━━━';
+    const out = [`📘 MS. NHI GIGI · IELTS WRITING TASK 1`, `Dạng đề: ${d.o.name}`];
+    if (d.a.subject) out.push(`Chủ đề: ${d.a.subject}`);
+    if (d.prompt) out.push('', '📝 ĐỀ BÀI', d.prompt);
+    out.push('', line, `✍️ 1. BÀI VIẾT HOÀN CHỈNH (${d.words} từ)`, line);
+    d.sections.forEach((x, k) => { if (x.para) out.push('', `${NUM[k]} ${x.name}`, x.para); });
+    out.push('', line, '📐 2. DÀN Ý & CẤU TRÚC TỪNG ĐOẠN', line);
+    d.sections.forEach((x, k) => {
+      out.push('', `${NUM[k]} ${x.name.toUpperCase()} — ${x.rule}`, 'Khung câu:');
+      x.frames.forEach((f, n) => out.push(`  K${n + 1}. ${f}`));
+      if (x.parts && x.parts.length) {
+        out.push('Câu trong bài:');
+        x.parts.forEach(p => out.push(`  ${p.f ? 'K' + p.f : '•'} → ${p.text}`));
+      }
+      if (x.vocab.length) out.push('Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
+    });
+    if (d.paraphrase.length) {
+      out.push('', line, '🔁 3. TỪ PARAPHRASE (từ trong đề → cách viết khác)', line);
+      d.paraphrase.forEach(x => out.push(`• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
+        ...x.alternatives.map(v => `   → ${v.phrase}${v.meaning_vi ? ' (' + v.meaning_vi + ')' : ''}${v.note_vi ? ' – ' + v.note_vi : ''}`)));
+    }
+    return out.join('\n');
+  }
+  function lessonHtml() {
+    const d = lessonData();
+    const h2 = t => `<h2 style="font-size:16px;margin:18px 0 6px;color:#2f6f45;border-bottom:2px solid #2f6f45;padding-bottom:3px">${t}</h2>`;
+    let h = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;color:#1d281b">
+      <h1 style="font-size:20px;margin:0 0 4px">📘 Ms. Nhi Gigi · IELTS Writing Task 1</h1>
+      <p style="margin:0;color:#5b6957">Dạng đề: <b>${esc(d.o.name)}</b>${d.a.subject ? ' · Chủ đề: ' + esc(d.a.subject) : ''}</p>`;
+    if (d.prompt) h += h2('📝 Đề bài') + `<p style="font-style:italic">${esc(d.prompt)}</p>`;
+    h += h2(`✍️ 1. Bài viết hoàn chỉnh (${d.words} từ)`);
+    d.sections.forEach((x, k) => { if (x.para) h += `<p><b>${NUM[k]} ${x.name}</b><br>${esc(x.para)}</p>`; });
+    h += h2('📐 2. Dàn ý &amp; cấu trúc từng đoạn');
+    d.sections.forEach((x, k) => {
+      h += `<h3 style="font-size:14px;margin:12px 0 4px">${NUM[k]} ${x.name} <span style="font-weight:normal;color:#5b6957">— ${esc(x.rule)}</span></h3>
+        <table style="border-collapse:collapse;width:100%;font-size:13px"><tr><th style="text-align:left;border:1px solid #d8e1d1;background:#e0eee2;padding:4px 6px;width:40%">Khung câu</th><th style="text-align:left;border:1px solid #d8e1d1;background:#e0eee2;padding:4px 6px">Câu trong bài</th></tr>` +
+        x.frames.map((f, n) => {
+          const used = (x.parts || []).filter(p => p.f === n + 1).map(p => esc(p.text)).join('<br>');
+          return `<tr><td style="border:1px solid #d8e1d1;padding:4px 6px;vertical-align:top"><b>K${n + 1}.</b> ${esc(f)}</td><td style="border:1px solid #d8e1d1;padding:4px 6px;vertical-align:top">${used || '<span style="color:#999">—</span>'}</td></tr>`;
+        }).join('') + '</table>';
+      if (x.vocab.length) h += `<p style="margin:4px 0"><b>Từ vựng:</b> ${x.vocab.map(v => `${esc(v.phrase)}${v.meaning_vi ? ' <span style="color:#5b6957">(' + esc(v.meaning_vi) + ')</span>' : ''}`).join(' · ')}</p>`;
+    });
+    if (d.paraphrase.length) {
+      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)') + '<ul style="padding-left:18px;margin:0">' +
+        d.paraphrase.map(x => `<li><b>${esc(x.word)}</b>${x.meaning_vi ? ' (' + esc(x.meaning_vi) + ')' : ''} → ${x.alternatives.map(v => `${esc(v.phrase)}${v.meaning_vi ? ' <span style="color:#5b6957">(' + esc(v.meaning_vi) + ')</span>' : ''}${v.note_vi ? ' <i style="color:#93600a">– ' + esc(v.note_vi) + '</i>' : ''}`).join('; ')}</li>`).join('') + '</ul>';
+    }
+    return h + '</div>';
+  }
+  async function copyLesson() {
+    if (!S.paras.some(p => p.trim())) { toast('Chưa có bài viết để sao chép.'); return; }
+    const plain = lessonPlain(), html = lessonHtml();
+    try {
+      if (window.ClipboardItem && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([plain], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
+      } else await navigator.clipboard.writeText(plain);
+      toast('Đã sao chép bài học hoàn chỉnh — dán gửi học sinh.');
+    } catch (e) {
+      copyText(plain, 'Đã sao chép bài học hoàn chỉnh — dán gửi học sinh.', $('#paper'));
+    }
+  }
+
   /* ---------- Review ---------- */
   function renderReview() {
     renderParaphrase();
@@ -1709,6 +1799,7 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
         copyText(paraphraseText(a), 'Đã sao chép từ paraphrase — dán gửi học sinh.', t.id === 'btn-copy-pp' ? $('#pp-side') : $('#pp-review'));
         return;
       }
+      case 'btn-copy-lesson': copyLesson(); return;
       case 'btn-copy-all': {
         const txt = essayText();
         if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }
