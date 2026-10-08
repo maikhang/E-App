@@ -1,12 +1,17 @@
 # Ms. Nhi Gigi – IELTS Writing Task 1
 
-Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) → AI đọc đề → gợi ý **từng đoạn bám sát đề** để chọn hoặc tự sửa → bài hoàn chỉnh.
+Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) → AI đọc đề → gợi ý **từng câu theo dàn ý Ms. Gigi, bám sát đề** để chọn hoặc tự viết → bài hoàn chỉnh.
 
 ## Luồng sử dụng
 1. **Đề bài** – chọn dạng (Maps / Process / Charts & Tables / Tự nhận dạng), dán đề hoặc ảnh đề (Ctrl+V, kéo thả, chọn ảnh), chọn trình độ (Band 6.0 / 7.0+ / 8.0+).
 2. **AI đọc đề** – trích xuất chủ thể, số liệu, mốc thời gian.
-3. **Viết 4 đoạn** – Introduction → Overview → Body 1 → Body 2. Mỗi đoạn có hướng dẫn tiếng Việt, từ vựng riêng cho đề, 3 đoạn gợi ý để chọn, nút “↻ Gợi ý khác”, ô tự sửa. Ảnh đề luôn hiện bên cạnh để đối chiếu.
-4. **Bài hoàn chỉnh** – đếm từ, sửa lại từng đoạn, sao chép cả bài.
+3. **Viết 4 đoạn, từng câu một** – Introduction → Overview → Body 1 → Body 2 (thanh 4 đoạn có màu riêng, đếm số câu đã viết). Mỗi câu ứng với một khung K1, K2… của cô:
+   - hiện khung câu → 3 gợi ý A/B/C chỉ cho **một câu** → hoặc tự viết (Enter để dùng);
+   - các gợi ý được viết để nối tiếp tự nhiên với câu đã chọn ở trước; nếu học sinh tự viết, AI tự gợi ý lại câu sau dựa trên câu đó. Nút “↻ Gợi ý khác cho câu này” cũng dựa trên các câu đã chọn;
+   - khung của cô không hợp với đề → hiện ô vàng “⚠️ Khung Kx chưa phù hợp…” kèm lý do và câu thay thế; khung không dùng cho đề (ví dụ khung dành cho 2 biểu đồ) được liệt kê kèm lý do;
+   - nút **🙈 Che mờ gợi ý**: gợi ý bị làm mờ cho học sinh đọc khung và tự nghĩ trước, bấm “👀 Em đã nghĩ xong…” mới hiện;
+   - “✏️ Đổi câu này”, “⏭ Bỏ qua câu này”, “📐 Xem khung cả đoạn”; đoạn văn hiện dần bên dưới, có đánh số câu.
+4. **Bài hoàn chỉnh** – đếm từ, sửa lại từng đoạn, xem trước bản gửi học sinh. “📚 Sao chép bài học hoàn chỉnh” chép dạng **bảng màu** (thông tin đề, bài viết mỗi đoạn một màu, bảng từng câu ↔ khung của cô, ô vàng cho khung đã đổi, từ vựng, bảng paraphrase có nghĩa tiếng Việt) – dán vào Word/Google Docs/Gmail giữ nguyên màu, dán Zalo/Messenger thành chữ có đánh số.
 
 📚 **Kho từ vựng**: quy tắc chống viết chung chung, từ vựng riêng của đề đang làm, và toàn bộ dàn ý Maps (bảng A/B, cấu trúc viết, cấu trúc câu, lưu ý IN/AT/ON/TO, mẹo). Với đề Maps, AI bắt buộc dùng bộ từ vựng này.
 
@@ -21,8 +26,8 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 
 ## Dàn ý Ms. Gigi
 `js/gigi.js` chứa toàn bộ dàn ý từ tài liệu *IELTS WRITING Ms. Gigi*: 6 dạng (Line/Bar xu hướng, Bar/Pie/Table so sánh, Maps, Floor plan, Process nhân tạo, Process tự nhiên) với khung câu Introduction/Overview/Body 1/Body 2, quy tắc, từ vựng và bài mẫu, cùng các quy tắc chung (chủ thể, quy tắc “trọc lốc”, từ đồng nghĩa, so sánh 3 mức độ, nâng cấp Band 7+).
-- AI chọn đúng dàn ý cho đề và viết gợi ý 1 bám sát khung câu; gợi ý 2–3 dùng các cấu trúc khác trong dàn ý.
-- Mỗi đoạn hiện “📐 Khung dàn ý Ms. Gigi” (lấy thẳng từ file, không phụ thuộc AI).
+- AI chọn đúng dàn ý cho đề, lập kế hoạch từng câu theo khung (giữ nguyên chữ cố định của khung, chỉ điền phần [..] bằng nội dung của đề); khung không hợp đề thì đổi và giải thích lý do.
+- Khung câu hiện ở từng câu và trong “📐 Xem khung cả đoạn” (lấy thẳng từ file, không phụ thuộc AI).
 - Đoạn văn được kiểm tra theo quy tắc của cô (account for chỉ dùng cho %, witness, Body 1 Maps không nói thay đổi, Process dùng bị động hiện tại, side→ON, part→IN…).
 - Nút “📚 Dàn ý Ms. Gigi” mở thư viện theo từng dạng.
 

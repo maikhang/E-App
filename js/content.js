@@ -95,6 +95,8 @@ window.CONTENT = (function () {
   ];
 
   // Bài mẫu có sẵn (đề minh hoạ tự soạn) để xem app hoạt động khi chưa chạy AI
+  // Bài mẫu (đề minh hoạ tự soạn): mỗi đoạn là kế hoạch TỪNG CÂU theo khung Maps của Ms. Gigi
+  const O = (f, text) => ({ f, text });
   const demo = {
     task_type: 'maps',
     outline: 'maps',
@@ -104,62 +106,104 @@ window.CONTENT = (function () {
     steps: [
       {
         title: 'Introduction: sự phát triển của làng Stokeford, 1930 → 2010',
-        guide_vi: 'Dùng khung: The maps illustrate the development of [place] between [year X] and [year Y]. Giữ đúng tên làng và hai mốc năm, không chép nguyên câu đề.',
+        guide_vi: 'Một câu paraphrase đề: giữ đúng tên làng và hai mốc năm.',
         vocab: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'the development of', meaning_vi: 'sự phát triển của' }, { phrase: 'the changes in', meaning_vi: 'những thay đổi ở' }, { phrase: 'between 1930 and 2010', meaning_vi: 'trong giai đoạn 1930–2010' }],
-        options: [
-          'The maps illustrate the development of the village of Stokeford between 1930 and 2010.',
-          'The maps illustrate the changes in the village of Stokeford between 1930 and 2010.',
-          'The two maps illustrate how the village of Stokeford developed over the 80-year period from 1930 to 2010.',
+        sentences: [
+          { f: [1, 2], status: 'fit', focus_vi: 'Paraphrase đề: bản đồ gì, ở đâu, năm nào.', options: [
+            O(1, 'The maps illustrate the development of the village of Stokeford between 1930 and 2010.'),
+            O(2, 'The maps illustrate the changes in the village of Stokeford between 1930 and 2010.'),
+            O(1, 'The maps illustrate the development of Stokeford, a small village, between 1930 and 2010.'),
+          ] },
         ],
+        skipped: [],
       },
       {
         title: 'Overview: thêm khu dân cư và công trình mới, đường chính giữ nguyên',
-        guide_vi: 'Dùng khung: Overall, the area underwent [significant] development, with [additions] and the [removal/redevelopment] of [công trình cũ]. Some areas, however, remained unchanged. Không đưa vị trí chi tiết.',
+        guide_vi: 'Thay đổi lớn nhất + điểm giữ nguyên. Không nêu vị trí chi tiết, không số liệu.',
         vocab: [{ phrase: 'underwent significant development', meaning_vi: 'được phát triển đáng kể' }, { phrase: 'the addition of', meaning_vi: 'sự bổ sung' }, { phrase: 'the redevelopment of', meaning_vi: 'sự tái phát triển' }, { phrase: 'remained unchanged', meaning_vi: 'không thay đổi' }],
-        options: [
-          'Overall, the village underwent significant development, with the addition of a retirement home and new housing and the redevelopment of its southern farmland. Some areas, however, remained unchanged.',
-          'Overall, the area underwent significant transformation, with the conversion of farmland into a residential area and the construction of new facilities. Meanwhile, the main road through the village remained unchanged.',
-          'Overall, Stokeford underwent considerable development, becoming far more residential, while its basic road layout remained unchanged.',
+        sentences: [
+          { f: [1, 2], status: 'fit', focus_vi: 'Các thay đổi chính: thêm nhà ở & viện dưỡng lão, đất nông nghiệp bị tái phát triển.', options: [
+            O(1, 'Overall, the village underwent significant development, with the addition of new housing and a retirement home and the redevelopment of its farmland.'),
+            O(2, 'Overall, the area underwent significant transformation, with the conversion of farmland into housing and the construction of new facilities.'),
+            O(1, 'Overall, Stokeford underwent considerable development, with additions of residential areas and the redevelopment of its southern farmland.'),
+          ] },
+          { f: [1, 2], status: 'fit', focus_vi: 'Điểm giữ nguyên: đường chính.', options: [
+            O(1, 'Some areas, however, remained unchanged.'),
+            O(1, 'The main road, however, remained unchanged.'),
+            O(2, 'Meanwhile, the main road through the village remained unchanged.'),
+          ] },
         ],
+        skipped: [],
       },
       {
         title: 'Body 1: bố cục làng Stokeford năm 1930 (chỉ bản đồ 1)',
-        guide_vi: 'Dùng khung: In [thời điểm 1], the layout of [khu vực] included several key features. → [Công trình] was located in … → … lay to the … of …, while … was situated in … → Additionally, … Chỉ tả vị trí, KHÔNG nói thay đổi.',
+        guide_vi: 'Chỉ tả vị trí các công trình năm 1930, không nói thay đổi.',
         vocab: [{ phrase: 'the layout of … included several key features', meaning_vi: 'bố cục … gồm vài đặc điểm chính' }, { phrase: 'was located in', meaning_vi: 'nằm ở' }, { phrase: 'lay to the south of', meaning_vi: 'nằm về phía nam của' }, { phrase: 'was situated in', meaning_vi: 'nằm ở' }, { phrase: 'stood next to', meaning_vi: 'nằm cạnh' }],
-        options: [
-          'In 1930, the layout of the village included several key features. A row of houses was located along the main road, close to a school in the center of the village. A post office stood next to the school, while a large area of farmland was situated in the southern part of the village. Additionally, the main road ran through the middle of Stokeford and was surrounded by open fields.',
-          'In 1930, the layout of Stokeford included several key features. Most houses were located along the main road, and a school could be found in the center of the village, adjacent to the post office. Farmland lay to the south of the houses, while open fields were situated at the edge of the map.',
-          'In 1930, the layout of the village included several key features. The center was occupied by a school and a post office, while houses sat along the main road. Additionally, farmland covered almost the whole southern part of Stokeford, stretching as far as the edge of the map.',
+        sentences: [
+          { f: [1], status: 'fit', focus_vi: 'Câu mở đoạn: năm 1930.', options: [
+            O(1, 'In 1930, the layout of the village included several key features.'),
+            O(1, 'In 1930, the layout of Stokeford included several key features.'),
+            O(1, 'In 1930, the layout of the village included several key features along a single main road.'),
+          ] },
+          { f: [2], status: 'fit', focus_vi: 'Vị trí nhà ở và trường học.', options: [
+            O(2, 'A row of houses was located along the main road, close to a school in the center of the village.'),
+            O(2, 'Most houses were located along the main road, adjacent to a school in the middle of the village.'),
+            O(2, 'Houses were located on both sides of the main road, close to the school in the center.'),
+          ] },
+          { f: [3], status: 'fit', focus_vi: 'Đất nông nghiệp phía nam và cánh đồng ở rìa bản đồ.', options: [
+            O(3, 'Farmland lay to the south of the houses, while open fields were situated at the edge of the map.'),
+            O(3, 'A large area of farmland lay to the south of the main road, while open fields were situated at the edge of the map.'),
+            O(3, 'The farmland lay to the south of the village centre, while open fields were situated in the northern part of the map.'),
+          ] },
+          { f: [4], status: 'replaced', why_vi: 'Khung K4 có vế “was surrounded by …”, nhưng trên bản đồ 1930 không có công trình nào được bao quanh bởi công trình khác, nên bỏ vế này.', alt_frame: 'Additionally, [Công trình 6] stood next to [Công trình 7].', focus_vi: 'Bưu điện cạnh trường học.', options: [
+            O(4, 'Additionally, a post office stood next to the school.'),
+            O(4, 'Additionally, a small post office stood next to the school on the main road.'),
+            O(4, 'Additionally, a post office stood next to the school, in the center of the village.'),
+          ] },
         ],
+        skipped: [],
       },
       {
         title: 'Body 2: những thay đổi đến năm 2010 (bản đồ 2)',
-        guide_vi: 'Dùng khung: By [thời điểm 2], the area experienced significant changes, with … → … was [replaced by / converted into] …, which was located in … → … was [expanded] to …, while … remained unchanged in … → A new … was constructed in … Chỉ chọn 3-4 thay đổi chính.',
+        guide_vi: 'Chỉ chọn 3-4 thay đổi chính, mỗi câu một thay đổi kèm vị trí.',
         vocab: [{ phrase: 'experienced significant changes', meaning_vi: 'trải qua thay đổi lớn' }, { phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi chức năng thành' }, { phrase: 'was expanded to the west', meaning_vi: 'được mở rộng về phía tây' }, { phrase: 'was constructed in', meaning_vi: 'được xây ở' }],
-        options: [
-          'By 2010, the village experienced significant changes, with several new constructions. The farmland in the south was transformed into a residential area, which was located on both sides of a new road. The school was expanded to the west, while the main road remained unchanged in the center. A new retirement home was constructed in the northern part of the village, opposite the houses along the main road.',
-          'By 2010, the area experienced significant changes, with new housing and facilities. The southern farmland was replaced by a large housing estate, and the post office next to the school was converted into a shop. The school was expanded to the west, while the main road remained unchanged. A new retirement home was constructed in the north of the village.',
-          'By 2010, Stokeford experienced significant changes, with several new constructions. Housing was built over the farmland in the south, and a retirement home was erected in the north. The school was enlarged to the west, while the post office was converted into a shop. These modifications resulted in a much more residential village with fewer open spaces.',
+        sentences: [
+          { f: [1], status: 'fit', focus_vi: 'Câu mở đoạn: năm 2010, nhiều công trình mới.', options: [
+            O(1, 'By 2010, the village experienced significant changes, with several new constructions.'),
+            O(1, 'By 2010, the area experienced significant changes, with new housing and facilities.'),
+            O(1, 'By 2010, Stokeford experienced significant changes, with several new constructions and conversions.'),
+          ] },
+          { f: [2], status: 'fit', focus_vi: 'Đất nông nghiệp → khu dân cư.', options: [
+            O(2, 'The farmland in the south was transformed into a residential area, which was located on both sides of a new road.'),
+            O(2, 'The southern farmland was replaced by a large housing estate, which was located on both sides of a new road.'),
+            O(2, 'The farmland was converted into housing, which was located in the southern part of the village.'),
+          ] },
+          { f: [3], status: 'fit', focus_vi: 'Trường mở rộng về phía tây; đường chính giữ nguyên.', options: [
+            O(3, 'The school was expanded to the west, while the main road remained unchanged in the center.'),
+            O(3, 'The school was enlarged to the west, while the main road remained unchanged in the middle of the village.'),
+            O(3, 'The school was expanded to the west, while the main road remained unchanged in the same position.'),
+          ] },
+          { f: [4], status: 'fit', focus_vi: 'Viện dưỡng lão mới ở phía bắc.', options: [
+            O(4, 'A new retirement home was constructed in the northern part of the village, opposite the houses along the main road.'),
+            O(4, 'A new retirement home was constructed in the north of the village, next to the main road.'),
+            O(4, 'A new retirement home was constructed in the north, opposite the row of houses.'),
+          ] },
+          { f: [2], status: 'fit', focus_vi: 'Bưu điện → cửa hàng.', options: [
+            O(2, 'Moreover, the post office was converted into a shop, which was located next to the school.'),
+            O(2, 'In addition, the post office was converted into a shop, which was located in the same place.'),
+            O(2, 'The post office was also converted into a shop, which was located next to the school.'),
+          ] },
+          { f: [5], status: 'fit', focus_vi: 'Kết quả chung của các thay đổi.', options: [
+            O(5, 'These modifications resulted in a much more residential village with fewer open spaces.'),
+            O(5, 'These modifications resulted in more housing and facilities for local residents.'),
+            O(5, 'These modifications resulted in a reduction in open space in the south.'),
+          ] },
         ],
+        skipped: [],
       },
     ],
   };
 
-
-  // Gợi ý mẫu: tách câu theo khung (K1, K2…) cho cả 3 gợi ý của từng đoạn
-  const frameMap = [
-    [[1], [1], [1]],
-    [[1, 1], [2, 2], [1]],
-    [[1, 2, 3, 4, 4], [1, 2, 3], [1, 2, 4]],
-    [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 5]],
-  ];
-  demo.steps.forEach((st, i) => {
-    st.parts = st.options.map((o, k) => {
-      const sents = o.split(/(?<=\.)\s+(?=[A-Z])/);
-      const fm = frameMap[i][k] || [];
-      return sents.map((t, n) => ({ f: fm[n] || fm[fm.length - 1] || 1, text: t }));
-    });
-  });
   demo.paraphrase = [
     { word: 'show', meaning_vi: 'cho thấy', alternatives: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'depict', meaning_vi: 'mô tả' }, { phrase: 'compare', meaning_vi: 'so sánh', note_vi: 'dùng khi có 2 bản đồ' }] },
     { word: 'the village', meaning_vi: 'ngôi làng', alternatives: [{ phrase: 'the settlement', meaning_vi: 'khu định cư' }, { phrase: 'the area', meaning_vi: 'khu vực' }, { phrase: 'Stokeford', meaning_vi: 'tên làng', note_vi: 'dùng tên riêng để đỡ lặp' }] },

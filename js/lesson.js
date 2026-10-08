@@ -154,7 +154,7 @@ window.LESSON = (function () {
         <h4>${['①', '②', '③', '④'][i]} ${STEP_NAMES[i]} <span class="muted">— ${esc(sec.rule)}</span></h4>
         ${p.focus_vi ? `<p class="l-focus">🎯 ${esc(p.focus_vi)}</p>` : ''}
         <div class="l-two">
-          <div><h5>Khung câu</h5><ul class="frames">${sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('')}</ul></div>
+          <div><h5>Khung câu</h5><ul class="frames">${sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>
           <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
         </div></div>`;
     }).join('');
@@ -232,7 +232,7 @@ window.LESSON = (function () {
           const step = Math.max(0, STEP_NAMES.indexOf(it.para));
           const issues = st.val[ii] ? G.lint(st.val[ii], G.outlineFor(L.data.task_type, L.data.outline), step) : [];
           return `<div class="ex-item"><p class="q">${ii + 1}. <b>${esc(it.para || '')}</b> — ${esc(it.task_vi || '')}</p>
-            ${it.frame ? `<p class="w-frame">📐 ${esc(it.frame).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</p>` : ''}
+            ${it.frame ? `<p class="w-frame">📐 ${esc(it.frame).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</p>` : ''}
             ${it.hint_vi ? `<p class="muted small">💡 ${esc(it.hint_vi)}</p>` : ''}
             <textarea class="w-in" rows="3" data-ex="${ei}" data-it="${ii}" placeholder="Viết câu của em…">${esc(st.val[ii] || '')}</textarea>
             <div class="w-issues" data-issues="${ei}-${ii}">${issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('')}</div>

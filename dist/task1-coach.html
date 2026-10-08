@@ -134,9 +134,6 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .wizard { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
 .col-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .col-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 84px; min-width: 0; }
-.progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
-.progress span { height: 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); }
-.progress span.on { background: var(--accent); border-color: var(--accent); }
 .step-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .step-head h2 { margin-top: 4px; }
 .frame-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; border: 1.5px solid var(--accent); background: var(--surface); }
@@ -147,7 +144,6 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .fno { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); margin-right: 4px; vertical-align: 2px; }
 .frames { list-style: none; padding-left: 0; }
 .fx { color: var(--accent); font-weight: 700; }
-.opt .sent { display: inline; }
 .pp { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .pp li { line-height: 1.55; }
 .pp .vi { color: var(--muted); font-size: 13px; }
@@ -155,34 +151,18 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .pp .alt { font-weight: 500; }
 .pp .note { color: var(--warn); font-size: 12px; }
 .pp-card .pp { max-height: 420px; overflow: auto; }
-.slot { color: var(--accent); font-style: italic; }
+.slot-ph { color: var(--accent); font-style: italic; }
 .warn-line { display: block; color: var(--warn); font-size: 13px; }
 .para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .tab { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
 .tab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .vsec h3 .muted { font-weight: 400; font-size: 13px; }
-.guide, .vocab-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; }
-.guide { background: var(--ink-soft); }
-.vocab-box { background: var(--surface-2); border: 1px solid var(--border); }
-.guide h3, .vocab-box h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 3px 11px; font-size: 13px; }
 .chip i { font-style: normal; color: var(--muted); }
 
-.options { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 14px; }
-.opt {
-  display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%;
-  border: 1.5px solid var(--border); background: var(--surface); border-radius: 12px; padding: 14px 16px; cursor: pointer;
-}
-.opt:hover { border-color: var(--accent); }
-.opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
-.opt .dot { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); margin-top: 3px; display: grid; place-items: center; }
-.opt[aria-checked="true"] .dot { border-color: var(--accent); }
-.opt[aria-checked="true"] .dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-.opt .lbl { font-size: 12px; font-weight: 700; color: var(--accent); display: block; margin-bottom: 2px; }
-.opt .txt { font-family: var(--font-essay); font-size: 16px; line-height: 1.65; }
-.opt mark, .paper mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 2px; }
+mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padding: 0 2px; }
 .nav .btn { min-width: 150px; }
 
 .ref h3, .mini-essay h3 { font-size: 14px; }
@@ -195,6 +175,101 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .mini-essay li.cur { color: var(--accent); font-weight: 600; }
 .mini-essay li .ph { color: var(--muted); font-style: italic; }
 .mini-essay li p { font-family: var(--font-essay); font-weight: 400; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Gợi ý từng câu ---------- */
+.steps-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.sn {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; text-align: left;
+  border: 1.5px solid var(--border); border-top: 4px solid var(--pc); background: var(--surface); border-radius: 12px; padding: 8px 10px; cursor: pointer; min-width: 0;
+}
+.sn:hover { border-color: var(--pc); }
+.sn.on { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 9%, #fff); }
+.sn-no { grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 2px solid var(--pc); color: var(--pc); background: var(--surface); }
+.sn.done .sn-no, .sn.on .sn-no { background: var(--pc); color: #fff; }
+.sn-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sn-count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.step-guide { margin-top: 8px; background: var(--ink-soft); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.step-guide::before { content: "💡 "; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.btn.toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.legend-mini { margin-left: auto; font-size: 12px; color: var(--muted); }
+.vocab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.vocab-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.skips { margin-top: 12px; border: 1px dashed var(--border); background: var(--surface-2); border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--muted); }
+.skip { display: block; margin-top: 4px; }
+.slots .fno, .frame-box .fno { background: var(--pc, var(--accent)); }
+.fno.muted-fno { background: #7a857a; }
+.fno.own-fno { background: var(--warn); }
+
+.slots { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; }
+.slots > li { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+.slots > li:not(:last-child)::before { content: ""; position: absolute; left: 16px; top: 36px; bottom: 2px; width: 2px; background: var(--border); }
+.slots > li.done:not(:last-child)::before { background: var(--pc); opacity: .45; }
+.slot-no { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--surface-2); border: 2px solid var(--border); color: var(--muted); }
+.slot.done .slot-no, .slot.current .slot-no, .slot.finished .slot-no { background: var(--pc); border-color: var(--pc); color: #fff; }
+.slot.current .slot-no { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 22%, transparent); }
+.slot-body { min-width: 0; padding: 4px 0 18px; }
+.slot.current .slot-body { border: 1.5px solid var(--pc); border-radius: 14px; padding: 12px 14px 14px; margin-bottom: 18px; background: color-mix(in srgb, var(--pc) 4%, #fff); box-shadow: var(--shadow); }
+.slot.locked .slot-body { opacity: .72; }
+.slot.finished .slot-body { padding-top: 6px; }
+.slot-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.slot-title { font-weight: 700; font-size: 15px; margin-right: 2px; }
+.slot-head .fno { margin-right: 0; vertical-align: 0; }
+.slot-focus { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+.tag-warn { font-size: 11px; font-weight: 700; background: var(--warn-soft); color: var(--warn); border: 1px solid #ecd9a6; border-radius: 999px; padding: 1px 8px; }
+.slot-frame { margin-top: 8px; font-family: var(--font-essay); font-size: 15px; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--pc); border-radius: 0 10px 10px 0; padding: 7px 10px; }
+.notice { margin-top: 8px; background: var(--warn-soft); border: 1px solid #ecd9a6; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.notice b { color: var(--warn); }
+.notice-alt { display: block; margin-top: 6px; }
+.slot-frame-txt { font-family: var(--font-essay); font-size: 15px; }
+.chosen { margin-top: 6px; font-family: var(--font-essay); font-size: 16px; line-height: 1.65; }
+.chosen.muted { font-style: italic; font-family: var(--font-ui); font-size: 14px; }
+.chosen .fno { vertical-align: 2px; }
+.link { border: none; background: none; padding: 4px 0; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+.sopts { position: relative; display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.sopt {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: start; width: 100%; text-align: left;
+  border: 1.5px solid var(--border); background: var(--surface); border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: border-color .12s, background .12s;
+}
+.sopt:hover { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 5%, #fff); }
+.sopt.on { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 10%, #fff); }
+.sopt-l { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 1.5px solid var(--pc); color: var(--pc); background: var(--surface); }
+.sopt.on .sopt-l { background: var(--pc); color: #fff; }
+.sopt-t { font-family: var(--font-essay); font-size: 16px; line-height: 1.6; padding-top: 1px; }
+.sopt > .fno { margin: 4px 0 0; }
+.sopts.blurred .sopt { filter: blur(6px); pointer-events: none; user-select: none; }
+.reveal {
+  position: absolute; inset: 0; margin: auto; width: fit-content; height: fit-content; max-width: calc(100% - 24px);
+  border: 1.5px solid var(--pc); background: var(--surface); color: var(--text); border-radius: 999px; padding: 10px 18px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow);
+}
+.reveal:hover { background: color-mix(in srgb, var(--pc) 10%, #fff); }
+.sopts.busy { flex-direction: row; align-items: center; gap: 10px; padding: 14px; background: var(--surface-2); border-radius: 12px; color: var(--muted); font-size: 14px; }
+.own { display: flex; gap: 8px; margin-top: 10px; }
+.own-in { flex: 1; min-width: 0; border: 1px dashed var(--border); background: var(--surface); border-radius: 10px; padding: 8px 12px; font-family: var(--font-essay); font-size: 15px; }
+.own-in:focus { border-style: solid; border-color: var(--pc); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc) 18%, transparent); }
+.own-lint { margin-top: 4px; }
+.slot-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.slot-tools .btn { color: var(--muted); }
+.slot-tools .btn:hover { color: var(--text); }
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.para-preview { margin-top: 10px; font-family: var(--font-essay); font-size: 17px; line-height: 1.8; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.para-preview .muted { font-family: var(--font-ui); font-size: 14px; font-style: italic; }
+.ps sup { font-family: var(--font-ui); font-size: 10px; font-weight: 700; color: var(--accent); margin-right: 2px; }
+#para-hint { margin-top: 6px; }
+.btn.pulse { animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 111, 69, .45); } 100% { box-shadow: 0 0 0 12px rgba(47, 111, 69, 0); } }
+@media (prefers-reduced-motion: reduce) { .btn.pulse { animation: none; box-shadow: 0 0 0 3px var(--accent-soft); } }
+
+/* Xem trước bản gửi học sinh */
+.preview-card summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; list-style: none; }
+.preview-card summary::-webkit-details-marker { display: none; }
+.preview-card summary::before { content: "▸"; color: var(--accent); }
+.preview-card[open] summary::before { content: "▾"; }
+.lesson-preview { margin-top: 14px; overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: #fff; }
+.lesson-preview table td, .lesson-preview table th { text-transform: none; letter-spacing: 0; font-size: inherit; white-space: normal; color: inherit; }
+.lesson-preview table td { font-weight: inherit; }
 
 /* ---------- Review ---------- */
 .review { display: flex; flex-direction: column; gap: 18px; }
@@ -316,7 +391,20 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .grid-2 { grid-template-columns: minmax(0, 1fr); }
   h2 { font-size: 19px; }
   .nav .btn { min-width: 0; flex: 1; }
-  .opt .txt { font-size: 15px; }
+  .steps-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .legend-mini { margin-left: 0; flex-basis: 100%; }
+  .slots > li { grid-template-columns: 28px minmax(0, 1fr); gap: 8px; }
+  .slots > li:not(:last-child)::before { left: 13px; top: 30px; }
+  .slot-no { width: 28px; height: 28px; font-size: 13px; }
+  .slot.current .slot-body { padding: 10px; }
+  .sopt { grid-template-columns: 24px minmax(0, 1fr); padding: 9px 10px; gap: 8px; }
+  .sopt > .fno { display: none; }
+  .sopt-l { width: 24px; height: 24px; font-size: 12px; }
+  .sopt-t { font-size: 15px; }
+  .own { flex-wrap: wrap; }
+  .own .btn { width: 100%; }
+  .para-preview { font-size: 16px; padding: 12px; }
+  .lesson-preview { padding: 10px; }
 }
 </style>
 <header class="topbar">
@@ -402,42 +490,33 @@ td:first-child { font-weight: 600; white-space: nowrap; }
     <section id="view-wizard" class="view" hidden>
       <div class="wizard">
         <div class="col-main">
-          <div class="card">
-            <div class="progress" id="progress" aria-hidden="true"></div>
+          <div class="card step-card">
+            <nav class="steps-nav" id="steps-nav" aria-label="Các đoạn"></nav>
             <div class="step-head">
               <div>
                 <span class="kicker" id="step-kicker"></span>
                 <h2 id="step-title"></h2>
+                <p class="step-guide" id="step-guide"></p>
               </div>
-              <span class="pill" id="step-count"></span>
             </div>
-            <div class="guide">
-              <h3>🧭 Phân tích &amp; hướng dẫn</h3>
-              <p id="step-guide"></p>
+            <div class="toolbar">
+              <button type="button" class="btn sm toggle" id="btn-blur" aria-pressed="false">🙈 Che mờ gợi ý</button>
+              <button type="button" class="btn sm toggle" id="btn-frames" aria-pressed="false">📐 Xem khung cả đoạn</button>
+              <span class="legend-mini"><b class="fx">chữ xanh</b> = chữ giữ nguyên của khung · <mark>nền vàng</mark> = từ vựng của đề</span>
             </div>
-            <div class="frame-box">
+            <div class="frame-box" id="frame-box" hidden>
               <h3>📐 Khung dàn ý Ms. Gigi · <span id="frame-name"></span></h3>
-              <p class="frame-rule">Mỗi câu gợi ý bên dưới có nhãn <span class="fno">K1</span> <span class="fno">K2</span>… = viết theo khung số đó; chữ <b class="fx">xanh đậm</b> là chữ giữ nguyên của khung.</p>
               <p class="frame-rule" id="frame-rule"></p>
               <ul class="frames" id="frame-list"></ul>
             </div>
-            <div class="vocab-box">
-              <h3>📌 Từ vựng riêng cho đề này</h3>
-              <div class="chips" id="step-vocab"></div>
-            </div>
+            <div class="vocab-row"><span class="vocab-label">📌 Từ vựng đoạn này:</span> <span class="chips" id="step-vocab"></span></div>
+            <div id="skips"></div>
+            <ol class="slots" id="slots"></ol>
           </div>
 
-          <div class="card">
-            <div class="row between">
-              <h3>Chọn gợi ý bám sát đề</h3>
-              <button type="button" class="btn sm" id="btn-regen">↻ Gợi ý khác</button>
-            </div>
-            <div class="options" id="options" role="radiogroup" aria-label="Gợi ý"></div>
-            <p class="note" id="regen-note"></p>
-            <label class="field"><span>Hoặc tự chỉnh sửa / soạn đoạn này</span>
-              <textarea id="para" rows="6" placeholder="Chọn một gợi ý ở trên hoặc tự viết…"></textarea>
-            </label>
-            <div class="small muted"><span id="para-count">0 từ</span></div>
+          <div class="card para-card">
+            <div class="row between"><h3>📝 Đoạn của em</h3><span class="pill" id="para-count">0 từ</span></div>
+            <div class="para-preview" id="para-preview"></div>
             <div id="para-hint" aria-live="polite"></div>
           </div>
 
@@ -487,8 +566,12 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           </div>
         </div>
         <div class="paper" id="paper"></div>
-        <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm: đề bài → bài viết → khung dàn ý từng đoạn kèm câu tương ứng → từ vựng → từ paraphrase (có nghĩa tiếng Việt). Dán vào Zalo, Messenger, Word hoặc Google Docs đều giữ bố cục.</p>
+        <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm các bảng màu: thông tin đề → bài viết (mỗi đoạn một màu) → phân tích từng câu ↔ khung Ms. Gigi (ô vàng = khung đã đổi vì không hợp đề) → từ vựng → bảng paraphrase có nghĩa tiếng Việt. Dán vào Word, Google Docs, Gmail giữ nguyên bảng màu; dán vào Zalo/Messenger sẽ thành chữ thường có đánh số.</p>
       </div>
+      <details class="card preview-card" open>
+        <summary><h3>👁️ Xem trước bản gửi học sinh</h3><span class="muted small">Đúng như khi dán vào Word / Google Docs</span></summary>
+        <div class="lesson-preview" id="lesson-preview"></div>
+      </details>
       <div class="card">
         <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3>
           <div class="row"><button type="button" class="btn sm" id="btn-copy-pp2">📋 Sao chép từ vựng</button><button type="button" class="btn sm primary" id="btn-copy-all">📋 Sao chép bài + từ vựng</button></div></div>
@@ -703,6 +786,8 @@ window.CONTENT = (function () {
   ];
 
   // Bài mẫu có sẵn (đề minh hoạ tự soạn) để xem app hoạt động khi chưa chạy AI
+  // Bài mẫu (đề minh hoạ tự soạn): mỗi đoạn là kế hoạch TỪNG CÂU theo khung Maps của Ms. Gigi
+  const O = (f, text) => ({ f, text });
   const demo = {
     task_type: 'maps',
     outline: 'maps',
@@ -712,62 +797,104 @@ window.CONTENT = (function () {
     steps: [
       {
         title: 'Introduction: sự phát triển của làng Stokeford, 1930 → 2010',
-        guide_vi: 'Dùng khung: The maps illustrate the development of [place] between [year X] and [year Y]. Giữ đúng tên làng và hai mốc năm, không chép nguyên câu đề.',
+        guide_vi: 'Một câu paraphrase đề: giữ đúng tên làng và hai mốc năm.',
         vocab: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'the development of', meaning_vi: 'sự phát triển của' }, { phrase: 'the changes in', meaning_vi: 'những thay đổi ở' }, { phrase: 'between 1930 and 2010', meaning_vi: 'trong giai đoạn 1930–2010' }],
-        options: [
-          'The maps illustrate the development of the village of Stokeford between 1930 and 2010.',
-          'The maps illustrate the changes in the village of Stokeford between 1930 and 2010.',
-          'The two maps illustrate how the village of Stokeford developed over the 80-year period from 1930 to 2010.',
+        sentences: [
+          { f: [1, 2], status: 'fit', focus_vi: 'Paraphrase đề: bản đồ gì, ở đâu, năm nào.', options: [
+            O(1, 'The maps illustrate the development of the village of Stokeford between 1930 and 2010.'),
+            O(2, 'The maps illustrate the changes in the village of Stokeford between 1930 and 2010.'),
+            O(1, 'The maps illustrate the development of Stokeford, a small village, between 1930 and 2010.'),
+          ] },
         ],
+        skipped: [],
       },
       {
         title: 'Overview: thêm khu dân cư và công trình mới, đường chính giữ nguyên',
-        guide_vi: 'Dùng khung: Overall, the area underwent [significant] development, with [additions] and the [removal/redevelopment] of [công trình cũ]. Some areas, however, remained unchanged. Không đưa vị trí chi tiết.',
+        guide_vi: 'Thay đổi lớn nhất + điểm giữ nguyên. Không nêu vị trí chi tiết, không số liệu.',
         vocab: [{ phrase: 'underwent significant development', meaning_vi: 'được phát triển đáng kể' }, { phrase: 'the addition of', meaning_vi: 'sự bổ sung' }, { phrase: 'the redevelopment of', meaning_vi: 'sự tái phát triển' }, { phrase: 'remained unchanged', meaning_vi: 'không thay đổi' }],
-        options: [
-          'Overall, the village underwent significant development, with the addition of a retirement home and new housing and the redevelopment of its southern farmland. Some areas, however, remained unchanged.',
-          'Overall, the area underwent significant transformation, with the conversion of farmland into a residential area and the construction of new facilities. Meanwhile, the main road through the village remained unchanged.',
-          'Overall, Stokeford underwent considerable development, becoming far more residential, while its basic road layout remained unchanged.',
+        sentences: [
+          { f: [1, 2], status: 'fit', focus_vi: 'Các thay đổi chính: thêm nhà ở & viện dưỡng lão, đất nông nghiệp bị tái phát triển.', options: [
+            O(1, 'Overall, the village underwent significant development, with the addition of new housing and a retirement home and the redevelopment of its farmland.'),
+            O(2, 'Overall, the area underwent significant transformation, with the conversion of farmland into housing and the construction of new facilities.'),
+            O(1, 'Overall, Stokeford underwent considerable development, with additions of residential areas and the redevelopment of its southern farmland.'),
+          ] },
+          { f: [1, 2], status: 'fit', focus_vi: 'Điểm giữ nguyên: đường chính.', options: [
+            O(1, 'Some areas, however, remained unchanged.'),
+            O(1, 'The main road, however, remained unchanged.'),
+            O(2, 'Meanwhile, the main road through the village remained unchanged.'),
+          ] },
         ],
+        skipped: [],
       },
       {
         title: 'Body 1: bố cục làng Stokeford năm 1930 (chỉ bản đồ 1)',
-        guide_vi: 'Dùng khung: In [thời điểm 1], the layout of [khu vực] included several key features. → [Công trình] was located in … → … lay to the … of …, while … was situated in … → Additionally, … Chỉ tả vị trí, KHÔNG nói thay đổi.',
+        guide_vi: 'Chỉ tả vị trí các công trình năm 1930, không nói thay đổi.',
         vocab: [{ phrase: 'the layout of … included several key features', meaning_vi: 'bố cục … gồm vài đặc điểm chính' }, { phrase: 'was located in', meaning_vi: 'nằm ở' }, { phrase: 'lay to the south of', meaning_vi: 'nằm về phía nam của' }, { phrase: 'was situated in', meaning_vi: 'nằm ở' }, { phrase: 'stood next to', meaning_vi: 'nằm cạnh' }],
-        options: [
-          'In 1930, the layout of the village included several key features. A row of houses was located along the main road, close to a school in the center of the village. A post office stood next to the school, while a large area of farmland was situated in the southern part of the village. Additionally, the main road ran through the middle of Stokeford and was surrounded by open fields.',
-          'In 1930, the layout of Stokeford included several key features. Most houses were located along the main road, and a school could be found in the center of the village, adjacent to the post office. Farmland lay to the south of the houses, while open fields were situated at the edge of the map.',
-          'In 1930, the layout of the village included several key features. The center was occupied by a school and a post office, while houses sat along the main road. Additionally, farmland covered almost the whole southern part of Stokeford, stretching as far as the edge of the map.',
+        sentences: [
+          { f: [1], status: 'fit', focus_vi: 'Câu mở đoạn: năm 1930.', options: [
+            O(1, 'In 1930, the layout of the village included several key features.'),
+            O(1, 'In 1930, the layout of Stokeford included several key features.'),
+            O(1, 'In 1930, the layout of the village included several key features along a single main road.'),
+          ] },
+          { f: [2], status: 'fit', focus_vi: 'Vị trí nhà ở và trường học.', options: [
+            O(2, 'A row of houses was located along the main road, close to a school in the center of the village.'),
+            O(2, 'Most houses were located along the main road, adjacent to a school in the middle of the village.'),
+            O(2, 'Houses were located on both sides of the main road, close to the school in the center.'),
+          ] },
+          { f: [3], status: 'fit', focus_vi: 'Đất nông nghiệp phía nam và cánh đồng ở rìa bản đồ.', options: [
+            O(3, 'Farmland lay to the south of the houses, while open fields were situated at the edge of the map.'),
+            O(3, 'A large area of farmland lay to the south of the main road, while open fields were situated at the edge of the map.'),
+            O(3, 'The farmland lay to the south of the village centre, while open fields were situated in the northern part of the map.'),
+          ] },
+          { f: [4], status: 'replaced', why_vi: 'Khung K4 có vế “was surrounded by …”, nhưng trên bản đồ 1930 không có công trình nào được bao quanh bởi công trình khác, nên bỏ vế này.', alt_frame: 'Additionally, [Công trình 6] stood next to [Công trình 7].', focus_vi: 'Bưu điện cạnh trường học.', options: [
+            O(4, 'Additionally, a post office stood next to the school.'),
+            O(4, 'Additionally, a small post office stood next to the school on the main road.'),
+            O(4, 'Additionally, a post office stood next to the school, in the center of the village.'),
+          ] },
         ],
+        skipped: [],
       },
       {
         title: 'Body 2: những thay đổi đến năm 2010 (bản đồ 2)',
-        guide_vi: 'Dùng khung: By [thời điểm 2], the area experienced significant changes, with … → … was [replaced by / converted into] …, which was located in … → … was [expanded] to …, while … remained unchanged in … → A new … was constructed in … Chỉ chọn 3-4 thay đổi chính.',
+        guide_vi: 'Chỉ chọn 3-4 thay đổi chính, mỗi câu một thay đổi kèm vị trí.',
         vocab: [{ phrase: 'experienced significant changes', meaning_vi: 'trải qua thay đổi lớn' }, { phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi chức năng thành' }, { phrase: 'was expanded to the west', meaning_vi: 'được mở rộng về phía tây' }, { phrase: 'was constructed in', meaning_vi: 'được xây ở' }],
-        options: [
-          'By 2010, the village experienced significant changes, with several new constructions. The farmland in the south was transformed into a residential area, which was located on both sides of a new road. The school was expanded to the west, while the main road remained unchanged in the center. A new retirement home was constructed in the northern part of the village, opposite the houses along the main road.',
-          'By 2010, the area experienced significant changes, with new housing and facilities. The southern farmland was replaced by a large housing estate, and the post office next to the school was converted into a shop. The school was expanded to the west, while the main road remained unchanged. A new retirement home was constructed in the north of the village.',
-          'By 2010, Stokeford experienced significant changes, with several new constructions. Housing was built over the farmland in the south, and a retirement home was erected in the north. The school was enlarged to the west, while the post office was converted into a shop. These modifications resulted in a much more residential village with fewer open spaces.',
+        sentences: [
+          { f: [1], status: 'fit', focus_vi: 'Câu mở đoạn: năm 2010, nhiều công trình mới.', options: [
+            O(1, 'By 2010, the village experienced significant changes, with several new constructions.'),
+            O(1, 'By 2010, the area experienced significant changes, with new housing and facilities.'),
+            O(1, 'By 2010, Stokeford experienced significant changes, with several new constructions and conversions.'),
+          ] },
+          { f: [2], status: 'fit', focus_vi: 'Đất nông nghiệp → khu dân cư.', options: [
+            O(2, 'The farmland in the south was transformed into a residential area, which was located on both sides of a new road.'),
+            O(2, 'The southern farmland was replaced by a large housing estate, which was located on both sides of a new road.'),
+            O(2, 'The farmland was converted into housing, which was located in the southern part of the village.'),
+          ] },
+          { f: [3], status: 'fit', focus_vi: 'Trường mở rộng về phía tây; đường chính giữ nguyên.', options: [
+            O(3, 'The school was expanded to the west, while the main road remained unchanged in the center.'),
+            O(3, 'The school was enlarged to the west, while the main road remained unchanged in the middle of the village.'),
+            O(3, 'The school was expanded to the west, while the main road remained unchanged in the same position.'),
+          ] },
+          { f: [4], status: 'fit', focus_vi: 'Viện dưỡng lão mới ở phía bắc.', options: [
+            O(4, 'A new retirement home was constructed in the northern part of the village, opposite the houses along the main road.'),
+            O(4, 'A new retirement home was constructed in the north of the village, next to the main road.'),
+            O(4, 'A new retirement home was constructed in the north, opposite the row of houses.'),
+          ] },
+          { f: [2], status: 'fit', focus_vi: 'Bưu điện → cửa hàng.', options: [
+            O(2, 'Moreover, the post office was converted into a shop, which was located next to the school.'),
+            O(2, 'In addition, the post office was converted into a shop, which was located in the same place.'),
+            O(2, 'The post office was also converted into a shop, which was located next to the school.'),
+          ] },
+          { f: [5], status: 'fit', focus_vi: 'Kết quả chung của các thay đổi.', options: [
+            O(5, 'These modifications resulted in a much more residential village with fewer open spaces.'),
+            O(5, 'These modifications resulted in more housing and facilities for local residents.'),
+            O(5, 'These modifications resulted in a reduction in open space in the south.'),
+          ] },
         ],
+        skipped: [],
       },
     ],
   };
 
-
-  // Gợi ý mẫu: tách câu theo khung (K1, K2…) cho cả 3 gợi ý của từng đoạn
-  const frameMap = [
-    [[1], [1], [1]],
-    [[1, 1], [2, 2], [1]],
-    [[1, 2, 3, 4, 4], [1, 2, 3], [1, 2, 4]],
-    [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 5]],
-  ];
-  demo.steps.forEach((st, i) => {
-    st.parts = st.options.map((o, k) => {
-      const sents = o.split(/(?<=\.)\s+(?=[A-Z])/);
-      const fm = frameMap[i][k] || [];
-      return sents.map((t, n) => ({ f: fm[n] || fm[fm.length - 1] || 1, text: t }));
-    });
-  });
   demo.paraphrase = [
     { word: 'show', meaning_vi: 'cho thấy', alternatives: [{ phrase: 'illustrate', meaning_vi: 'minh hoạ' }, { phrase: 'depict', meaning_vi: 'mô tả' }, { phrase: 'compare', meaning_vi: 'so sánh', note_vi: 'dùng khi có 2 bản đồ' }] },
     { word: 'the village', meaning_vi: 'ngôi làng', alternatives: [{ phrase: 'the settlement', meaning_vi: 'khu định cư' }, { phrase: 'the area', meaning_vi: 'khu vực' }, { phrase: 'Stokeford', meaning_vi: 'tên làng', note_vi: 'dùng tên riêng để đỡ lặp' }] },
@@ -1215,10 +1342,16 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
       "title": "Vietnamese title of what this paragraph does for THIS task",
       "guide_vi": "Vietnamese guidance (2-4 sentences): which Ms. Gigi frame to use, which data to pick and in what order, traps",
       "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
-      "options": [   // exactly 3 alternative paragraphs; each is the list of its sentences in order
-        [ { "f": 1, "text": "sentence written from frame F1" }, { "f": 2, "text": "sentence written from frame F2" } ],
-        [ ... ], [ ... ]
-      ]
+      "sentences": [   // the paragraph as a SENTENCE PLAN: one slot per sentence, in order
+        { "f": [1],                       // frame number(s) of THIS paragraph that the sentence uses; several numbers when the frames are alternatives (e.g. Introduction K1/K2)
+          "status": "fit" | "replaced",   // "replaced" = the teacher's frame does not suit this task, so a better sentence pattern is used instead
+          "why_vi": "",                   // when replaced: WHY her frame does not fit this task (Vietnamese, 1 sentence)
+          "alt_frame": "",                // when replaced: the pattern actually used, with [brackets] like her frames
+          "focus_vi": "what this sentence says, e.g. 'Số liệu năm 2000 của 3 phương tiện'",
+          "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 2, "text": "..." } ]   // exactly 3 options for THIS ONE sentence
+        }
+      ],
+      "skipped": [ { "f": 3, "why_vi": "why this frame of the paragraph is not used for this task" } ]   // frames not used at all (e.g. "(2 biểu đồ)" frames for a single chart)
     }
   ],
   "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
@@ -1229,16 +1362,17 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
 
   const RULES = `You are an IELTS Writing Task 1 examiner helping a Vietnamese teacher, Ms. Gigi, whose students must write EXACTLY in her outline.
 1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs with that outline.
-   Students compare each suggestion with the outline, so EVERY option (all 3) must be written sentence by sentence from the numbered frames (F1, F2, ...) of that paragraph, in the frames' order:
-   - keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers;
-   - tag every sentence with the number of the frame it comes from ("f"); a frame may be reused for more data, a frame may be skipped if the task has no such data, but do not add sentences that follow no frame;
-   - the 3 options differ only in which "/" alternatives, which synonyms from her lists, and which data are used — not in structure.
-   - frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation.
+   Students build each paragraph ONE SENTENCE AT A TIME, so give each paragraph as a sentence plan ("sentences"): one slot per sentence, in her frames' order.
+   - Each slot has exactly 3 options for that ONE sentence (never a whole paragraph). Options of a slot say the same content in different wording, so every option of the next slot reads naturally after ANY option of this slot (no repeated data, logical linkers).
+   - Keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers; tag every option with its frame number "f".
+   - Some frames of a paragraph are alternatives for the same sentence (e.g. Introduction K1/K2, Overview K1/K2 for maps): put them in ONE slot ("f": [1, 2]) and offer options from each.
+   - A frame may be reused in another slot for more data. Frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation; list unused frames in "skipped" with the reason.
+   - If one of her frames does not suit this task (e.g. "was surrounded by" when nothing on the map is surrounded, "the opposite was true for" when all lines rose), do NOT force it: set "status": "replaced", explain why in "why_vi", give the pattern you use instead in "alt_frame", and write the options from that pattern.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
 3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
-5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
-6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, explain which data goes into which frame (e.g. "F1: năm đầu 2000 — car 60%…").
+5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 1-2 sentences, no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
+6. All guidance and meanings in Vietnamese; all options in English. Keep guide_vi short (1-2 sentences): which data this paragraph covers.
 7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
@@ -1275,26 +1409,35 @@ ${SHAPE}`;
   }
 
   const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
-  function buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }) {
-    const prev = chosen.map((p, i) => (p ? `${NAMES[i]}: ${p}` : '')).filter(Boolean).join('\n');
-    const old = (analysis.steps[stepIndex].options || []).join('\n- ');
+  // Gợi ý lại MỘT câu, dựa trên các câu học sinh đã chọn
+  function buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }) {
+    const outline = analysis.outline || G.outlineFor(analysis.task_type);
+    const st = analysis.steps[stepIndex], slot = st.sentences[slotIndex];
+    const done = picks.map((ps, i) => (ps || []).filter(Boolean).map(p => p.text).join(' ')).map((t, i) => (t && i !== stepIndex ? `${NAMES[i]}: ${t}` : '')).filter(Boolean).join('\n');
+    const cur = (picks[stepIndex] || []).slice(0, slotIndex).map((p, k) => (p ? `  Sentence ${k + 1}: ${p.text}` : `  Sentence ${k + 1}: (not written yet)`)).join('\n');
+    const later = st.sentences.slice(slotIndex + 1).map((x, k) => `  Sentence ${slotIndex + k + 2} (frame ${x.f.join('/')}) will cover: ${x.focus_vi}`).join('\n');
     return `${RULES}
 
 Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Target level: ${BAND[band] || BAND['7.0']}
 
-${outlineNotes([analysis.outline || G.outlineFor(analysis.task_type)])}
+${outlineNotes([outline])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
-Paragraphs the student has already chosen:
-${prev || '(none yet)'}
+Other paragraphs already written by the student:
+${done || '(none yet)'}
 
-Write 3 NEW options for the ${NAMES[stepIndex]} paragraph, following the same Ms. Gigi outline ("${analysis.outline || G.outlineFor(analysis.task_type)}") frames for this paragraph, fitting with the chosen paragraphs and not repeating their data.
+The student is writing the ${NAMES[stepIndex]} paragraph one sentence at a time. Sentences chosen so far in this paragraph:
+${cur || '  (this is the first sentence)'}
+
+Write sentence ${slotIndex + 1} of the ${NAMES[stepIndex]} paragraph. Planned frame: ${slot.f.length ? 'F' + slot.f.join(' or F') : 'any suitable frame'}${slot.status === 'replaced' ? ` (replaced earlier because: ${slot.why_vi}; pattern: ${slot.alt_frame})` : ''}. Planned content: ${slot.focus_vi || '(choose)'}.
+It must follow naturally from the sentences chosen above (continue their ideas, do not repeat their data, use a suitable linker) and leave room for the later sentences:
+${later || '  (this is the last sentence of the paragraph)'}
 Do not reuse these earlier options:
-- ${old}
+${slot.options.map(o => '- ' + o.text).join('\n')}
 
-Every option must be written sentence by sentence from the numbered frames of this paragraph, keeping the frames' fixed words exactly.
-Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ... ], [ ... ], [ ... ] ] }`;
+Reply with ONLY one JSON object for this ONE sentence slot:
+{ "f": [frame numbers], "status": "fit" | "replaced", "why_vi": "", "alt_frame": "", "focus_vi": "...", "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 1, "text": "..." } ] }`;
   }
 
   /* ---------- Backends ---------- */
@@ -1399,13 +1542,37 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
     }));
   }
 
+  // Một chỗ câu (slot) trong dàn ý đoạn
+  function normSlot(x) {
+    if (!x) return null;
+    const f = (Array.isArray(x.f) ? x.f : [x.f]).map(n => +n).filter(n => n > 0);
+    const options = (Array.isArray(x.options) ? x.options : []).map(o => (typeof o === 'string' ? { f: f[0] || 0, text: o } : { f: +o.f || f[0] || 0, text: String(o.text || '') }))
+      .map(o => ({ f: o.f, text: o.text.trim() })).filter(o => o.text);
+    if (!options.length) return null;
+    return { f, status: x.status === 'replaced' ? 'replaced' : 'fit', why_vi: String(x.why_vi || ''), alt_frame: String(x.alt_frame || ''), focus_vi: String(x.focus_vi || ''), options: options.slice(0, 4) };
+  }
+  // Dữ liệu cũ (gợi ý cả đoạn) → kế hoạch từng câu
+  function slotsFromOptions(st) {
+    const parts = (st.parts || []).filter(Boolean);
+    if (!parts.length) return (st.options || []).length ? [normSlot({ f: [], options: st.options })] : [];
+    const n = Math.max(...parts.map(p => p.length));
+    const out = [];
+    for (let k = 0; k < n; k++) {
+      const opts = parts.map(p => p[k]).filter(Boolean);
+      out.push(normSlot({ f: [...new Set(opts.map(o => o.f))], options: opts }));
+    }
+    return out.filter(Boolean);
+  }
+
   function validate(r) {
     if (!r || !Array.isArray(r.steps) || r.steps.length < 4) throw new Error('AI trả về dữ liệu không đầy đủ. Bấm thử lại.');
     r.steps = r.steps.slice(0, 4).map(s => ({
       title: String(s.title || ''), guide_vi: String(s.guide_vi || ''),
       vocab: Array.isArray(s.vocab) ? s.vocab.filter(v => v && v.phrase) : [],
-      ...(() => { const n = (Array.isArray(s.options) ? s.options : []).map(normOption).filter(o => o.text); return { options: n.map(o => o.text), parts: n.map(o => o.parts) }; })(),
+      sentences: Array.isArray(s.sentences) && s.sentences.length ? s.sentences.map(normSlot).filter(Boolean) : slotsFromOptions(s),
+      skipped: (Array.isArray(s.skipped) ? s.skipped : []).filter(k => k && k.f).map(k => ({ f: +k.f, why_vi: String(k.why_vi || '') })),
     }));
+    if (r.steps.some(s => !s.sentences.length)) throw new Error('AI trả về gợi ý chưa đầy đủ. Bấm thử lại.');
     r.paraphrase = normParaphrase(r.paraphrase);
     return r;
   }
@@ -1475,11 +1642,10 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
     r.outline = G.outlineFor(r.task_type, r.outline);
     return r;
   }
-  async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
-    const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
-    const n = (r && Array.isArray(r.options) ? r.options : []).map(normOption).filter(o => o.text);
-    if (!n.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
-    return n;
+  async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
+    const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
+    if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
+    return r;
   }
 
   /* ---------- Bài giảng & bài tập làm quen biểu đồ ---------- */
@@ -1572,7 +1738,7 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, regenerate, makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, regenSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -1732,7 +1898,7 @@ window.LESSON = (function () {
         <h4>${['①', '②', '③', '④'][i]} ${STEP_NAMES[i]} <span class="muted">— ${esc(sec.rule)}</span></h4>
         ${p.focus_vi ? `<p class="l-focus">🎯 ${esc(p.focus_vi)}</p>` : ''}
         <div class="l-two">
-          <div><h5>Khung câu</h5><ul class="frames">${sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('')}</ul></div>
+          <div><h5>Khung câu</h5><ul class="frames">${sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>
           <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
         </div></div>`;
     }).join('');
@@ -1810,7 +1976,7 @@ window.LESSON = (function () {
           const step = Math.max(0, STEP_NAMES.indexOf(it.para));
           const issues = st.val[ii] ? G.lint(st.val[ii], G.outlineFor(L.data.task_type, L.data.outline), step) : [];
           return `<div class="ex-item"><p class="q">${ii + 1}. <b>${esc(it.para || '')}</b> — ${esc(it.task_vi || '')}</p>
-            ${it.frame ? `<p class="w-frame">📐 ${esc(it.frame).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</p>` : ''}
+            ${it.frame ? `<p class="w-frame">📐 ${esc(it.frame).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</p>` : ''}
             ${it.hint_vi ? `<p class="muted small">💡 ${esc(it.hint_vi)}</p>` : ''}
             <textarea class="w-in" rows="3" data-ex="${ei}" data-it="${ii}" placeholder="Viết câu của em…">${esc(st.val[ii] || '')}</textarea>
             <div class="w-issues" data-issues="${ei}-${ii}">${issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('')}</div>
@@ -2157,21 +2323,45 @@ window.LESSON = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, isDemo: false };
   }
   let S = load();
   function load() {
-    try { const raw = localStorage.getItem(STORE); if (raw) return Object.assign(blank(), JSON.parse(raw)); } catch (e) { /* bỏ qua */ }
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (raw) {
+        const s = Object.assign(blank(), JSON.parse(raw));
+        // Bài lưu từ bản cũ (gợi ý cả đoạn) → chuyển sang gợi ý từng câu
+        if (s.analysis && Array.isArray(s.analysis.steps)) s.analysis.steps = AI.upgradeSteps(s.analysis.steps);
+        if (!Array.isArray(s.picks) || s.picks.length !== 4) s.picks = [[], [], [], []];
+        // Đoạn đã viết ở bản cũ → tách thành từng câu (tự viết) để không mất bài
+        if (s.analysis) s.paras.forEach((para, k) => {
+          const slots = s.analysis.steps[k] && s.analysis.steps[k].sentences;
+          if (!para || !slots || !slots.length || s.picks[k].some(Boolean)) return;
+          const sents = para.trim().split(/(?<=[.!?])\s+/);
+          slots.forEach((sl, j) => {
+            const text = j === slots.length - 1 ? sents.slice(j).join(' ') : sents[j];
+            if (text) s.picks[k][j] = { text, f: 0, custom: true, plan: sl.f[0] || 0 };
+          });
+        });
+        s.open = null;
+        return s;
+      }
+    } catch (e) { /* bỏ qua */ }
     return blank();
   }
   let saveT = null;
   function save() {
     clearTimeout(saveT);
-    saveT = setTimeout(() => {
-      try { localStorage.setItem(STORE, JSON.stringify(S)); }
-      catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
-    }, 200);
+    saveT = setTimeout(writeNow, 200);
   }
+  function writeNow() {
+    saveT = null;
+    try { localStorage.setItem(STORE, JSON.stringify(S)); }
+    catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+  }
+  // Lưu ngay khi rời trang (save() chờ 200ms)
+  addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
   function toast(msg, ms = 2600) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
@@ -2248,7 +2438,8 @@ window.LESSON = (function () {
       stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
       const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
-      S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
+      S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.picks = [[], [], [], []]; S.open = null; S.isDemo = false;
+      revealed.clear();
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
       toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
@@ -2262,7 +2453,8 @@ window.LESSON = (function () {
   function showSetupError(msg) { const n = $('#setup-note'); n.textContent = msg; n.classList.add('err'); }
 
   function loadDemo() {
-    S = Object.assign(blank(), { band: S.band, type: 'maps', prompt: C.demo.prompt_text, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
+    S = Object.assign(blank(), { band: S.band, type: 'maps', blur: S.blur, prompt: C.demo.prompt_text, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
+    revealed.clear();
     show('wizard');
     toast('Đang xem bài mẫu (đề minh hoạ). Bấm “Nhập đề khác” để dùng đề của bạn.', 3500);
   }
@@ -2282,52 +2474,165 @@ window.LESSON = (function () {
   }
 
   const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
+  const LETTER = 'ABCD';
+  const PCOLOR = ['#1f63b8', '#5a3fb5', '#1a7a43', '#c2501f'];   // màu từng đoạn (dùng chung cho bảng sao chép)
+  const slotFrame = (o, i, f) => o[G.STEP_KEYS[i]].frames[f - 1] || '';
+  const frameHtml = t => esc(t).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>');
+
+  /* Trạng thái từng câu: S.picks[đoạn][câu] = { text, f, custom } | { skipped: true } */
+  function picksOf(i) { return (S.picks[i] = S.picks[i] || []); }
+  function syncPara(i) { S.paras[i] = picksOf(i).filter(p => p && p.text).map(p => p.text.trim()).join(' '); }
+  function currentSlot(i) {
+    const st = S.analysis.steps[i], ps = picksOf(i);
+    if (S.open && S.open.step === i) return S.open.slot;
+    const k = st.sentences.findIndex((_, n) => !ps[n]);
+    return k;   // -1 = đã xong đoạn
+  }
+  const revealed = new Set();   // các câu đã bấm "xem gợi ý" khi đang che mờ
+  const pending = {};           // câu đang được AI gợi ý lại: key → true
 
   function renderFrame(i) {
     const o = G.OUTLINES[outlineOf(S.analysis)];
     const sec = o[G.STEP_KEYS[i]];
     $('#frame-name').textContent = o.name;
     $('#frame-rule').textContent = sec.rule;
-    $('#frame-list').innerHTML = sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
+    $('#frame-list').innerHTML = sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${frameHtml(f)}</li>`).join('');
+    $('#frame-box').hidden = !S.showFrames;
+    $('#btn-frames').setAttribute('aria-pressed', String(!!S.showFrames));
+    $('#btn-blur').setAttribute('aria-pressed', String(!!S.blur));
+    $('#btn-blur').textContent = S.blur ? '👁️ Đang che gợi ý — bấm để bỏ che' : '🙈 Che mờ gợi ý';
+  }
+
+  function renderStepsNav() {
+    $('#steps-nav').innerHTML = STEP_NAMES.map((n, k) => {
+      const st = S.analysis.steps[k], ps = picksOf(k);
+      const done = st.sentences.filter((_, j) => ps[j]).length, all = st.sentences.length;
+      return `<button type="button" class="sn ${k === S.step ? 'on' : ''} ${done === all ? 'done' : ''}" data-goto="${k}" style="--pc:${PCOLOR[k]}">
+        <span class="sn-no">${done === all ? '✓' : k + 1}</span><span class="sn-name">${n}</span><span class="sn-count">${done}/${all} câu</span></button>`;
+    }).join('');
+  }
+
+  function renderSlots() {
+    const a = S.analysis, i = S.step, st = a.steps[i], ps = picksOf(i);
+    const o = G.OUTLINES[outlineOf(a)];
+    const fixed = G.fixedPhrases(outlineOf(a), i);
+    const cur = currentSlot(i);
+    $('#skips').innerHTML = (st.skipped || []).length ? `<div class="skips"><b>Khung không dùng cho đề này:</b> ${st.skipped.map(k => `<span class="skip"><span class="fno muted-fno">K${k.f}</span> ${esc(k.why_vi)}</span>`).join('')}</div>` : '';
+    $('#slots').innerHTML = st.sentences.map((sl, k) => {
+      const p = ps[k], key = i + '-' + k;
+      const frames = sl.status === 'replaced'
+        ? `<div class="notice"><b>⚠️ Khung ${sl.f.map(n => 'K' + n).join('/')} của cô chưa phù hợp với đề này.</b> ${esc(sl.why_vi)}<br><span class="notice-alt">→ Đổi sang câu thay thế: <span class="slot-frame-txt">${frameHtml(sl.alt_frame)}</span></span></div>`
+        : sl.f.map(n => `<div class="slot-frame"><span class="fno">K${n}</span> ${frameHtml(slotFrame(o, i, n))}</div>`).join('');
+      const fTags = sl.f.map(n => `<span class="fno">K${n}</span>`).join('');
+      const head = `<div class="slot-head"><span class="slot-title">Câu ${k + 1}</span>${fTags}${sl.status === 'replaced' ? '<span class="tag-warn">đã đổi khung</span>' : ''}<span class="slot-focus">${esc(sl.focus_vi)}</span></div>`;
+      if (p && k !== cur) {
+        return `<li class="slot done"><span class="slot-no" style="--pc:${PCOLOR[i]}">✓</span><div class="slot-body">${head}
+          ${p.skipped ? '<p class="chosen muted">(Đã bỏ qua câu này)</p>' : `<p class="chosen">${p.f ? `<span class="fno">K${p.f}</span>` : '<span class="fno own-fno">Tự viết</span>'} ${hl(p.text, st.vocab, fixed)}</p>`}
+          <button type="button" class="link" data-reopen="${k}">✏️ Đổi câu này</button></div></li>`;
+      }
+      if (k !== cur) {
+        return `<li class="slot locked"><span class="slot-no">${k + 1}</span><div class="slot-body">${head}${sl.status === 'replaced' ? '' : frames}
+          <p class="muted small">🔒 Viết xong câu ${cur + 1} để mở câu này.</p></div></li>`;
+      }
+      const blurred = S.blur && !revealed.has(key);
+      const opts = pending[key]
+        ? `<div class="sopts busy"><span class="spinner"></span> AI đang gợi ý câu ${k + 1} dựa trên các câu em đã chọn…</div>`
+        : `<div class="sopts ${blurred ? 'blurred' : ''}" role="radiogroup" aria-label="Gợi ý cho câu ${k + 1}">
+            ${sl.options.map((op, j) => `<button type="button" class="sopt ${p && p.text === op.text ? 'on' : ''}" data-slot="${k}" data-sopt="${j}" ${blurred ? 'tabindex="-1" aria-hidden="true"' : ''}>
+              <span class="sopt-l">${LETTER[j]}</span><span class="sopt-t">${hl(op.text, st.vocab, fixed)}</span>${sl.f.length > 1 || op.f !== sl.f[0] ? `<span class="fno">K${op.f}</span>` : ''}</button>`).join('')}
+            ${blurred ? `<button type="button" class="reveal" data-reveal="${key}">👀 Em đã nghĩ xong theo khung — xem gợi ý</button>` : ''}
+          </div>`;
+      const ownVal = p && p.custom ? p.text : '';
+      return `<li class="slot current" id="slot-cur"><span class="slot-no" style="--pc:${PCOLOR[i]}">${k + 1}</span><div class="slot-body">${head}${frames}
+        ${opts}
+        <div class="own"><label class="sr" for="own-${key}">Tự viết câu ${k + 1}</label>
+          <input id="own-${key}" class="own-in" data-slot="${k}" value="${esc(ownVal)}" placeholder="✍️ Hoặc tự viết câu ${k + 1} theo khung…" autocomplete="off">
+          <button type="button" class="btn sm primary" data-own="${k}">Dùng câu này</button></div>
+        <div class="own-lint" id="own-lint"></div>
+        <div class="slot-tools">${S.isDemo ? '' : `<button type="button" class="btn sm ghost" data-sregen="${k}" ${pending[key] ? 'disabled' : ''}>↻ Gợi ý khác cho câu này</button>`}
+          <button type="button" class="btn sm ghost" data-skipslot="${k}">⏭ Bỏ qua câu này</button>
+          ${p ? `<button type="button" class="btn sm ghost" data-keep="${k}">Giữ câu đã chọn</button>` : ''}</div>
+        <p class="note" id="slot-note"></p></div></li>`;
+    }).join('') + (cur === -1 ? `<li class="slot finished"><span class="slot-no" style="--pc:${PCOLOR[i]}">★</span><div class="slot-body"><b>Đoạn ${STEP_NAMES[i]} đã xong!</b> <span class="muted">Đọc lại “Đoạn của em” bên dưới rồi sang đoạn tiếp theo.</span></div></li>` : '');
+  }
+
+  function renderPara() {
+    const i = S.step, ps = picksOf(i), st = S.analysis.steps[i];
+    syncPara(i);
+    const sents = ps.map((p, k) => (p && p.text ? `<span class="ps"><sup>${k + 1}</sup>${esc(p.text)}</span>` : '')).filter(Boolean);
+    $('#para-preview').innerHTML = sents.length ? sents.join(' ') : '<span class="muted">Chọn hoặc tự viết từng câu ở trên — đoạn văn sẽ hiện dần ở đây.</span>';
+    $('#para-count').textContent = `${wc(S.paras[i])} từ · ${ps.filter(Boolean).length}/${st.sentences.length} câu`;
+    const issues = G.lint(S.paras[i], outlineOf(S.analysis), i);
+    $('#para-hint').innerHTML = issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('');
   }
 
   function renderStep() {
     const a = S.analysis;
     if (!a) { show('setup'); return; }
     const i = S.step, st = a.steps[i];
-    $('#progress').innerHTML = STEP_NAMES.map((_, k) => `<span class="${k <= i ? 'on' : ''}"></span>`).join('');
-    $('#step-kicker').textContent = `Đoạn ${i + 1}: ${STEP_NAMES[i]} · ${STEP_HINT[i]}`;
+    renderStepsNav();
+    $('#step-kicker').textContent = `Đoạn ${i + 1}/4 · ${STEP_NAMES[i]} · ${STEP_HINT[i]}`;
     $('#step-title').textContent = st.title || STEP_NAMES[i];
-    $('#step-count').textContent = `Đoạn ${i + 1} / 4`;
     $('#step-guide').textContent = st.guide_vi;
     renderFrame(i);
+    $('#slots').style.setProperty('--pc', PCOLOR[i]);
+    $('#steps-nav').closest('.card').style.setProperty('--pc', PCOLOR[i]);
     $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
-    const fixed = G.fixedPhrases(outlineOf(a), i);
-    $('#options').innerHTML = st.options.map((o, k) => {
-      const on = S.paras[i] === o;
-      const parts = st.parts && st.parts[k];
-      const body = parts && parts.length
-        ? parts.map(p => `<span class="sent">${p.f ? `<span class="fno">K${p.f}</span>` : ''}${hl(p.text, st.vocab, fixed)}</span>`).join(' ')
-        : hl(o, st.vocab, fixed);
-      return `<button type="button" class="opt" role="radio" aria-checked="${on}" data-opt="${k}"><span class="dot" aria-hidden="true"></span>
-        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${body}</span></span></button>`;
-    }).join('');
-    $('#para').value = S.paras[i];
-    updateCount();
+    renderSlots();
+    renderPara();
     $('#btn-prev').hidden = i === 0;
     $('#btn-next').textContent = i === 3 ? 'Xem bài hoàn chỉnh ✓' : `${STEP_NAMES[i + 1]} →`;
-    $('#btn-regen').hidden = S.isDemo;
-    $('#regen-note').textContent = '';
-    $('#regen-note').classList.remove('err');
+    $('#btn-next').classList.toggle('pulse', currentSlot(i) === -1);
     renderSide();
   }
-  function updateCount() {
-    const n = wc($('#para').value);
-    $('#para-count').textContent = `${n} từ`;
-    const i = S.step;
-    const issues = G.lint($('#para').value, outlineOf(S.analysis), i);
-    $('#para-hint').innerHTML = issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('');
+  function refreshStep(scrollToCur) {
+    const y = window.scrollY;
+    save(); renderStep();
+    if (scrollToCur) { const el = $('#slot-cur'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    else window.scrollTo(0, y);
   }
+
+  // Chọn / tự viết / bỏ qua một câu
+  function setPick(k, pick) {
+    const i = S.step;
+    picksOf(i)[k] = pick;
+    S.open = null;
+    syncPara(i);
+    refreshStep(true);
+  }
+  function chooseOption(k, j) {
+    const op = S.analysis.steps[S.step].sentences[k].options[j];
+    setPick(k, { text: op.text, f: op.f, custom: false });
+  }
+  function useOwn(k) {
+    const inp = document.querySelector(`.own-in[data-slot="${k}"]`);
+    const text = (inp && inp.value || '').trim();
+    if (!text) { toast('Hãy viết câu của em trước khi bấm “Dùng câu này”.'); return; }
+    const sl = S.analysis.steps[S.step].sentences[k];
+    setPick(k, { text: /[.!?]$/.test(text) ? text : text + '.', f: 0, custom: true, plan: sl.f[0] || 0 });
+    // Câu tự viết có thể khác nội dung gợi ý → AI gợi ý lại câu tiếp theo dựa trên câu này
+    const next = k + 1, st = S.analysis.steps[S.step];
+    if (next < st.sentences.length && !picksOf(S.step)[next] && !S.isDemo) regenSlot(next, true);
+  }
+
+  async function regenSlot(k, auto) {
+    const i = S.step, key = i + '-' + k;
+    if (pending[key]) return;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { if (!auto) openKey(); return; }
+    pending[key] = true; refreshStep(false);
+    try {
+      const slot = await AI.regenSentence({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: i, slotIndex: k, picks: S.picks });
+      S.analysis.steps[i].sentences[k] = slot;
+      toast(auto ? `Đã gợi ý câu ${k + 1} theo câu em vừa viết.` : `Đã có gợi ý mới cho câu ${k + 1}.`);
+    } catch (e) {
+      if (!auto) toast('⚠️ ' + (e.message || 'Không tạo được gợi ý mới.'), 4000);
+    } finally {
+      delete pending[key];
+      if (S.step === i) refreshStep(false); else save();
+    }
+  }
+
   function renderSide() {
     const a = S.analysis;
     $('#ref-topic').textContent = `${G.OUTLINES[outlineOf(a)].short}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
@@ -2346,34 +2651,17 @@ window.LESSON = (function () {
   }
 
   function go(delta) {
-    S.paras[S.step] = $('#para').value.trim();
-    if (delta > 0 && !S.paras[S.step]) { toast('Hãy chọn 1 gợi ý hoặc tự viết đoạn này trước khi tiếp tục.'); return; }
-    save();
-    if (delta > 0 && S.step === 3) { show('review'); return; }
-    S.step = Math.min(3, Math.max(0, S.step + delta));
-    save(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  async function regen(btn) {
-    AVAIL = await AI.available();
-    if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
-    S.paras[S.step] = $('#para').value.trim();
-    const note = $('#regen-note');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang viết gợi ý mới…';
-    note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
-    try {
-      const opts = await AI.regenerate({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
-      const st = S.analysis.steps[S.step];
-      const keep = st.options.map((o, k) => [o, st.parts && st.parts[k]]).filter(([o]) => o === S.paras[S.step]);
-      st.options = opts.map(o => o.text).concat(keep.map(x => x[0]));
-      st.parts = opts.map(o => o.parts).concat(keep.map(x => x[1] || null));
-      save(); renderStep();
-      toast('Đã có 3 gợi ý mới.');
-    } catch (e) {
-      note.textContent = '⚠️ ' + (e.message || 'Không tạo được gợi ý mới.'); note.classList.add('err');
-    } finally {
-      btn.disabled = false; btn.textContent = '↻ Gợi ý khác';
+    const i = S.step;
+    syncPara(i);
+    if (delta > 0 && !S.paras[i]) { toast('Hãy chọn hoặc tự viết ít nhất một câu cho đoạn này trước khi tiếp tục.'); return; }
+    if (delta > 0) {
+      const left = S.analysis.steps[i].sentences.filter((_, k) => !picksOf(i)[k]).length;
+      if (left) toast(`Đoạn ${STEP_NAMES[i]} còn ${left} câu chưa viết — em có thể quay lại sau.`, 3200);
     }
+    S.open = null;
+    if (delta > 0 && i === 3) { save(); show('review'); return; }
+    S.step = Math.min(3, Math.max(0, i + delta));
+    save(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   /* ---------- Paraphrase theo đề ---------- */
@@ -2401,12 +2689,18 @@ window.LESSON = (function () {
   }
 
   /* ---------- Bài học hoàn chỉnh (sao chép gửi học sinh) ---------- */
-  // Câu của đoạn đã chọn, gắn với khung K1, K2… (nếu học sinh không sửa gợi ý)
-  function chosenParts(k) {
-    const st = S.analysis && S.analysis.steps[k];
-    if (!st) return null;
-    const idx = st.options.indexOf(S.paras[k]);
-    return idx >= 0 && st.parts && st.parts[idx] ? st.parts[idx] : null;
+  // Mỗi câu trong bài gắn với khung Ms. Gigi (hoặc khung thay thế khi khung của cô không hợp với đề)
+  function sentenceRows(k) {
+    const a = S.analysis, st = a && a.steps[k];
+    if (!st) return [];
+    const o = G.OUTLINES[outlineOf(a)], ps = picksOf(k);
+    return st.sentences.map((sl, j) => {
+      const p = ps[j];
+      if (!p || p.skipped || !p.text) return null;
+      const f = (p.custom ? (p.plan || sl.f[0]) : (p.f || sl.f[0])) || 0;
+      const replaced = sl.status === 'replaced';
+      return { f, text: p.text.trim(), custom: !!p.custom, replaced, why: sl.why_vi, frame: replaced ? sl.alt_frame : slotFrame(o, k, f) };
+    }).filter(Boolean);
   }
   function lessonData() {
     const a = S.analysis || {};
@@ -2416,9 +2710,9 @@ window.LESSON = (function () {
       words: S.paras.reduce((n, p) => n + wc(p), 0),
       prompt: S.prompt || a.prompt_text || '',
       sections: STEP_NAMES.map((name, k) => ({
-        name, para: (S.paras[k] || '').trim(),
-        frames: o[G.STEP_KEYS[k]].frames, rule: o[G.STEP_KEYS[k]].rule,
-        parts: chosenParts(k),
+        name, para: (S.paras[k] || '').trim(), rule: o[G.STEP_KEYS[k]].rule,
+        rows: sentenceRows(k),
+        skipped: (a.steps && a.steps[k] && a.steps[k].skipped) || [],
         vocab: (a.steps && a.steps[k] && a.steps[k].vocab) || [],
       })),
       paraphrase: a.paraphrase || [],
@@ -2428,20 +2722,23 @@ window.LESSON = (function () {
   function lessonPlain() {
     const d = lessonData();
     const line = '━━━━━━━━━━━━━━━━━━━━';
-    const out = [`📘 MS. NHI GIGI · IELTS WRITING TASK 1`, `Dạng đề: ${d.o.name}`];
+    const out = ['📘 MS. NHI GIGI · IELTS WRITING TASK 1', `Dạng đề: ${d.o.name}`];
     if (d.a.subject) out.push(`Chủ đề: ${d.a.subject}`);
     if (d.prompt) out.push('', '📝 ĐỀ BÀI', d.prompt);
     out.push('', line, `✍️ 1. BÀI VIẾT HOÀN CHỈNH (${d.words} từ)`, line);
     d.sections.forEach((x, k) => { if (x.para) out.push('', `${NUM[k]} ${x.name}`, x.para); });
-    out.push('', line, '📐 2. DÀN Ý & CẤU TRÚC TỪNG ĐOẠN', line);
+    out.push('', line, '📐 2. PHÂN TÍCH TỪNG CÂU THEO DÀN Ý MS. GIGI', line);
     d.sections.forEach((x, k) => {
-      out.push('', `${NUM[k]} ${x.name.toUpperCase()} — ${x.rule}`, 'Khung câu:');
-      x.frames.forEach((f, n) => out.push(`  K${n + 1}. ${f}`));
-      if (x.parts && x.parts.length) {
-        out.push('Câu trong bài:');
-        x.parts.forEach(p => out.push(`  ${p.f ? 'K' + p.f : '•'} → ${p.text}`));
-      }
-      if (x.vocab.length) out.push('Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
+      if (!x.rows.length) return;
+      out.push('', `${NUM[k]} ${x.name.toUpperCase()} — ${x.rule}`);
+      x.rows.forEach((r, n) => {
+        out.push(`  Câu ${n + 1}${r.f ? ' · ' + (r.replaced ? '⚠️ đổi khung K' : 'K') + r.f : ''}${r.custom ? ' · tự viết' : ''}`);
+        if (r.replaced && r.why) out.push(`     Lý do: ${r.why}`);
+        if (r.frame) out.push(`     Khung: ${r.frame}`);
+        out.push(`     ➜ ${r.text}`);
+      });
+      x.skipped.forEach(sk => out.push(`  (Không dùng K${sk.f}: ${sk.why_vi})`));
+      if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
     });
     if (d.paraphrase.length) {
       out.push('', line, '🔁 3. TỪ PARAPHRASE (từ trong đề → cách viết khác)', line);
@@ -2450,30 +2747,65 @@ window.LESSON = (function () {
     }
     return out.join('\n');
   }
+  // Bảng màu (style inline để dán vào Word / Google Docs / Gmail vẫn giữ màu)
+  const PTINT = ['#eaf1fb', '#f0ecfa', '#e7f4ec', '#fcefe7'];
   function lessonHtml() {
     const d = lessonData();
-    const h2 = t => `<h2 style="font-size:16px;margin:18px 0 6px;color:#2f6f45;border-bottom:2px solid #2f6f45;padding-bottom:3px">${t}</h2>`;
-    let h = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;color:#1d281b">
-      <h1 style="font-size:20px;margin:0 0 4px">📘 Ms. Nhi Gigi · IELTS Writing Task 1</h1>
-      <p style="margin:0;color:#5b6957">Dạng đề: <b>${esc(d.o.name)}</b>${d.a.subject ? ' · Chủ đề: ' + esc(d.a.subject) : ''}</p>`;
-    if (d.prompt) h += h2('📝 Đề bài') + `<p style="font-style:italic">${esc(d.prompt)}</p>`;
+    const B = '1px solid #d5dfd0';
+    const td = (x, st, attrs) => `<td style="border:${B};padding:7px 9px;vertical-align:top;${st || ''}"${attrs || ''}>${x}</td>`;
+    const th = (x, st) => `<th style="border:${B};padding:7px 9px;text-align:left;vertical-align:top;${st || ''}">${x}</th>`;
+    const table = rows => `<table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+    const h2 = t => `<h2 style="font-size:17px;margin:22px 0 8px;color:#2f6f45;border-bottom:3px solid #2f6f45;padding-bottom:4px">${t}</h2>`;
+    const ph = (t, c) => esc(t).replace(/\[([^\]]+)\]/g, `<b style="color:${c}">[$1]</b>`);
+    const vi = t => t ? ` <span style="color:#5b6957">(${esc(t)})</span>` : '';
+    let h = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px">`;
+    h += table(`<tr><td style="background:#2f6f45;color:#ffffff;padding:14px 16px;border-radius:0">
+      <div style="font-size:21px;font-weight:bold">📘 Ms. Nhi Gigi · IELTS Writing Task 1</div>
+      <div style="font-size:14px;margin-top:2px">Bài học hoàn chỉnh theo dàn ý Ms. Gigi</div></td></tr>`);
+    const info = [['Dạng đề', esc(d.o.name)]];
+    if (d.a.subject) info.push(['Chủ đề', esc(d.a.subject)]);
+    info.push(['Số từ', `${d.words} từ${d.words < 150 ? ' <span style="color:#b42318">(cần tối thiểu 150 từ)</span>' : ''}`]);
+    if (d.prompt) info.push(['Đề bài', `<i>${esc(d.prompt)}</i>`]);
+    h += table(info.map(([k, v]) => `<tr>${td('<b>' + k + '</b>', 'background:#e0eee2;width:110px;white-space:nowrap')}${td(v)}</tr>`).join(''));
+
     h += h2(`✍️ 1. Bài viết hoàn chỉnh (${d.words} từ)`);
-    d.sections.forEach((x, k) => { if (x.para) h += `<p><b>${NUM[k]} ${x.name}</b><br>${esc(x.para)}</p>`; });
-    h += h2('📐 2. Dàn ý &amp; cấu trúc từng đoạn');
+    h += table(d.sections.map((x, k) => `<tr>${td(`<b>${NUM[k]} ${x.name}</b>`, `background:${PCOLOR[k]};color:#ffffff;width:120px;white-space:nowrap`)}${td(x.para ? esc(x.para) : '<span style="color:#8a958a">— chưa viết —</span>', `background:${PTINT[k]};font-family:Georgia,'Times New Roman',serif;font-size:15px`)}</tr>`).join(''));
+
+    h += h2('📐 2. Phân tích từng câu theo dàn ý Ms. Gigi');
+    h += `<p style="margin:0 0 10px;color:#5b6957">Mỗi câu trong bài ↔ khung câu của cô. Chữ <b style="color:#2f6f45">[trong ngoặc]</b> là phần em điền thông tin của đề. Ô vàng = khung của cô không hợp với đề này nên đã đổi sang câu khác.</p>`;
     d.sections.forEach((x, k) => {
-      h += `<h3 style="font-size:14px;margin:12px 0 4px">${NUM[k]} ${x.name} <span style="font-weight:normal;color:#5b6957">— ${esc(x.rule)}</span></h3>
-        <table style="border-collapse:collapse;width:100%;font-size:13px"><tr><th style="text-align:left;border:1px solid #d8e1d1;background:#e0eee2;padding:4px 6px;width:40%">Khung câu</th><th style="text-align:left;border:1px solid #d8e1d1;background:#e0eee2;padding:4px 6px">Câu trong bài</th></tr>` +
-        x.frames.map((f, n) => {
-          const used = (x.parts || []).filter(p => p.f === n + 1).map(p => esc(p.text)).join('<br>');
-          return `<tr><td style="border:1px solid #d8e1d1;padding:4px 6px;vertical-align:top"><b>K${n + 1}.</b> ${esc(f)}</td><td style="border:1px solid #d8e1d1;padding:4px 6px;vertical-align:top">${used || '<span style="color:#999">—</span>'}</td></tr>`;
-        }).join('') + '</table>';
-      if (x.vocab.length) h += `<p style="margin:4px 0"><b>Từ vựng:</b> ${x.vocab.map(v => `${esc(v.phrase)}${v.meaning_vi ? ' <span style="color:#5b6957">(' + esc(v.meaning_vi) + ')</span>' : ''}`).join(' · ')}</p>`;
+      if (!x.rows.length) return;
+      const c = PCOLOR[k];
+      let rows = `<tr><td colspan="3" style="background:${c};color:#ffffff;padding:8px 10px;border:1px solid ${c}"><b>${NUM[k]} ${x.name}</b> <span style="font-size:13px">— ${esc(x.rule)}</span></td></tr>`;
+      rows += `<tr>${th('Câu', `background:${PTINT[k]};width:70px`)}${th('Khung câu của cô', `background:${PTINT[k]};width:42%`)}${th('Câu trong bài', `background:${PTINT[k]}`)}</tr>`;
+      rows += x.rows.map((r, n) => {
+        const zebra = n % 2 ? '#fafbf9' : '#ffffff';
+        const no = `<b>Câu ${n + 1}</b>` + (r.f ? `<br><span style="display:inline-block;margin-top:2px;padding:0 6px;border-radius:8px;background:${r.replaced ? '#fbf1d9' : PTINT[k]};color:${r.replaced ? '#93600a' : c};font-size:12px;font-weight:bold">K${r.f}</span>` : '');
+        const frame = r.replaced
+          ? td(`<b style="color:#93600a">⚠️ Đổi khung K${r.f}</b>${r.why ? ` — <span style="color:#5b4300">${esc(r.why)}</span>` : ''}<br>➜ ${ph(r.frame, '#93600a')}`, 'background:#fff6dc')
+          : td(ph(r.frame, c), `background:${zebra}`);
+        return `<tr>${td(no, `background:${zebra};white-space:nowrap`)}${frame}${td(esc(r.text) + (r.custom ? ' <span style="color:#5b6957;font-size:12px">(tự viết)</span>' : ''), `background:${zebra};font-family:Georgia,'Times New Roman',serif;font-size:15px`)}</tr>`;
+      }).join('');
+      if (x.skipped.length) rows += `<tr>${td(`<span style="color:#5b6957"><b>Khung không dùng:</b> ${x.skipped.map(sk => `K${sk.f} — ${esc(sk.why_vi)}`).join(' · ')}</span>`, 'background:#f6f7f5', ' colspan="3"')}</tr>`;
+      if (x.vocab.length) rows += `<tr>${td(`<b>Từ vựng:</b> ${x.vocab.map(v => `<b style="color:${c}">${esc(v.phrase)}</b>${vi(v.meaning_vi)}`).join(' · ')}`, 'background:#fbfcfa', ' colspan="3"')}</tr>`;
+      h += table(rows);
     });
+
     if (d.paraphrase.length) {
-      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)') + '<ul style="padding-left:18px;margin:0">' +
-        d.paraphrase.map(x => `<li><b>${esc(x.word)}</b>${x.meaning_vi ? ' (' + esc(x.meaning_vi) + ')' : ''} → ${x.alternatives.map(v => `${esc(v.phrase)}${v.meaning_vi ? ' <span style="color:#5b6957">(' + esc(v.meaning_vi) + ')</span>' : ''}${v.note_vi ? ' <i style="color:#93600a">– ' + esc(v.note_vi) + '</i>' : ''}`).join('; ')}</li>`).join('') + '</ul>';
+      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)');
+      const hd = 'background:#2f6f45;color:#ffffff;border-color:#2f6f45';
+      let rows = `<tr>${th('Từ trong đề', hd)}${th('Nghĩa', hd)}${th('Cách viết khác', hd)}${th('Nghĩa', hd)}${th('Lưu ý', hd)}</tr>`;
+      d.paraphrase.forEach((x, n) => {
+        const bg = n % 2 ? '#ffffff' : '#f3f8f0';
+        const alts = x.alternatives.length ? x.alternatives : [{ phrase: '—' }];
+        alts.forEach((v, j) => {
+          rows += '<tr>' + (j === 0 ? td(`<b>${esc(x.word)}</b>`, `background:${bg}`, ` rowspan="${alts.length}"`) + td(esc(x.meaning_vi || ''), `background:${bg};color:#5b6957`, ` rowspan="${alts.length}"`) : '') +
+            td(`<b style="color:#2f6f45">${esc(v.phrase)}</b>`, `background:${bg}`) + td(esc(v.meaning_vi || ''), `background:${bg};color:#5b6957`) + td(v.note_vi ? `<i style="color:#93600a">${esc(v.note_vi)}</i>` : '', `background:${bg}`) + '</tr>';
+        });
+      });
+      h += table(rows);
     }
-    return h + '</div>';
+    return h + '<p style="color:#8a958a;font-size:12px;margin:6px 0 0">Soạn bằng Ms. Nhi Gigi · IELTS Writing Task 1</p></div>';
   }
   async function copyRich(plain, html, okMsg) {
     try {
@@ -2486,17 +2818,9 @@ window.LESSON = (function () {
       catch (e2) { toast('Trình duyệt chặn sao chép. Hãy bôi đen nội dung và nhấn Ctrl+C.'); }
     }
   }
-  async function copyLesson() {
+  function copyLesson() {
     if (!S.paras.some(p => p.trim())) { toast('Chưa có bài viết để sao chép.'); return; }
-    const plain = lessonPlain(), html = lessonHtml();
-    try {
-      if (window.ClipboardItem && navigator.clipboard.write) {
-        await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([plain], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
-      } else await navigator.clipboard.writeText(plain);
-      toast('Đã sao chép bài học hoàn chỉnh — dán gửi học sinh.');
-    } catch (e) {
-      copyText(plain, 'Đã sao chép bài học hoàn chỉnh — dán gửi học sinh.', $('#paper'));
-    }
+    copyRich(lessonPlain(), lessonHtml(), 'Đã sao chép bài học (bảng màu) — dán vào Word, Google Docs, Gmail hoặc Zalo gửi học sinh.');
   }
 
   /* ---------- Review ---------- */
@@ -2510,6 +2834,7 @@ window.LESSON = (function () {
       <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
+    $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
   }
   function essayText() {
     return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
@@ -2542,7 +2867,7 @@ window.LESSON = (function () {
           ${C.sentenceStructures.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.formula)}</td><td>${esc(x.example)}</td></tr>`).join('')}</tbody></table></div></div>`;
     } else {
       const o = G.OUTLINES[libTab];
-      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('')}</ul></div>`;
+      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>`;
       html = `<p class="muted">${esc(o.when)}</p>
         ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
         <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
@@ -2589,11 +2914,17 @@ window.LESSON = (function () {
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
     if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
-    if (t.dataset.opt != null) {
-      const o = S.analysis.steps[S.step].options[+t.dataset.opt];
-      S.paras[S.step] = o; $('#para').value = o; save();
-      document.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-checked', String(b === t)));
-      updateCount(); renderSide();
+    // ----- Gợi ý từng câu -----
+    if (t.dataset.goto != null) { S.open = null; S.step = +t.dataset.goto; save(); renderStep(); return; }
+    if (t.dataset.sopt != null) { chooseOption(+t.dataset.slot, +t.dataset.sopt); return; }
+    if (t.dataset.own != null) { useOwn(+t.dataset.own); return; }
+    if (t.dataset.reopen != null) { S.open = { step: S.step, slot: +t.dataset.reopen }; refreshStep(true); return; }
+    if (t.dataset.keep != null) { S.open = null; refreshStep(true); return; }
+    if (t.dataset.skipslot != null) { setPick(+t.dataset.skipslot, { skipped: true }); return; }
+    if (t.dataset.sregen != null) { regenSlot(+t.dataset.sregen, false); return; }
+    if (t.dataset.reveal != null) {
+      revealed.add(t.dataset.reveal); refreshStep(false);
+      const first = document.querySelector('#slot-cur .sopt'); if (first) first.focus();
       return;
     }
     switch (t.id) {
@@ -2604,7 +2935,8 @@ window.LESSON = (function () {
       case 'btn-stop': if (ctl) ctl.abort(); return;
       case 'btn-prev': go(-1); return;
       case 'btn-next': go(1); return;
-      case 'btn-regen': regen(t); return;
+      case 'btn-blur': S.blur = !S.blur; revealed.clear(); refreshStep(false); toast(S.blur ? 'Đã che gợi ý — học sinh đọc khung và tự nghĩ câu trước nhé.' : 'Đã bỏ che gợi ý.'); return;
+      case 'btn-frames': S.showFrames = !S.showFrames; save(); renderFrame(S.step); return;
       case 'ref-img-btn': $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); return;
       case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
@@ -2612,8 +2944,8 @@ window.LESSON = (function () {
       case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;
       case 'btn-new': case 'btn-new-2': {
         if (S.view === 'loading') return;
-        const keep = { band: S.band, type: S.type };
-        S = Object.assign(blank(), keep); save(); show('setup'); $('#prompt').focus(); return;
+        const keep = { band: S.band, type: S.type, blur: S.blur };
+        S = Object.assign(blank(), keep); revealed.clear(); save(); show('setup'); $('#prompt').focus(); return;
       }
       case 'btn-copy-pp': case 'btn-copy-pp2': {
         const a = S.analysis;
@@ -2645,10 +2977,15 @@ window.LESSON = (function () {
   $('#prompt').addEventListener('input', e => { S.prompt = e.target.value; save(); });
   $('#band').addEventListener('change', e => { S.band = e.target.value; save(); });
   $('#types').addEventListener('change', e => { if (e.target.name === 'type') { S.type = e.target.value; save(); } });
-  $('#para').addEventListener('input', e => {
-    S.paras[S.step] = e.target.value; save();
-    document.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-checked', String(S.analysis.steps[S.step].options[+b.dataset.opt] === e.target.value)));
-    updateCount(); renderSide();
+  // Ô tự viết câu: kiểm tra nhanh theo quy tắc của dàn ý, Enter = dùng câu này
+  $('#slots').addEventListener('input', e => {
+    if (!e.target.classList.contains('own-in')) return;
+    const k = +e.target.dataset.slot;
+    const issues = G.lint(e.target.value, outlineOf(S.analysis), S.step).filter(m => !(k > 0 && /Overall/.test(m)));
+    $('#own-lint').innerHTML = e.target.value.trim() ? issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('') : '';
+  });
+  $('#slots').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.classList.contains('own-in')) { e.preventDefault(); useOwn(+e.target.dataset.slot); }
   });
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];

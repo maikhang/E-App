@@ -9,21 +9,45 @@
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, isDemo: false };
   }
   let S = load();
   function load() {
-    try { const raw = localStorage.getItem(STORE); if (raw) return Object.assign(blank(), JSON.parse(raw)); } catch (e) { /* bỏ qua */ }
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (raw) {
+        const s = Object.assign(blank(), JSON.parse(raw));
+        // Bài lưu từ bản cũ (gợi ý cả đoạn) → chuyển sang gợi ý từng câu
+        if (s.analysis && Array.isArray(s.analysis.steps)) s.analysis.steps = AI.upgradeSteps(s.analysis.steps);
+        if (!Array.isArray(s.picks) || s.picks.length !== 4) s.picks = [[], [], [], []];
+        // Đoạn đã viết ở bản cũ → tách thành từng câu (tự viết) để không mất bài
+        if (s.analysis) s.paras.forEach((para, k) => {
+          const slots = s.analysis.steps[k] && s.analysis.steps[k].sentences;
+          if (!para || !slots || !slots.length || s.picks[k].some(Boolean)) return;
+          const sents = para.trim().split(/(?<=[.!?])\s+/);
+          slots.forEach((sl, j) => {
+            const text = j === slots.length - 1 ? sents.slice(j).join(' ') : sents[j];
+            if (text) s.picks[k][j] = { text, f: 0, custom: true, plan: sl.f[0] || 0 };
+          });
+        });
+        s.open = null;
+        return s;
+      }
+    } catch (e) { /* bỏ qua */ }
     return blank();
   }
   let saveT = null;
   function save() {
     clearTimeout(saveT);
-    saveT = setTimeout(() => {
-      try { localStorage.setItem(STORE, JSON.stringify(S)); }
-      catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
-    }, 200);
+    saveT = setTimeout(writeNow, 200);
   }
+  function writeNow() {
+    saveT = null;
+    try { localStorage.setItem(STORE, JSON.stringify(S)); }
+    catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+  }
+  // Lưu ngay khi rời trang (save() chờ 200ms)
+  addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
   function toast(msg, ms = 2600) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
@@ -100,7 +124,8 @@
       stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
       const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
-      S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.isDemo = false;
+      S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.picks = [[], [], [], []]; S.open = null; S.isDemo = false;
+      revealed.clear();
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
       toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
@@ -114,7 +139,8 @@
   function showSetupError(msg) { const n = $('#setup-note'); n.textContent = msg; n.classList.add('err'); }
 
   function loadDemo() {
-    S = Object.assign(blank(), { band: S.band, type: 'maps', prompt: C.demo.prompt_text, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
+    S = Object.assign(blank(), { band: S.band, type: 'maps', blur: S.blur, prompt: C.demo.prompt_text, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
+    revealed.clear();
     show('wizard');
     toast('Đang xem bài mẫu (đề minh hoạ). Bấm “Nhập đề khác” để dùng đề của bạn.', 3500);
   }
@@ -134,52 +160,165 @@
   }
 
   const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
+  const LETTER = 'ABCD';
+  const PCOLOR = ['#1f63b8', '#5a3fb5', '#1a7a43', '#c2501f'];   // màu từng đoạn (dùng chung cho bảng sao chép)
+  const slotFrame = (o, i, f) => o[G.STEP_KEYS[i]].frames[f - 1] || '';
+  const frameHtml = t => esc(t).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>');
+
+  /* Trạng thái từng câu: S.picks[đoạn][câu] = { text, f, custom } | { skipped: true } */
+  function picksOf(i) { return (S.picks[i] = S.picks[i] || []); }
+  function syncPara(i) { S.paras[i] = picksOf(i).filter(p => p && p.text).map(p => p.text.trim()).join(' '); }
+  function currentSlot(i) {
+    const st = S.analysis.steps[i], ps = picksOf(i);
+    if (S.open && S.open.step === i) return S.open.slot;
+    const k = st.sentences.findIndex((_, n) => !ps[n]);
+    return k;   // -1 = đã xong đoạn
+  }
+  const revealed = new Set();   // các câu đã bấm "xem gợi ý" khi đang che mờ
+  const pending = {};           // câu đang được AI gợi ý lại: key → true
 
   function renderFrame(i) {
     const o = G.OUTLINES[outlineOf(S.analysis)];
     const sec = o[G.STEP_KEYS[i]];
     $('#frame-name').textContent = o.name;
     $('#frame-rule').textContent = sec.rule;
-    $('#frame-list').innerHTML = sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('');
+    $('#frame-list').innerHTML = sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${frameHtml(f)}</li>`).join('');
+    $('#frame-box').hidden = !S.showFrames;
+    $('#btn-frames').setAttribute('aria-pressed', String(!!S.showFrames));
+    $('#btn-blur').setAttribute('aria-pressed', String(!!S.blur));
+    $('#btn-blur').textContent = S.blur ? '👁️ Đang che gợi ý — bấm để bỏ che' : '🙈 Che mờ gợi ý';
+  }
+
+  function renderStepsNav() {
+    $('#steps-nav').innerHTML = STEP_NAMES.map((n, k) => {
+      const st = S.analysis.steps[k], ps = picksOf(k);
+      const done = st.sentences.filter((_, j) => ps[j]).length, all = st.sentences.length;
+      return `<button type="button" class="sn ${k === S.step ? 'on' : ''} ${done === all ? 'done' : ''}" data-goto="${k}" style="--pc:${PCOLOR[k]}">
+        <span class="sn-no">${done === all ? '✓' : k + 1}</span><span class="sn-name">${n}</span><span class="sn-count">${done}/${all} câu</span></button>`;
+    }).join('');
+  }
+
+  function renderSlots() {
+    const a = S.analysis, i = S.step, st = a.steps[i], ps = picksOf(i);
+    const o = G.OUTLINES[outlineOf(a)];
+    const fixed = G.fixedPhrases(outlineOf(a), i);
+    const cur = currentSlot(i);
+    $('#skips').innerHTML = (st.skipped || []).length ? `<div class="skips"><b>Khung không dùng cho đề này:</b> ${st.skipped.map(k => `<span class="skip"><span class="fno muted-fno">K${k.f}</span> ${esc(k.why_vi)}</span>`).join('')}</div>` : '';
+    $('#slots').innerHTML = st.sentences.map((sl, k) => {
+      const p = ps[k], key = i + '-' + k;
+      const frames = sl.status === 'replaced'
+        ? `<div class="notice"><b>⚠️ Khung ${sl.f.map(n => 'K' + n).join('/')} của cô chưa phù hợp với đề này.</b> ${esc(sl.why_vi)}<br><span class="notice-alt">→ Đổi sang câu thay thế: <span class="slot-frame-txt">${frameHtml(sl.alt_frame)}</span></span></div>`
+        : sl.f.map(n => `<div class="slot-frame"><span class="fno">K${n}</span> ${frameHtml(slotFrame(o, i, n))}</div>`).join('');
+      const fTags = sl.f.map(n => `<span class="fno">K${n}</span>`).join('');
+      const head = `<div class="slot-head"><span class="slot-title">Câu ${k + 1}</span>${fTags}${sl.status === 'replaced' ? '<span class="tag-warn">đã đổi khung</span>' : ''}<span class="slot-focus">${esc(sl.focus_vi)}</span></div>`;
+      if (p && k !== cur) {
+        return `<li class="slot done"><span class="slot-no" style="--pc:${PCOLOR[i]}">✓</span><div class="slot-body">${head}
+          ${p.skipped ? '<p class="chosen muted">(Đã bỏ qua câu này)</p>' : `<p class="chosen">${p.f ? `<span class="fno">K${p.f}</span>` : '<span class="fno own-fno">Tự viết</span>'} ${hl(p.text, st.vocab, fixed)}</p>`}
+          <button type="button" class="link" data-reopen="${k}">✏️ Đổi câu này</button></div></li>`;
+      }
+      if (k !== cur) {
+        return `<li class="slot locked"><span class="slot-no">${k + 1}</span><div class="slot-body">${head}${sl.status === 'replaced' ? '' : frames}
+          <p class="muted small">🔒 Viết xong câu ${cur + 1} để mở câu này.</p></div></li>`;
+      }
+      const blurred = S.blur && !revealed.has(key);
+      const opts = pending[key]
+        ? `<div class="sopts busy"><span class="spinner"></span> AI đang gợi ý câu ${k + 1} dựa trên các câu em đã chọn…</div>`
+        : `<div class="sopts ${blurred ? 'blurred' : ''}" role="radiogroup" aria-label="Gợi ý cho câu ${k + 1}">
+            ${sl.options.map((op, j) => `<button type="button" class="sopt ${p && p.text === op.text ? 'on' : ''}" data-slot="${k}" data-sopt="${j}" ${blurred ? 'tabindex="-1" aria-hidden="true"' : ''}>
+              <span class="sopt-l">${LETTER[j]}</span><span class="sopt-t">${hl(op.text, st.vocab, fixed)}</span>${sl.f.length > 1 || op.f !== sl.f[0] ? `<span class="fno">K${op.f}</span>` : ''}</button>`).join('')}
+            ${blurred ? `<button type="button" class="reveal" data-reveal="${key}">👀 Em đã nghĩ xong theo khung — xem gợi ý</button>` : ''}
+          </div>`;
+      const ownVal = p && p.custom ? p.text : '';
+      return `<li class="slot current" id="slot-cur"><span class="slot-no" style="--pc:${PCOLOR[i]}">${k + 1}</span><div class="slot-body">${head}${frames}
+        ${opts}
+        <div class="own"><label class="sr" for="own-${key}">Tự viết câu ${k + 1}</label>
+          <input id="own-${key}" class="own-in" data-slot="${k}" value="${esc(ownVal)}" placeholder="✍️ Hoặc tự viết câu ${k + 1} theo khung…" autocomplete="off">
+          <button type="button" class="btn sm primary" data-own="${k}">Dùng câu này</button></div>
+        <div class="own-lint" id="own-lint"></div>
+        <div class="slot-tools">${S.isDemo ? '' : `<button type="button" class="btn sm ghost" data-sregen="${k}" ${pending[key] ? 'disabled' : ''}>↻ Gợi ý khác cho câu này</button>`}
+          <button type="button" class="btn sm ghost" data-skipslot="${k}">⏭ Bỏ qua câu này</button>
+          ${p ? `<button type="button" class="btn sm ghost" data-keep="${k}">Giữ câu đã chọn</button>` : ''}</div>
+        <p class="note" id="slot-note"></p></div></li>`;
+    }).join('') + (cur === -1 ? `<li class="slot finished"><span class="slot-no" style="--pc:${PCOLOR[i]}">★</span><div class="slot-body"><b>Đoạn ${STEP_NAMES[i]} đã xong!</b> <span class="muted">Đọc lại “Đoạn của em” bên dưới rồi sang đoạn tiếp theo.</span></div></li>` : '');
+  }
+
+  function renderPara() {
+    const i = S.step, ps = picksOf(i), st = S.analysis.steps[i];
+    syncPara(i);
+    const sents = ps.map((p, k) => (p && p.text ? `<span class="ps"><sup>${k + 1}</sup>${esc(p.text)}</span>` : '')).filter(Boolean);
+    $('#para-preview').innerHTML = sents.length ? sents.join(' ') : '<span class="muted">Chọn hoặc tự viết từng câu ở trên — đoạn văn sẽ hiện dần ở đây.</span>';
+    $('#para-count').textContent = `${wc(S.paras[i])} từ · ${ps.filter(Boolean).length}/${st.sentences.length} câu`;
+    const issues = G.lint(S.paras[i], outlineOf(S.analysis), i);
+    $('#para-hint').innerHTML = issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('');
   }
 
   function renderStep() {
     const a = S.analysis;
     if (!a) { show('setup'); return; }
     const i = S.step, st = a.steps[i];
-    $('#progress').innerHTML = STEP_NAMES.map((_, k) => `<span class="${k <= i ? 'on' : ''}"></span>`).join('');
-    $('#step-kicker').textContent = `Đoạn ${i + 1}: ${STEP_NAMES[i]} · ${STEP_HINT[i]}`;
+    renderStepsNav();
+    $('#step-kicker').textContent = `Đoạn ${i + 1}/4 · ${STEP_NAMES[i]} · ${STEP_HINT[i]}`;
     $('#step-title').textContent = st.title || STEP_NAMES[i];
-    $('#step-count').textContent = `Đoạn ${i + 1} / 4`;
     $('#step-guide').textContent = st.guide_vi;
     renderFrame(i);
+    $('#slots').style.setProperty('--pc', PCOLOR[i]);
+    $('#steps-nav').closest('.card').style.setProperty('--pc', PCOLOR[i]);
     $('#step-vocab').innerHTML = st.vocab.length ? st.vocab.map(v => `<span class="chip">${esc(v.phrase)}${v.meaning_vi ? ` <i>· ${esc(v.meaning_vi)}</i>` : ''}</span>`).join('') : '<span class="muted small">—</span>';
-    const fixed = G.fixedPhrases(outlineOf(a), i);
-    $('#options').innerHTML = st.options.map((o, k) => {
-      const on = S.paras[i] === o;
-      const parts = st.parts && st.parts[k];
-      const body = parts && parts.length
-        ? parts.map(p => `<span class="sent">${p.f ? `<span class="fno">K${p.f}</span>` : ''}${hl(p.text, st.vocab, fixed)}</span>`).join(' ')
-        : hl(o, st.vocab, fixed);
-      return `<button type="button" class="opt" role="radio" aria-checked="${on}" data-opt="${k}"><span class="dot" aria-hidden="true"></span>
-        <span><span class="lbl">Gợi ý bám sát đề ${k + 1}</span><span class="txt">${body}</span></span></button>`;
-    }).join('');
-    $('#para').value = S.paras[i];
-    updateCount();
+    renderSlots();
+    renderPara();
     $('#btn-prev').hidden = i === 0;
     $('#btn-next').textContent = i === 3 ? 'Xem bài hoàn chỉnh ✓' : `${STEP_NAMES[i + 1]} →`;
-    $('#btn-regen').hidden = S.isDemo;
-    $('#regen-note').textContent = '';
-    $('#regen-note').classList.remove('err');
+    $('#btn-next').classList.toggle('pulse', currentSlot(i) === -1);
     renderSide();
   }
-  function updateCount() {
-    const n = wc($('#para').value);
-    $('#para-count').textContent = `${n} từ`;
-    const i = S.step;
-    const issues = G.lint($('#para').value, outlineOf(S.analysis), i);
-    $('#para-hint').innerHTML = issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('');
+  function refreshStep(scrollToCur) {
+    const y = window.scrollY;
+    save(); renderStep();
+    if (scrollToCur) { const el = $('#slot-cur'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    else window.scrollTo(0, y);
   }
+
+  // Chọn / tự viết / bỏ qua một câu
+  function setPick(k, pick) {
+    const i = S.step;
+    picksOf(i)[k] = pick;
+    S.open = null;
+    syncPara(i);
+    refreshStep(true);
+  }
+  function chooseOption(k, j) {
+    const op = S.analysis.steps[S.step].sentences[k].options[j];
+    setPick(k, { text: op.text, f: op.f, custom: false });
+  }
+  function useOwn(k) {
+    const inp = document.querySelector(`.own-in[data-slot="${k}"]`);
+    const text = (inp && inp.value || '').trim();
+    if (!text) { toast('Hãy viết câu của em trước khi bấm “Dùng câu này”.'); return; }
+    const sl = S.analysis.steps[S.step].sentences[k];
+    setPick(k, { text: /[.!?]$/.test(text) ? text : text + '.', f: 0, custom: true, plan: sl.f[0] || 0 });
+    // Câu tự viết có thể khác nội dung gợi ý → AI gợi ý lại câu tiếp theo dựa trên câu này
+    const next = k + 1, st = S.analysis.steps[S.step];
+    if (next < st.sentences.length && !picksOf(S.step)[next] && !S.isDemo) regenSlot(next, true);
+  }
+
+  async function regenSlot(k, auto) {
+    const i = S.step, key = i + '-' + k;
+    if (pending[key]) return;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { if (!auto) openKey(); return; }
+    pending[key] = true; refreshStep(false);
+    try {
+      const slot = await AI.regenSentence({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: i, slotIndex: k, picks: S.picks });
+      S.analysis.steps[i].sentences[k] = slot;
+      toast(auto ? `Đã gợi ý câu ${k + 1} theo câu em vừa viết.` : `Đã có gợi ý mới cho câu ${k + 1}.`);
+    } catch (e) {
+      if (!auto) toast('⚠️ ' + (e.message || 'Không tạo được gợi ý mới.'), 4000);
+    } finally {
+      delete pending[key];
+      if (S.step === i) refreshStep(false); else save();
+    }
+  }
+
   function renderSide() {
     const a = S.analysis;
     $('#ref-topic').textContent = `${G.OUTLINES[outlineOf(a)].short}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
@@ -198,34 +337,17 @@
   }
 
   function go(delta) {
-    S.paras[S.step] = $('#para').value.trim();
-    if (delta > 0 && !S.paras[S.step]) { toast('Hãy chọn 1 gợi ý hoặc tự viết đoạn này trước khi tiếp tục.'); return; }
-    save();
-    if (delta > 0 && S.step === 3) { show('review'); return; }
-    S.step = Math.min(3, Math.max(0, S.step + delta));
-    save(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  async function regen(btn) {
-    AVAIL = await AI.available();
-    if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
-    S.paras[S.step] = $('#para').value.trim();
-    const note = $('#regen-note');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang viết gợi ý mới…';
-    note.classList.remove('err'); note.textContent = 'Thường mất 20–60 giây.';
-    try {
-      const opts = await AI.regenerate({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: S.step, chosen: S.paras });
-      const st = S.analysis.steps[S.step];
-      const keep = st.options.map((o, k) => [o, st.parts && st.parts[k]]).filter(([o]) => o === S.paras[S.step]);
-      st.options = opts.map(o => o.text).concat(keep.map(x => x[0]));
-      st.parts = opts.map(o => o.parts).concat(keep.map(x => x[1] || null));
-      save(); renderStep();
-      toast('Đã có 3 gợi ý mới.');
-    } catch (e) {
-      note.textContent = '⚠️ ' + (e.message || 'Không tạo được gợi ý mới.'); note.classList.add('err');
-    } finally {
-      btn.disabled = false; btn.textContent = '↻ Gợi ý khác';
+    const i = S.step;
+    syncPara(i);
+    if (delta > 0 && !S.paras[i]) { toast('Hãy chọn hoặc tự viết ít nhất một câu cho đoạn này trước khi tiếp tục.'); return; }
+    if (delta > 0) {
+      const left = S.analysis.steps[i].sentences.filter((_, k) => !picksOf(i)[k]).length;
+      if (left) toast(`Đoạn ${STEP_NAMES[i]} còn ${left} câu chưa viết — em có thể quay lại sau.`, 3200);
     }
+    S.open = null;
+    if (delta > 0 && i === 3) { save(); show('review'); return; }
+    S.step = Math.min(3, Math.max(0, i + delta));
+    save(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   /* ---------- Paraphrase theo đề ---------- */
@@ -253,12 +375,18 @@
   }
 
   /* ---------- Bài học hoàn chỉnh (sao chép gửi học sinh) ---------- */
-  // Câu của đoạn đã chọn, gắn với khung K1, K2… (nếu học sinh không sửa gợi ý)
-  function chosenParts(k) {
-    const st = S.analysis && S.analysis.steps[k];
-    if (!st) return null;
-    const idx = st.options.indexOf(S.paras[k]);
-    return idx >= 0 && st.parts && st.parts[idx] ? st.parts[idx] : null;
+  // Mỗi câu trong bài gắn với khung Ms. Gigi (hoặc khung thay thế khi khung của cô không hợp với đề)
+  function sentenceRows(k) {
+    const a = S.analysis, st = a && a.steps[k];
+    if (!st) return [];
+    const o = G.OUTLINES[outlineOf(a)], ps = picksOf(k);
+    return st.sentences.map((sl, j) => {
+      const p = ps[j];
+      if (!p || p.skipped || !p.text) return null;
+      const f = (p.custom ? (p.plan || sl.f[0]) : (p.f || sl.f[0])) || 0;
+      const replaced = sl.status === 'replaced';
+      return { f, text: p.text.trim(), custom: !!p.custom, replaced, why: sl.why_vi, frame: replaced ? sl.alt_frame : slotFrame(o, k, f) };
+    }).filter(Boolean);
   }
   function lessonData() {
     const a = S.analysis || {};
@@ -268,9 +396,9 @@
       words: S.paras.reduce((n, p) => n + wc(p), 0),
       prompt: S.prompt || a.prompt_text || '',
       sections: STEP_NAMES.map((name, k) => ({
-        name, para: (S.paras[k] || '').trim(),
-        frames: o[G.STEP_KEYS[k]].frames, rule: o[G.STEP_KEYS[k]].rule,
-        parts: chosenParts(k),
+        name, para: (S.paras[k] || '').trim(), rule: o[G.STEP_KEYS[k]].rule,
+        rows: sentenceRows(k),
+        skipped: (a.steps && a.steps[k] && a.steps[k].skipped) || [],
         vocab: (a.steps && a.steps[k] && a.steps[k].vocab) || [],
       })),
       paraphrase: a.paraphrase || [],
@@ -280,20 +408,23 @@
   function lessonPlain() {
     const d = lessonData();
     const line = '━━━━━━━━━━━━━━━━━━━━';
-    const out = [`📘 MS. NHI GIGI · IELTS WRITING TASK 1`, `Dạng đề: ${d.o.name}`];
+    const out = ['📘 MS. NHI GIGI · IELTS WRITING TASK 1', `Dạng đề: ${d.o.name}`];
     if (d.a.subject) out.push(`Chủ đề: ${d.a.subject}`);
     if (d.prompt) out.push('', '📝 ĐỀ BÀI', d.prompt);
     out.push('', line, `✍️ 1. BÀI VIẾT HOÀN CHỈNH (${d.words} từ)`, line);
     d.sections.forEach((x, k) => { if (x.para) out.push('', `${NUM[k]} ${x.name}`, x.para); });
-    out.push('', line, '📐 2. DÀN Ý & CẤU TRÚC TỪNG ĐOẠN', line);
+    out.push('', line, '📐 2. PHÂN TÍCH TỪNG CÂU THEO DÀN Ý MS. GIGI', line);
     d.sections.forEach((x, k) => {
-      out.push('', `${NUM[k]} ${x.name.toUpperCase()} — ${x.rule}`, 'Khung câu:');
-      x.frames.forEach((f, n) => out.push(`  K${n + 1}. ${f}`));
-      if (x.parts && x.parts.length) {
-        out.push('Câu trong bài:');
-        x.parts.forEach(p => out.push(`  ${p.f ? 'K' + p.f : '•'} → ${p.text}`));
-      }
-      if (x.vocab.length) out.push('Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
+      if (!x.rows.length) return;
+      out.push('', `${NUM[k]} ${x.name.toUpperCase()} — ${x.rule}`);
+      x.rows.forEach((r, n) => {
+        out.push(`  Câu ${n + 1}${r.f ? ' · ' + (r.replaced ? '⚠️ đổi khung K' : 'K') + r.f : ''}${r.custom ? ' · tự viết' : ''}`);
+        if (r.replaced && r.why) out.push(`     Lý do: ${r.why}`);
+        if (r.frame) out.push(`     Khung: ${r.frame}`);
+        out.push(`     ➜ ${r.text}`);
+      });
+      x.skipped.forEach(sk => out.push(`  (Không dùng K${sk.f}: ${sk.why_vi})`));
+      if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
     });
     if (d.paraphrase.length) {
       out.push('', line, '🔁 3. TỪ PARAPHRASE (từ trong đề → cách viết khác)', line);
@@ -302,30 +433,65 @@
     }
     return out.join('\n');
   }
+  // Bảng màu (style inline để dán vào Word / Google Docs / Gmail vẫn giữ màu)
+  const PTINT = ['#eaf1fb', '#f0ecfa', '#e7f4ec', '#fcefe7'];
   function lessonHtml() {
     const d = lessonData();
-    const h2 = t => `<h2 style="font-size:16px;margin:18px 0 6px;color:#2f6f45;border-bottom:2px solid #2f6f45;padding-bottom:3px">${t}</h2>`;
-    let h = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;color:#1d281b">
-      <h1 style="font-size:20px;margin:0 0 4px">📘 Ms. Nhi Gigi · IELTS Writing Task 1</h1>
-      <p style="margin:0;color:#5b6957">Dạng đề: <b>${esc(d.o.name)}</b>${d.a.subject ? ' · Chủ đề: ' + esc(d.a.subject) : ''}</p>`;
-    if (d.prompt) h += h2('📝 Đề bài') + `<p style="font-style:italic">${esc(d.prompt)}</p>`;
+    const B = '1px solid #d5dfd0';
+    const td = (x, st, attrs) => `<td style="border:${B};padding:7px 9px;vertical-align:top;${st || ''}"${attrs || ''}>${x}</td>`;
+    const th = (x, st) => `<th style="border:${B};padding:7px 9px;text-align:left;vertical-align:top;${st || ''}">${x}</th>`;
+    const table = rows => `<table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+    const h2 = t => `<h2 style="font-size:17px;margin:22px 0 8px;color:#2f6f45;border-bottom:3px solid #2f6f45;padding-bottom:4px">${t}</h2>`;
+    const ph = (t, c) => esc(t).replace(/\[([^\]]+)\]/g, `<b style="color:${c}">[$1]</b>`);
+    const vi = t => t ? ` <span style="color:#5b6957">(${esc(t)})</span>` : '';
+    let h = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px">`;
+    h += table(`<tr><td style="background:#2f6f45;color:#ffffff;padding:14px 16px;border-radius:0">
+      <div style="font-size:21px;font-weight:bold">📘 Ms. Nhi Gigi · IELTS Writing Task 1</div>
+      <div style="font-size:14px;margin-top:2px">Bài học hoàn chỉnh theo dàn ý Ms. Gigi</div></td></tr>`);
+    const info = [['Dạng đề', esc(d.o.name)]];
+    if (d.a.subject) info.push(['Chủ đề', esc(d.a.subject)]);
+    info.push(['Số từ', `${d.words} từ${d.words < 150 ? ' <span style="color:#b42318">(cần tối thiểu 150 từ)</span>' : ''}`]);
+    if (d.prompt) info.push(['Đề bài', `<i>${esc(d.prompt)}</i>`]);
+    h += table(info.map(([k, v]) => `<tr>${td('<b>' + k + '</b>', 'background:#e0eee2;width:110px;white-space:nowrap')}${td(v)}</tr>`).join(''));
+
     h += h2(`✍️ 1. Bài viết hoàn chỉnh (${d.words} từ)`);
-    d.sections.forEach((x, k) => { if (x.para) h += `<p><b>${NUM[k]} ${x.name}</b><br>${esc(x.para)}</p>`; });
-    h += h2('📐 2. Dàn ý &amp; cấu trúc từng đoạn');
+    h += table(d.sections.map((x, k) => `<tr>${td(`<b>${NUM[k]} ${x.name}</b>`, `background:${PCOLOR[k]};color:#ffffff;width:120px;white-space:nowrap`)}${td(x.para ? esc(x.para) : '<span style="color:#8a958a">— chưa viết —</span>', `background:${PTINT[k]};font-family:Georgia,'Times New Roman',serif;font-size:15px`)}</tr>`).join(''));
+
+    h += h2('📐 2. Phân tích từng câu theo dàn ý Ms. Gigi');
+    h += `<p style="margin:0 0 10px;color:#5b6957">Mỗi câu trong bài ↔ khung câu của cô. Chữ <b style="color:#2f6f45">[trong ngoặc]</b> là phần em điền thông tin của đề. Ô vàng = khung của cô không hợp với đề này nên đã đổi sang câu khác.</p>`;
     d.sections.forEach((x, k) => {
-      h += `<h3 style="font-size:14px;margin:12px 0 4px">${NUM[k]} ${x.name} <span style="font-weight:normal;color:#5b6957">— ${esc(x.rule)}</span></h3>
-        <table style="border-collapse:collapse;width:100%;font-size:13px"><tr><th style="text-align:left;border:1px solid #d8e1d1;background:#e0eee2;padding:4px 6px;width:40%">Khung câu</th><th style="text-align:left;border:1px solid #d8e1d1;background:#e0eee2;padding:4px 6px">Câu trong bài</th></tr>` +
-        x.frames.map((f, n) => {
-          const used = (x.parts || []).filter(p => p.f === n + 1).map(p => esc(p.text)).join('<br>');
-          return `<tr><td style="border:1px solid #d8e1d1;padding:4px 6px;vertical-align:top"><b>K${n + 1}.</b> ${esc(f)}</td><td style="border:1px solid #d8e1d1;padding:4px 6px;vertical-align:top">${used || '<span style="color:#999">—</span>'}</td></tr>`;
-        }).join('') + '</table>';
-      if (x.vocab.length) h += `<p style="margin:4px 0"><b>Từ vựng:</b> ${x.vocab.map(v => `${esc(v.phrase)}${v.meaning_vi ? ' <span style="color:#5b6957">(' + esc(v.meaning_vi) + ')</span>' : ''}`).join(' · ')}</p>`;
+      if (!x.rows.length) return;
+      const c = PCOLOR[k];
+      let rows = `<tr><td colspan="3" style="background:${c};color:#ffffff;padding:8px 10px;border:1px solid ${c}"><b>${NUM[k]} ${x.name}</b> <span style="font-size:13px">— ${esc(x.rule)}</span></td></tr>`;
+      rows += `<tr>${th('Câu', `background:${PTINT[k]};width:70px`)}${th('Khung câu của cô', `background:${PTINT[k]};width:42%`)}${th('Câu trong bài', `background:${PTINT[k]}`)}</tr>`;
+      rows += x.rows.map((r, n) => {
+        const zebra = n % 2 ? '#fafbf9' : '#ffffff';
+        const no = `<b>Câu ${n + 1}</b>` + (r.f ? `<br><span style="display:inline-block;margin-top:2px;padding:0 6px;border-radius:8px;background:${r.replaced ? '#fbf1d9' : PTINT[k]};color:${r.replaced ? '#93600a' : c};font-size:12px;font-weight:bold">K${r.f}</span>` : '');
+        const frame = r.replaced
+          ? td(`<b style="color:#93600a">⚠️ Đổi khung K${r.f}</b>${r.why ? ` — <span style="color:#5b4300">${esc(r.why)}</span>` : ''}<br>➜ ${ph(r.frame, '#93600a')}`, 'background:#fff6dc')
+          : td(ph(r.frame, c), `background:${zebra}`);
+        return `<tr>${td(no, `background:${zebra};white-space:nowrap`)}${frame}${td(esc(r.text) + (r.custom ? ' <span style="color:#5b6957;font-size:12px">(tự viết)</span>' : ''), `background:${zebra};font-family:Georgia,'Times New Roman',serif;font-size:15px`)}</tr>`;
+      }).join('');
+      if (x.skipped.length) rows += `<tr>${td(`<span style="color:#5b6957"><b>Khung không dùng:</b> ${x.skipped.map(sk => `K${sk.f} — ${esc(sk.why_vi)}`).join(' · ')}</span>`, 'background:#f6f7f5', ' colspan="3"')}</tr>`;
+      if (x.vocab.length) rows += `<tr>${td(`<b>Từ vựng:</b> ${x.vocab.map(v => `<b style="color:${c}">${esc(v.phrase)}</b>${vi(v.meaning_vi)}`).join(' · ')}`, 'background:#fbfcfa', ' colspan="3"')}</tr>`;
+      h += table(rows);
     });
+
     if (d.paraphrase.length) {
-      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)') + '<ul style="padding-left:18px;margin:0">' +
-        d.paraphrase.map(x => `<li><b>${esc(x.word)}</b>${x.meaning_vi ? ' (' + esc(x.meaning_vi) + ')' : ''} → ${x.alternatives.map(v => `${esc(v.phrase)}${v.meaning_vi ? ' <span style="color:#5b6957">(' + esc(v.meaning_vi) + ')</span>' : ''}${v.note_vi ? ' <i style="color:#93600a">– ' + esc(v.note_vi) + '</i>' : ''}`).join('; ')}</li>`).join('') + '</ul>';
+      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)');
+      const hd = 'background:#2f6f45;color:#ffffff;border-color:#2f6f45';
+      let rows = `<tr>${th('Từ trong đề', hd)}${th('Nghĩa', hd)}${th('Cách viết khác', hd)}${th('Nghĩa', hd)}${th('Lưu ý', hd)}</tr>`;
+      d.paraphrase.forEach((x, n) => {
+        const bg = n % 2 ? '#ffffff' : '#f3f8f0';
+        const alts = x.alternatives.length ? x.alternatives : [{ phrase: '—' }];
+        alts.forEach((v, j) => {
+          rows += '<tr>' + (j === 0 ? td(`<b>${esc(x.word)}</b>`, `background:${bg}`, ` rowspan="${alts.length}"`) + td(esc(x.meaning_vi || ''), `background:${bg};color:#5b6957`, ` rowspan="${alts.length}"`) : '') +
+            td(`<b style="color:#2f6f45">${esc(v.phrase)}</b>`, `background:${bg}`) + td(esc(v.meaning_vi || ''), `background:${bg};color:#5b6957`) + td(v.note_vi ? `<i style="color:#93600a">${esc(v.note_vi)}</i>` : '', `background:${bg}`) + '</tr>';
+        });
+      });
+      h += table(rows);
     }
-    return h + '</div>';
+    return h + '<p style="color:#8a958a;font-size:12px;margin:6px 0 0">Soạn bằng Ms. Nhi Gigi · IELTS Writing Task 1</p></div>';
   }
   async function copyRich(plain, html, okMsg) {
     try {
@@ -338,17 +504,9 @@
       catch (e2) { toast('Trình duyệt chặn sao chép. Hãy bôi đen nội dung và nhấn Ctrl+C.'); }
     }
   }
-  async function copyLesson() {
+  function copyLesson() {
     if (!S.paras.some(p => p.trim())) { toast('Chưa có bài viết để sao chép.'); return; }
-    const plain = lessonPlain(), html = lessonHtml();
-    try {
-      if (window.ClipboardItem && navigator.clipboard.write) {
-        await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([plain], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
-      } else await navigator.clipboard.writeText(plain);
-      toast('Đã sao chép bài học hoàn chỉnh — dán gửi học sinh.');
-    } catch (e) {
-      copyText(plain, 'Đã sao chép bài học hoàn chỉnh — dán gửi học sinh.', $('#paper'));
-    }
+    copyRich(lessonPlain(), lessonHtml(), 'Đã sao chép bài học (bảng màu) — dán vào Word, Google Docs, Gmail hoặc Zalo gửi học sinh.');
   }
 
   /* ---------- Review ---------- */
@@ -362,6 +520,7 @@
       <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
+    $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
   }
   function essayText() {
     return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
@@ -394,7 +553,7 @@
           ${C.sentenceStructures.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.formula)}</td><td>${esc(x.example)}</td></tr>`).join('')}</tbody></table></div></div>`;
     } else {
       const o = G.OUTLINES[libTab];
-      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot">[$1]</span>')}</li>`).join('')}</ul></div>`;
+      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>`;
       html = `<p class="muted">${esc(o.when)}</p>
         ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
         <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
@@ -441,11 +600,17 @@
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
     if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
-    if (t.dataset.opt != null) {
-      const o = S.analysis.steps[S.step].options[+t.dataset.opt];
-      S.paras[S.step] = o; $('#para').value = o; save();
-      document.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-checked', String(b === t)));
-      updateCount(); renderSide();
+    // ----- Gợi ý từng câu -----
+    if (t.dataset.goto != null) { S.open = null; S.step = +t.dataset.goto; save(); renderStep(); return; }
+    if (t.dataset.sopt != null) { chooseOption(+t.dataset.slot, +t.dataset.sopt); return; }
+    if (t.dataset.own != null) { useOwn(+t.dataset.own); return; }
+    if (t.dataset.reopen != null) { S.open = { step: S.step, slot: +t.dataset.reopen }; refreshStep(true); return; }
+    if (t.dataset.keep != null) { S.open = null; refreshStep(true); return; }
+    if (t.dataset.skipslot != null) { setPick(+t.dataset.skipslot, { skipped: true }); return; }
+    if (t.dataset.sregen != null) { regenSlot(+t.dataset.sregen, false); return; }
+    if (t.dataset.reveal != null) {
+      revealed.add(t.dataset.reveal); refreshStep(false);
+      const first = document.querySelector('#slot-cur .sopt'); if (first) first.focus();
       return;
     }
     switch (t.id) {
@@ -456,7 +621,8 @@
       case 'btn-stop': if (ctl) ctl.abort(); return;
       case 'btn-prev': go(-1); return;
       case 'btn-next': go(1); return;
-      case 'btn-regen': regen(t); return;
+      case 'btn-blur': S.blur = !S.blur; revealed.clear(); refreshStep(false); toast(S.blur ? 'Đã che gợi ý — học sinh đọc khung và tự nghĩ câu trước nhé.' : 'Đã bỏ che gợi ý.'); return;
+      case 'btn-frames': S.showFrames = !S.showFrames; save(); renderFrame(S.step); return;
       case 'ref-img-btn': $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); return;
       case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
@@ -464,8 +630,8 @@
       case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;
       case 'btn-new': case 'btn-new-2': {
         if (S.view === 'loading') return;
-        const keep = { band: S.band, type: S.type };
-        S = Object.assign(blank(), keep); save(); show('setup'); $('#prompt').focus(); return;
+        const keep = { band: S.band, type: S.type, blur: S.blur };
+        S = Object.assign(blank(), keep); revealed.clear(); save(); show('setup'); $('#prompt').focus(); return;
       }
       case 'btn-copy-pp': case 'btn-copy-pp2': {
         const a = S.analysis;
@@ -497,10 +663,15 @@
   $('#prompt').addEventListener('input', e => { S.prompt = e.target.value; save(); });
   $('#band').addEventListener('change', e => { S.band = e.target.value; save(); });
   $('#types').addEventListener('change', e => { if (e.target.name === 'type') { S.type = e.target.value; save(); } });
-  $('#para').addEventListener('input', e => {
-    S.paras[S.step] = e.target.value; save();
-    document.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-checked', String(S.analysis.steps[S.step].options[+b.dataset.opt] === e.target.value)));
-    updateCount(); renderSide();
+  // Ô tự viết câu: kiểm tra nhanh theo quy tắc của dàn ý, Enter = dùng câu này
+  $('#slots').addEventListener('input', e => {
+    if (!e.target.classList.contains('own-in')) return;
+    const k = +e.target.dataset.slot;
+    const issues = G.lint(e.target.value, outlineOf(S.analysis), S.step).filter(m => !(k > 0 && /Overall/.test(m)));
+    $('#own-lint').innerHTML = e.target.value.trim() ? issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('') : '';
+  });
+  $('#slots').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.classList.contains('own-in')) { e.preventDefault(); useOwn(+e.target.dataset.slot); }
   });
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];

@@ -95,42 +95,33 @@
     <section id="view-wizard" class="view" hidden>
       <div class="wizard">
         <div class="col-main">
-          <div class="card">
-            <div class="progress" id="progress" aria-hidden="true"></div>
+          <div class="card step-card">
+            <nav class="steps-nav" id="steps-nav" aria-label="Các đoạn"></nav>
             <div class="step-head">
               <div>
                 <span class="kicker" id="step-kicker"></span>
                 <h2 id="step-title"></h2>
+                <p class="step-guide" id="step-guide"></p>
               </div>
-              <span class="pill" id="step-count"></span>
             </div>
-            <div class="guide">
-              <h3>🧭 Phân tích &amp; hướng dẫn</h3>
-              <p id="step-guide"></p>
+            <div class="toolbar">
+              <button type="button" class="btn sm toggle" id="btn-blur" aria-pressed="false">🙈 Che mờ gợi ý</button>
+              <button type="button" class="btn sm toggle" id="btn-frames" aria-pressed="false">📐 Xem khung cả đoạn</button>
+              <span class="legend-mini"><b class="fx">chữ xanh</b> = chữ giữ nguyên của khung · <mark>nền vàng</mark> = từ vựng của đề</span>
             </div>
-            <div class="frame-box">
+            <div class="frame-box" id="frame-box" hidden>
               <h3>📐 Khung dàn ý Ms. Gigi · <span id="frame-name"></span></h3>
-              <p class="frame-rule">Mỗi câu gợi ý bên dưới có nhãn <span class="fno">K1</span> <span class="fno">K2</span>… = viết theo khung số đó; chữ <b class="fx">xanh đậm</b> là chữ giữ nguyên của khung.</p>
               <p class="frame-rule" id="frame-rule"></p>
               <ul class="frames" id="frame-list"></ul>
             </div>
-            <div class="vocab-box">
-              <h3>📌 Từ vựng riêng cho đề này</h3>
-              <div class="chips" id="step-vocab"></div>
-            </div>
+            <div class="vocab-row"><span class="vocab-label">📌 Từ vựng đoạn này:</span> <span class="chips" id="step-vocab"></span></div>
+            <div id="skips"></div>
+            <ol class="slots" id="slots"></ol>
           </div>
 
-          <div class="card">
-            <div class="row between">
-              <h3>Chọn gợi ý bám sát đề</h3>
-              <button type="button" class="btn sm" id="btn-regen">↻ Gợi ý khác</button>
-            </div>
-            <div class="options" id="options" role="radiogroup" aria-label="Gợi ý"></div>
-            <p class="note" id="regen-note"></p>
-            <label class="field"><span>Hoặc tự chỉnh sửa / soạn đoạn này</span>
-              <textarea id="para" rows="6" placeholder="Chọn một gợi ý ở trên hoặc tự viết…"></textarea>
-            </label>
-            <div class="small muted"><span id="para-count">0 từ</span></div>
+          <div class="card para-card">
+            <div class="row between"><h3>📝 Đoạn của em</h3><span class="pill" id="para-count">0 từ</span></div>
+            <div class="para-preview" id="para-preview"></div>
             <div id="para-hint" aria-live="polite"></div>
           </div>
 
@@ -180,8 +171,12 @@
           </div>
         </div>
         <div class="paper" id="paper"></div>
-        <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm: đề bài → bài viết → khung dàn ý từng đoạn kèm câu tương ứng → từ vựng → từ paraphrase (có nghĩa tiếng Việt). Dán vào Zalo, Messenger, Word hoặc Google Docs đều giữ bố cục.</p>
+        <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm các bảng màu: thông tin đề → bài viết (mỗi đoạn một màu) → phân tích từng câu ↔ khung Ms. Gigi (ô vàng = khung đã đổi vì không hợp đề) → từ vựng → bảng paraphrase có nghĩa tiếng Việt. Dán vào Word, Google Docs, Gmail giữ nguyên bảng màu; dán vào Zalo/Messenger sẽ thành chữ thường có đánh số.</p>
       </div>
+      <details class="card preview-card" open>
+        <summary><h3>👁️ Xem trước bản gửi học sinh</h3><span class="muted small">Đúng như khi dán vào Word / Google Docs</span></summary>
+        <div class="lesson-preview" id="lesson-preview"></div>
+      </details>
       <div class="card">
         <div class="row between"><h3>🔁 Từ paraphrase cho đề này</h3>
           <div class="row"><button type="button" class="btn sm" id="btn-copy-pp2">📋 Sao chép từ vựng</button><button type="button" class="btn sm primary" id="btn-copy-all">📋 Sao chép bài + từ vựng</button></div></div>

@@ -54,10 +54,16 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
       "title": "Vietnamese title of what this paragraph does for THIS task",
       "guide_vi": "Vietnamese guidance (2-4 sentences): which Ms. Gigi frame to use, which data to pick and in what order, traps",
       "vocab": [ { "phrase": "English phrase", "meaning_vi": "nghĩa tiếng Việt" } ],   // 5-8 items for THIS task and paragraph
-      "options": [   // exactly 3 alternative paragraphs; each is the list of its sentences in order
-        [ { "f": 1, "text": "sentence written from frame F1" }, { "f": 2, "text": "sentence written from frame F2" } ],
-        [ ... ], [ ... ]
-      ]
+      "sentences": [   // the paragraph as a SENTENCE PLAN: one slot per sentence, in order
+        { "f": [1],                       // frame number(s) of THIS paragraph that the sentence uses; several numbers when the frames are alternatives (e.g. Introduction K1/K2)
+          "status": "fit" | "replaced",   // "replaced" = the teacher's frame does not suit this task, so a better sentence pattern is used instead
+          "why_vi": "",                   // when replaced: WHY her frame does not fit this task (Vietnamese, 1 sentence)
+          "alt_frame": "",                // when replaced: the pattern actually used, with [brackets] like her frames
+          "focus_vi": "what this sentence says, e.g. 'Số liệu năm 2000 của 3 phương tiện'",
+          "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 2, "text": "..." } ]   // exactly 3 options for THIS ONE sentence
+        }
+      ],
+      "skipped": [ { "f": 3, "why_vi": "why this frame of the paragraph is not used for this task" } ]   // frames not used at all (e.g. "(2 biểu đồ)" frames for a single chart)
     }
   ],
   "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
@@ -68,16 +74,17 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
 
   const RULES = `You are an IELTS Writing Task 1 examiner helping a Vietnamese teacher, Ms. Gigi, whose students must write EXACTLY in her outline.
 1. First decide which of her outlines fits the task (see "Use when"), then write all 4 paragraphs with that outline.
-   Students compare each suggestion with the outline, so EVERY option (all 3) must be written sentence by sentence from the numbered frames (F1, F2, ...) of that paragraph, in the frames' order:
-   - keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers;
-   - tag every sentence with the number of the frame it comes from ("f"); a frame may be reused for more data, a frame may be skipped if the task has no such data, but do not add sentences that follow no frame;
-   - the 3 options differ only in which "/" alternatives, which synonyms from her lists, and which data are used — not in structure.
-   - frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation.
+   Students build each paragraph ONE SENTENCE AT A TIME, so give each paragraph as a sentence plan ("sentences"): one slot per sentence, in her frames' order.
+   - Each slot has exactly 3 options for that ONE sentence (never a whole paragraph). Options of a slot say the same content in different wording, so every option of the next slot reads naturally after ANY option of this slot (no repeated data, logical linkers).
+   - Keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers; tag every option with its frame number "f".
+   - Some frames of a paragraph are alternatives for the same sentence (e.g. Introduction K1/K2, Overview K1/K2 for maps): put them in ONE slot ("f": [1, 2]) and offer options from each.
+   - A frame may be reused in another slot for more data. Frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation; list unused frames in "skipped" with the reason.
+   - If one of her frames does not suit this task (e.g. "was surrounded by" when nothing on the map is surrounded, "the opposite was true for" when all lines rose), do NOT force it: set "status": "replaced", explain why in "why_vi", give the pattern you use instead in "alt_frame", and write the options from that pattern.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
 3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
-5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
-6. All guidance and meanings in Vietnamese; all options in English. In guide_vi, explain which data goes into which frame (e.g. "F1: năm đầu 2000 — car 60%…").
+5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 1-2 sentences, no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
+6. All guidance and meanings in Vietnamese; all options in English. Keep guide_vi short (1-2 sentences): which data this paragraph covers.
 7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
@@ -114,26 +121,35 @@ ${SHAPE}`;
   }
 
   const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
-  function buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }) {
-    const prev = chosen.map((p, i) => (p ? `${NAMES[i]}: ${p}` : '')).filter(Boolean).join('\n');
-    const old = (analysis.steps[stepIndex].options || []).join('\n- ');
+  // Gợi ý lại MỘT câu, dựa trên các câu học sinh đã chọn
+  function buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }) {
+    const outline = analysis.outline || G.outlineFor(analysis.task_type);
+    const st = analysis.steps[stepIndex], slot = st.sentences[slotIndex];
+    const done = picks.map((ps, i) => (ps || []).filter(Boolean).map(p => p.text).join(' ')).map((t, i) => (t && i !== stepIndex ? `${NAMES[i]}: ${t}` : '')).filter(Boolean).join('\n');
+    const cur = (picks[stepIndex] || []).slice(0, slotIndex).map((p, k) => (p ? `  Sentence ${k + 1}: ${p.text}` : `  Sentence ${k + 1}: (not written yet)`)).join('\n');
+    const later = st.sentences.slice(slotIndex + 1).map((x, k) => `  Sentence ${slotIndex + k + 2} (frame ${x.f.join('/')}) will cover: ${x.focus_vi}`).join('\n');
     return `${RULES}
 
 Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Target level: ${BAND[band] || BAND['7.0']}
 
-${outlineNotes([analysis.outline || G.outlineFor(analysis.task_type)])}
+${outlineNotes([outline])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
-Paragraphs the student has already chosen:
-${prev || '(none yet)'}
+Other paragraphs already written by the student:
+${done || '(none yet)'}
 
-Write 3 NEW options for the ${NAMES[stepIndex]} paragraph, following the same Ms. Gigi outline ("${analysis.outline || G.outlineFor(analysis.task_type)}") frames for this paragraph, fitting with the chosen paragraphs and not repeating their data.
+The student is writing the ${NAMES[stepIndex]} paragraph one sentence at a time. Sentences chosen so far in this paragraph:
+${cur || '  (this is the first sentence)'}
+
+Write sentence ${slotIndex + 1} of the ${NAMES[stepIndex]} paragraph. Planned frame: ${slot.f.length ? 'F' + slot.f.join(' or F') : 'any suitable frame'}${slot.status === 'replaced' ? ` (replaced earlier because: ${slot.why_vi}; pattern: ${slot.alt_frame})` : ''}. Planned content: ${slot.focus_vi || '(choose)'}.
+It must follow naturally from the sentences chosen above (continue their ideas, do not repeat their data, use a suitable linker) and leave room for the later sentences:
+${later || '  (this is the last sentence of the paragraph)'}
 Do not reuse these earlier options:
-- ${old}
+${slot.options.map(o => '- ' + o.text).join('\n')}
 
-Every option must be written sentence by sentence from the numbered frames of this paragraph, keeping the frames' fixed words exactly.
-Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ... ], [ ... ], [ ... ] ] }`;
+Reply with ONLY one JSON object for this ONE sentence slot:
+{ "f": [frame numbers], "status": "fit" | "replaced", "why_vi": "", "alt_frame": "", "focus_vi": "...", "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 1, "text": "..." } ] }`;
   }
 
   /* ---------- Backends ---------- */
@@ -238,13 +254,37 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
     }));
   }
 
+  // Một chỗ câu (slot) trong dàn ý đoạn
+  function normSlot(x) {
+    if (!x) return null;
+    const f = (Array.isArray(x.f) ? x.f : [x.f]).map(n => +n).filter(n => n > 0);
+    const options = (Array.isArray(x.options) ? x.options : []).map(o => (typeof o === 'string' ? { f: f[0] || 0, text: o } : { f: +o.f || f[0] || 0, text: String(o.text || '') }))
+      .map(o => ({ f: o.f, text: o.text.trim() })).filter(o => o.text);
+    if (!options.length) return null;
+    return { f, status: x.status === 'replaced' ? 'replaced' : 'fit', why_vi: String(x.why_vi || ''), alt_frame: String(x.alt_frame || ''), focus_vi: String(x.focus_vi || ''), options: options.slice(0, 4) };
+  }
+  // Dữ liệu cũ (gợi ý cả đoạn) → kế hoạch từng câu
+  function slotsFromOptions(st) {
+    const parts = (st.parts || []).filter(Boolean);
+    if (!parts.length) return (st.options || []).length ? [normSlot({ f: [], options: st.options })] : [];
+    const n = Math.max(...parts.map(p => p.length));
+    const out = [];
+    for (let k = 0; k < n; k++) {
+      const opts = parts.map(p => p[k]).filter(Boolean);
+      out.push(normSlot({ f: [...new Set(opts.map(o => o.f))], options: opts }));
+    }
+    return out.filter(Boolean);
+  }
+
   function validate(r) {
     if (!r || !Array.isArray(r.steps) || r.steps.length < 4) throw new Error('AI trả về dữ liệu không đầy đủ. Bấm thử lại.');
     r.steps = r.steps.slice(0, 4).map(s => ({
       title: String(s.title || ''), guide_vi: String(s.guide_vi || ''),
       vocab: Array.isArray(s.vocab) ? s.vocab.filter(v => v && v.phrase) : [],
-      ...(() => { const n = (Array.isArray(s.options) ? s.options : []).map(normOption).filter(o => o.text); return { options: n.map(o => o.text), parts: n.map(o => o.parts) }; })(),
+      sentences: Array.isArray(s.sentences) && s.sentences.length ? s.sentences.map(normSlot).filter(Boolean) : slotsFromOptions(s),
+      skipped: (Array.isArray(s.skipped) ? s.skipped : []).filter(k => k && k.f).map(k => ({ f: +k.f, why_vi: String(k.why_vi || '') })),
     }));
+    if (r.steps.some(s => !s.sentences.length)) throw new Error('AI trả về gợi ý chưa đầy đủ. Bấm thử lại.');
     r.paraphrase = normParaphrase(r.paraphrase);
     return r;
   }
@@ -314,11 +354,10 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
     r.outline = G.outlineFor(r.task_type, r.outline);
     return r;
   }
-  async function regenerate({ text, band, visual, analysis, stepIndex, chosen, signal }) {
-    const r = await ask(buildRegenPrompt({ text, band, visual, analysis, stepIndex, chosen }), null, signal);
-    const n = (r && Array.isArray(r.options) ? r.options : []).map(normOption).filter(o => o.text);
-    if (!n.length) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
-    return n;
+  async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
+    const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
+    if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
+    return r;
   }
 
   /* ---------- Bài giảng & bài tập làm quen biểu đồ ---------- */
@@ -411,5 +450,5 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, regenerate, makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, regenSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
