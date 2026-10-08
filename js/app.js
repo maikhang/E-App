@@ -60,13 +60,112 @@
   function show(view) {
     S.view = view; save();
     for (const v of ['setup', 'loading', 'wizard', 'review', 'lesson']) $('#view-' + v).hidden = v !== view;
+    $('#split-write').hidden = !WRITE_SPLIT.includes(view);
     document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', (b.dataset.mode === 'lesson') === (view === 'lesson')));
     $('#btn-new').hidden = view === 'lesson';
     if (view === 'lesson') LESSON.render();
     if (view === 'setup') renderSetup();
     if (view === 'wizard') renderStep();
-    if (view === 'review') renderReview();
+    if (view === 'review') { renderReview(); renderPane(); }
+    syncLayout();
     window.scrollTo({ top: 0 });
+  }
+  const WRITE_SPLIT = ['wizard', 'review'];
+  // Trang rộng hơn khi có khung đề cố định (viết bài, bài giảng đã soạn)
+  function syncLayout() {
+    document.body.classList.toggle('wide', WRITE_SPLIT.includes(S.view) || (S.view === 'lesson' && !$('#lesson-result').hidden));
+  }
+
+  /* ---------- Khung đề cố định: ảnh đề luôn trên màn hình, gợi ý / bài giảng cuộn bên cạnh ---------- */
+  const PANE_KEY = 'e-app.pane.v1';
+  const ZOOMS = ['fit', 100, 150, 200, 300];
+  const PANE = (() => {
+    try { return Object.assign({ w: 42, strip: 'mid' }, JSON.parse(localStorage.getItem(PANE_KEY) || '{}')); }
+    catch (e) { return { w: 42, strip: 'mid' }; }
+  })();
+  function savePane() { try { localStorage.setItem(PANE_KEY, JSON.stringify(PANE)); } catch (e) { /* bỏ qua */ } }
+  function applyPane() {
+    document.documentElement.style.setProperty('--pane-w', PANE.w + '%');
+    document.querySelectorAll('.task-pane').forEach(p => { p.dataset.size = PANE.strip; });
+    document.querySelectorAll('.split-handle').forEach(h => h.setAttribute('aria-valuenow', String(Math.round(PANE.w))));
+    document.querySelectorAll('button[data-strip]').forEach(b => { b.textContent = { min: '▾ Mở đề', mid: '▾', big: '▴' }[PANE.strip]; });
+  }
+  function setZoom(pane, z) {
+    const box = pane.querySelector('.tp-img');
+    pane.dataset.zoom = String(z);
+    box.classList.toggle('fit', z === 'fit');
+    box.style.setProperty('--z', z === 'fit' ? '100%' : z + '%');
+    pane.querySelector('.tp-zoom').textContent = z === 'fit' ? 'Vừa khung' : z + '%';
+  }
+  function setPaneImage(pane, image) {
+    const box = pane.querySelector('.tp-img'), img = box.querySelector('img');
+    if (image && img.getAttribute('src') !== image.dataUrl) {
+      img.onload = () => box.style.setProperty('--ar', String(img.naturalWidth / img.naturalHeight || 4 / 3));
+      img.src = image.dataUrl; setZoom(pane, 'fit');
+    }
+    if (!image) img.removeAttribute('src');
+    box.hidden = !image;
+    pane.classList.toggle('no-img', !image);
+  }
+  function paneClick(t) {
+    const pane = t.closest('.task-pane');
+    if (!pane) return false;
+    if (t.dataset.zoom) {
+      const cur = ZOOMS.indexOf(pane.dataset.zoom === 'fit' || !pane.dataset.zoom ? 'fit' : +pane.dataset.zoom);
+      const next = t.dataset.zoom === 'fit' ? 0 : Math.min(ZOOMS.length - 1, Math.max(0, cur + (t.dataset.zoom === 'in' ? 1 : -1)));
+      setZoom(pane, ZOOMS[next]);
+      return true;
+    }
+    if (t.dataset.strip != null) {
+      PANE.strip = { mid: 'big', big: 'min', min: 'mid' }[PANE.strip] || 'mid';
+      savePane(); applyPane();
+      return true;
+    }
+    if (t.dataset.ptab) {
+      pane.querySelectorAll('[data-ptab]').forEach(b => { const on = b === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+      pane.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== t.dataset.ptab; });
+      pane.querySelector('[data-zoom-tools]').classList.toggle('off', t.dataset.ptab !== 'task');
+      if (PANE.strip === 'min') { PANE.strip = 'mid'; savePane(); applyPane(); }
+      return true;
+    }
+    return false;
+  }
+  // Kéo thanh chia để đổi độ rộng khung đề; kéo ảnh để xem phần khác khi đang phóng to
+  function bindPane() {
+    document.querySelectorAll('.split-handle').forEach(h => {
+      h.setAttribute('aria-valuemin', '25'); h.setAttribute('aria-valuemax', '68');
+      const setW = w => { PANE.w = Math.min(68, Math.max(25, w)); applyPane(); };
+      h.addEventListener('pointerdown', e => {
+        e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add('drag');
+        const rect = h.parentElement.getBoundingClientRect();
+        const move = ev => setW((ev.clientX - rect.left) / rect.width * 100);
+        const up = () => { h.classList.remove('drag'); h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up); savePane(); };
+        h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+      });
+      h.addEventListener('keydown', e => {
+        const d = { ArrowLeft: -3, ArrowRight: 3 }[e.key];
+        if (d) { e.preventDefault(); setW(PANE.w + d); savePane(); }
+      });
+      h.addEventListener('dblclick', () => { setW(42); savePane(); });
+    });
+    document.querySelectorAll('.tp-img').forEach(box => {
+      box.addEventListener('pointerdown', e => {
+        if (box.classList.contains('fit') || e.pointerType !== 'mouse') return;
+        e.preventDefault(); box.classList.add('panning');
+        const sx = e.clientX, sy = e.clientY, sl = box.scrollLeft, st = box.scrollTop;
+        const move = ev => { box.scrollLeft = sl - (ev.clientX - sx); box.scrollTop = st - (ev.clientY - sy); };
+        const up = () => { box.classList.remove('panning'); removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+        addEventListener('pointermove', move); addEventListener('pointerup', up);
+      });
+      box.addEventListener('dblclick', () => { const pane = box.closest('.task-pane'); setZoom(pane, pane.dataset.zoom === 'fit' ? 150 : 'fit'); });
+    });
+    // Khung đề dính ngay dưới thanh trên cùng (nếu thanh đó cũng dính)
+    const bar = $('.topbar');
+    const measure = () => document.documentElement.style.setProperty('--stick-top', (getComputedStyle(bar).position === 'sticky' ? bar.offsetHeight : 0) + 'px');
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(bar);
+    addEventListener('resize', measure);
+    applyPane();
   }
 
   /* ---------- Setup ---------- */
@@ -139,7 +238,7 @@
   function showSetupError(msg) { const n = $('#setup-note'); n.textContent = msg; n.classList.add('err'); }
 
   function loadDemo() {
-    S = Object.assign(blank(), { band: S.band, type: 'maps', blur: S.blur, prompt: C.demo.prompt_text, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
+    S = Object.assign(blank(), { band: S.band, type: 'maps', blur: S.blur, prompt: C.demo.prompt_text, image: C.demoImage, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
     revealed.clear();
     show('wizard');
     toast('Đang xem bài mẫu (đề minh hoạ). Bấm “Nhập đề khác” để dùng đề của bạn.', 3500);
@@ -269,7 +368,7 @@
     $('#btn-prev').hidden = i === 0;
     $('#btn-next').textContent = i === 3 ? 'Xem bài hoàn chỉnh ✓' : `${STEP_NAMES[i + 1]} →`;
     $('#btn-next').classList.toggle('pulse', currentSlot(i) === -1);
-    renderSide();
+    renderPane();
   }
   function refreshStep(scrollToCur) {
     const y = window.scrollY;
@@ -319,8 +418,9 @@
     }
   }
 
-  function renderSide() {
+  function renderPane() {
     const a = S.analysis;
+    if (!a) return;
     $('#ref-topic').textContent = `${G.OUTLINES[outlineOf(a)].short}${a.topic_vi ? ' · ' + a.topic_vi : ''}`;
     $('#ref-text').textContent = S.prompt || a.prompt_text || '';
     const vis = $('#ref-visual');
@@ -330,10 +430,10 @@
       $('#ref-visual-text').textContent = S.visual.text;
     } else vis.hidden = true;
     renderParaphrase();
-    if (S.image) { $('#ref-img').src = S.image.dataUrl; $('#ref-img-btn').hidden = false; } else $('#ref-img-btn').hidden = true;
+    setPaneImage($('#pane-write'), S.image);
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#mini-count').textContent = `${total} / 150 từ`;
-    $('#mini').innerHTML = STEP_NAMES.map((n, k) => `<li class="${k === S.step ? 'cur' : ''}">${n}${S.paras[k] ? `<p>${esc(S.paras[k])}</p>` : ' <span class="ph">— chưa viết</span>'}</li>`).join('');
+    $('#mini').innerHTML = STEP_NAMES.map((n, k) => `<li class="${k === S.step && S.view === 'wizard' ? 'cur' : ''}">${n}${S.paras[k] ? `<p>${esc(S.paras[k])}</p>` : ' <span class="ph">— chưa viết</span>'}</li>`).join('');
   }
 
   function go(delta) {
@@ -596,6 +696,7 @@
     const t = e.target.closest('button, a, .dropzone, [data-close]');
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
+    if (paneClick(t)) return;
     if (t.dataset.mode) { show(t.dataset.mode === 'lesson' ? 'lesson' : (S.analysis ? 'wizard' : 'setup')); return; }
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
     if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
@@ -623,7 +724,7 @@
       case 'btn-next': go(1); return;
       case 'btn-blur': S.blur = !S.blur; revealed.clear(); refreshStep(false); toast(S.blur ? 'Đã che gợi ý — học sinh đọc khung và tự nghĩ câu trước nhé.' : 'Đã bỏ che gợi ý.'); return;
       case 'btn-frames': S.showFrames = !S.showFrames; save(); renderFrame(S.step); return;
-      case 'ref-img-btn': $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); return;
+      case 'ref-img-btn': if (S.image) { $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); } return;
       case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
       case 'api-save': AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); if (S.view === 'setup') renderSetup(); return;
@@ -687,7 +788,8 @@
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); takeFile(e.dataTransfer.files[0]); });
 
   /* ================= Start ================= */
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  bindPane();
+  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
   show(S.view === 'loading' ? 'setup' : (S.view !== 'setup' && S.view !== 'lesson' && !S.analysis ? 'setup' : S.view));

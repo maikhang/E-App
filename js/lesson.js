@@ -55,8 +55,8 @@ window.LESSON = (function () {
     $('#lesson-setup').hidden = busy || !!L.data;
     $('#lesson-loading').hidden = !busy;
     $('#lesson-result').hidden = busy || !L.data;
-    if (busy) return;
-    if (L.data) renderResult(); else renderSetup();
+    if (!busy) { if (L.data) renderResult(); else renderSetup(); }
+    if (!$('#view-lesson').hidden) H.layout();
   }
 
   function renderSetup() {
@@ -135,14 +135,12 @@ window.LESSON = (function () {
     const d = L.data, o = G.OUTLINES[G.outlineFor(d.task_type, d.outline)];
     $('#lr-meta').textContent = `${o.short}${d.topic_vi ? ' · ' + d.topic_vi : ''}${L.isDemo ? ' · bài giảng mẫu (đề minh hoạ)' : ''}`;
     document.querySelectorAll('[data-ltab]').forEach(b => b.classList.toggle('on', b.dataset.ltab === L.tab));
-    $('#lr-body').innerHTML = (L.tab === 'lesson' ? lessonView(d, o) : exercisesView(d)) ;
+    // Biểu đồ + đề nằm ở khung cố định bên trái, bài giảng / bài tập cuộn bên phải
+    H.setPaneImage($('#pane-lesson'), L.image);
+    $('#lr-prompt').textContent = L.prompt || d.prompt_text || '';
+    $('#lr-body').innerHTML = L.tab === 'lesson' ? lessonView(d, o) : exercisesView(d);
     const sc = L.tab === 'ex' ? scoreText() : '';
     $('#lr-score').textContent = sc; $('#lr-score').hidden = !sc;
-  }
-
-  function chartBlock(d) {
-    return `<div class="l-chart">${L.image ? `<img src="${L.image.dataUrl}" alt="Biểu đồ của bài">` : ''}
-      ${L.prompt || d.prompt_text ? `<p class="l-prompt">${esc(L.prompt || d.prompt_text)}</p>` : ''}</div>`;
   }
 
   function lessonView(d, o) {
@@ -158,8 +156,7 @@ window.LESSON = (function () {
           <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
         </div></div>`;
     }).join('');
-    return `${chartBlock(d)}
-      ${x.objectives_vi.length ? `<section class="l-sec"><h3>🎯 Mục tiêu bài học</h3>${ul(x.objectives_vi)}</section>` : ''}
+    return `${x.objectives_vi.length ? `<section class="l-sec"><h3>🎯 Mục tiêu bài học</h3>${ul(x.objectives_vi)}</section>` : ''}
       <section class="l-sec"><h3>👀 Bước 1 · Đọc biểu đồ</h3><p class="muted small">Hỏi lớp từng câu trước, rồi bấm để hiện đáp án.</p>
         <ol class="l-read">${x.reading_steps.map(r => `<li><b>${esc(r.q_vi)}</b><details><summary>Hiện đáp án</summary><p>${esc(r.a)}</p></details></li>`).join('')}</ol></section>
       ${x.key_features.length ? `<section class="l-sec"><h3>⭐ Đặc điểm chính cần nhận ra</h3>${ul(x.key_features)}</section>` : ''}
@@ -173,7 +170,7 @@ window.LESSON = (function () {
 
   /* ---------- Bài tập (làm trực tiếp) ---------- */
   function exercisesView(d) {
-    return `${chartBlock(d)}` + d.exercises.map((e, ei) => {
+    return d.exercises.map((e, ei) => {
       const head = `<div class="ex-head"><span class="ex-no">Bài ${ei + 1}</span><div><h3>${esc(e.title_vi || TYPE_LABEL[e.type])}</h3>
         <p class="muted small">${esc(e.instruction_vi || '')}</p></div></div>`;
       let body = '';

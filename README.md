@@ -2,6 +2,13 @@
 
 Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) → AI đọc đề → gợi ý **từng câu theo dàn ý Ms. Gigi, bám sát đề** để chọn hoặc tự viết → bài hoàn chỉnh.
 
+## Bố cục ngang: đề cố định, nội dung cuộn
+Khi viết bài và khi xem bài giảng/bài tập, **ảnh đề nằm cố định bên trái**, gợi ý / bài giảng / bài tập **cuộn lên xuống bên phải** để vừa nhìn đề vừa đọc chữ.
+- Kéo thanh chia ở giữa để đổi độ rộng khung đề (nhấp đúp để về mặc định); app nhớ độ rộng đã chọn.
+- Phóng to / thu nhỏ ảnh (− / + / “Vừa khung”, nhấp đúp vào ảnh), kéo ảnh bằng chuột để xem phần khác, ⤢ xem toàn màn hình.
+- Khung đề khi viết bài có 3 thẻ: Đề bài · Paraphrase · Bài viết.
+- Màn hình hẹp (điện thoại, máy tính bảng dọc): khung đề thành dải dính trên cùng; nút ▾ đổi cỡ vừa → lớn → thu gọn.
+
 ## Luồng sử dụng
 1. **Đề bài** – chọn dạng (Maps / Process / Charts & Tables / Tự nhận dạng), dán đề hoặc ảnh đề (Ctrl+V, kéo thả, chọn ảnh), chọn trình độ (Band 6.0 / 7.0+ / 8.0+).
 2. **AI đọc đề** – trích xuất chủ thể, số liệu, mốc thời gian.
@@ -15,7 +22,7 @@ Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) →
 
 📚 **Kho từ vựng**: quy tắc chống viết chung chung, từ vựng riêng của đề đang làm, và toàn bộ dàn ý Maps (bảng A/B, cấu trúc viết, cấu trúc câu, lưu ý IN/AT/ON/TO, mẹo). Với đề Maps, AI bắt buộc dùng bộ từ vựng này.
 
-“Xem bài mẫu” mở một bài Maps có sẵn (đề minh hoạ) để xem app hoạt động mà không cần AI.
+“Xem bài mẫu” mở một bài Maps có sẵn (đề minh hoạ, kèm ảnh 2 bản đồ vẽ bằng SVG) để xem app hoạt động mà không cần AI.
 
 ## 🎓 Bài giảng & bài tập
 Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (Ctrl+V / kéo thả / chọn ảnh), chọn dạng bài tập, trình độ và số câu; AI soạn:

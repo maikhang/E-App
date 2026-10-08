@@ -217,5 +217,40 @@ window.CONTENT = (function () {
     { word: 'main road', meaning_vi: 'đường chính', alternatives: [{ phrase: 'the principal road', meaning_vi: 'con đường chính' }, { phrase: 'the main street', meaning_vi: 'phố chính' }] },
   ];
 
-  return { demo, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips };
+  // Ảnh đề minh hoạ cho bài mẫu: 2 bản đồ Stokeford vẽ bằng SVG (khớp nội dung bài mẫu)
+  function demoMaps() {
+    const W = 440, H = 380, top = 64;
+    const houses = (x0, y, n) => Array.from({ length: n }, (_, i) => `<rect x="${x0 + i * 26}" y="${y}" width="17" height="14" rx="2" fill="#e9a46b" stroke="#8a5a2b"/>`).join('');
+    const label = (x, y, t, size) => `<text x="${x}" y="${y}" font-size="${size || 13}" text-anchor="middle" fill="#1d281b">${t}</text>`;
+    const panel = (ox, year, later) => {
+      let g = `<g transform="translate(${ox},${top})"><rect width="${W}" height="${H}" fill="#f7f4ea" stroke="#9a9a95"/>`;
+      // cánh đồng trống ở rìa phía bắc (năm 2010 thu hẹp)
+      g += `<rect x="0" y="0" width="${later ? 200 : W}" height="62" fill="#dcefc9"/>` + label(later ? 100 : 120, 36, 'Open fields');
+      if (later) g += `<rect x="232" y="12" width="120" height="58" rx="4" fill="#c9a2e0" stroke="#6b4a8a"/>` + label(292, 46, 'Retirement home', 12);
+      // phía nam: đất nông nghiệp (1930) → khu dân cư + đường mới (2010)
+      if (!later) g += `<rect x="0" y="250" width="${W}" height="${H - 250}" fill="#cfe3a6"/><rect x="0" y="250" width="${W}" height="${H - 250}" fill="url(#crop)"/>` + label(W / 2, 322, 'Farmland', 15);
+      else {
+        g += `<rect x="0" y="250" width="${W}" height="${H - 250}" fill="#efe3d1"/><rect x="204" y="214" width="16" height="${H - 214}" fill="#c9c9c4"/>`;
+        for (let r = 0; r < 4; r++) g += houses(110, 262 + r * 28, 3) + houses(232, 262 + r * 28, 3);
+        g += label(72, 316, 'Residential', 13) + label(72, 332, 'area', 13) + `<text x="212" y="${H - 8}" font-size="11" text-anchor="middle" fill="#55554f">New road</text>`;
+      }
+      // đường chính (giữ nguyên) + nhà dọc hai bên đường
+      g += `<rect x="0" y="190" width="${W}" height="24" fill="#c9c9c4"/>` + `<text x="${W - 50}" y="206" font-size="12" text-anchor="middle" fill="#3d3d39">Main road</text>`;
+      g += houses(16, 168, 6) + houses(16, 222, 6) + label(80, 160, 'Houses', 12);
+      // trường học (2010 mở rộng về phía tây) và bưu điện → cửa hàng
+      g += later ? `<rect x="176" y="112" width="92" height="64" rx="3" fill="#8fb3e0" stroke="#2f5d8f"/>` + label(222, 149, 'School')
+        : `<rect x="214" y="120" width="54" height="56" rx="3" fill="#8fb3e0" stroke="#2f5d8f"/>` + label(241, 152, 'School');
+      g += `<rect x="276" y="140" width="40" height="36" rx="3" fill="#e8d36a" stroke="#8a7a1f"/>` + label(296, 132, later ? 'Shop' : 'Post office', 12);
+      // la bàn
+      g += `<g transform="translate(${W - 26},${later ? 100 : 30})"><path d="M0 -14 L6 6 L0 2 L-6 6 Z" fill="#1d281b"/><text y="20" font-size="11" text-anchor="middle" fill="#1d281b">N</text></g>`;
+      return g + `</g><text x="${ox + W / 2}" y="${top - 14}" font-size="18" font-weight="bold" text-anchor="middle" fill="#1d281b">Stokeford ${year}</text>`;
+    };
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W * 2 + 60}" height="${H + top + 20}" viewBox="0 0 ${W * 2 + 60} ${H + top + 20}" font-family="Arial, Helvetica, sans-serif">
+      <defs><pattern id="crop" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="12" stroke="#a9c97a" stroke-width="2"/></pattern></defs>
+      <rect width="100%" height="100%" fill="#ffffff"/>${panel(20, 1930, false)}${panel(W + 40, 2010, true)}</svg>`;
+    return { dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), mediaType: 'image/svg+xml', base64: '' };
+  }
+  const demoImage = demoMaps();
+
+  return { demo, demoImage, changeVocab, positionVocab, writingStructures, sentenceStructures, formulaTip, rules, prepGroups, paraphrasing, tips };
 })();
