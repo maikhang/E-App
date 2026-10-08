@@ -67,7 +67,7 @@
         <div class="actions">
           <label class="field inline"><span>Trình độ</span>
             <select id="band">
-              <option value="6.0">Band 6.0</option>
+              <option value="6.0">Band 6.5 · câu dễ hơn</option>
               <option value="7.0" selected>Band 7.0+</option>
               <option value="8.0">Band 8.0+</option>
             </select>
@@ -85,7 +85,7 @@
         <div class="spinner big" aria-hidden="true"></div>
         <h2>AI đang đọc đề của bạn…</h2>
         <p class="stage" id="loading-stage">Đang chuẩn bị…</p>
-        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–120 giây.</p>
+        <p class="muted">Ghi bảng số liệu của đề, tạo gợi ý từng câu theo dàn ý, rồi đối chiếu lại từng câu với đề. Thường mất 1–3 phút.</p>
         <p class="elapsed" id="elapsed">0 giây</p>
         <button type="button" class="btn" id="btn-stop">Dừng</button>
       </div>
@@ -114,6 +114,11 @@
             <div class="tp-text">
               <p class="topic" id="ref-topic"></p>
               <p class="ref-text" id="ref-text"></p>
+              <details class="ref-visual" id="ref-data" hidden>
+                <summary id="ref-data-title">📊 Số liệu dùng trong bài</summary>
+                <ul class="data-list" id="ref-data-list"></ul>
+                <p class="data-note" id="ref-data-note"></p>
+              </details>
               <details class="ref-visual" id="ref-visual" hidden>
                 <summary id="ref-visual-title">AI đọc được từ ảnh</summary>
                 <p id="ref-visual-text"></p>
@@ -236,7 +241,7 @@
           <label class="field inline"><span>Dạng đề</span>
             <select id="ls-type"><option value="auto">✨ Tự nhận dạng</option><option value="charts">📊 Charts &amp; Tables</option><option value="maps">🗺️ Maps</option><option value="process">🔁 Process</option></select></label>
           <label class="field inline"><span>Trình độ</span>
-            <select id="ls-band"><option value="6.0">Band 6.0</option><option value="7.0">Band 7.0+</option><option value="8.0">Band 8.0+</option></select></label>
+            <select id="ls-band"><option value="6.0">Band 6.5 · câu dễ hơn</option><option value="7.0">Band 7.0+</option><option value="8.0">Band 8.0+</option></select></label>
           <label class="field inline"><span>Số câu mỗi bài</span>
             <select id="ls-count"><option value="3">3</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></label>
         </div>
@@ -271,7 +276,9 @@
           <div class="tp-body">
             <div class="tp-panel tp-task">
               <div class="tp-img fit" id="lr-img-box"><img id="lr-img-src" alt="Biểu đồ của bài"></div>
-              <div class="tp-text"><p class="ref-text" id="lr-prompt"></p></div>
+              <div class="tp-text"><p class="ref-text" id="lr-prompt"></p>
+                <details class="ref-visual" id="lr-data" hidden><summary>📊 Số liệu của biểu đồ</summary><ul class="data-list" id="lr-data-list"></ul></details>
+              </div>
             </div>
           </div>
         </aside>

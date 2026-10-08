@@ -131,6 +131,9 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .ref-visual { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 13px; }
 .ref-visual summary { cursor: pointer; font-weight: 600; color: var(--accent); }
 .ref-visual p { margin-top: 6px; white-space: pre-wrap; color: var(--muted); max-height: 260px; overflow: auto; }
+.data-list { margin: 6px 0 0; padding-left: 18px; color: var(--text); display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
+.data-note:empty { display: none; }
+.data-note { margin-top: 6px; color: var(--warn); }
 .elapsed { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; }
 .spinner.big { width: 44px; height: 44px; border-width: 4px; color: var(--accent); }
@@ -544,7 +547,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
         <div class="actions">
           <label class="field inline"><span>Trình độ</span>
             <select id="band">
-              <option value="6.0">Band 6.0</option>
+              <option value="6.0">Band 6.5 · câu dễ hơn</option>
               <option value="7.0" selected>Band 7.0+</option>
               <option value="8.0">Band 8.0+</option>
             </select>
@@ -562,7 +565,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
         <div class="spinner big" aria-hidden="true"></div>
         <h2>AI đang đọc đề của bạn…</h2>
         <p class="stage" id="loading-stage">Đang chuẩn bị…</p>
-        <p class="muted">Trích xuất tên đối tượng, số liệu và mốc thời gian để gợi ý đúng đề. Thường mất 30–120 giây.</p>
+        <p class="muted">Ghi bảng số liệu của đề, tạo gợi ý từng câu theo dàn ý, rồi đối chiếu lại từng câu với đề. Thường mất 1–3 phút.</p>
         <p class="elapsed" id="elapsed">0 giây</p>
         <button type="button" class="btn" id="btn-stop">Dừng</button>
       </div>
@@ -591,6 +594,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             <div class="tp-text">
               <p class="topic" id="ref-topic"></p>
               <p class="ref-text" id="ref-text"></p>
+              <details class="ref-visual" id="ref-data" hidden>
+                <summary id="ref-data-title">📊 Số liệu dùng trong bài</summary>
+                <ul class="data-list" id="ref-data-list"></ul>
+                <p class="data-note" id="ref-data-note"></p>
+              </details>
               <details class="ref-visual" id="ref-visual" hidden>
                 <summary id="ref-visual-title">AI đọc được từ ảnh</summary>
                 <p id="ref-visual-text"></p>
@@ -713,7 +721,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           <label class="field inline"><span>Dạng đề</span>
             <select id="ls-type"><option value="auto">✨ Tự nhận dạng</option><option value="charts">📊 Charts &amp; Tables</option><option value="maps">🗺️ Maps</option><option value="process">🔁 Process</option></select></label>
           <label class="field inline"><span>Trình độ</span>
-            <select id="ls-band"><option value="6.0">Band 6.0</option><option value="7.0">Band 7.0+</option><option value="8.0">Band 8.0+</option></select></label>
+            <select id="ls-band"><option value="6.0">Band 6.5 · câu dễ hơn</option><option value="7.0">Band 7.0+</option><option value="8.0">Band 8.0+</option></select></label>
           <label class="field inline"><span>Số câu mỗi bài</span>
             <select id="ls-count"><option value="3">3</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></label>
         </div>
@@ -748,7 +756,9 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           <div class="tp-body">
             <div class="tp-panel tp-task">
               <div class="tp-img fit" id="lr-img-box"><img id="lr-img-src" alt="Biểu đồ của bài"></div>
-              <div class="tp-text"><p class="ref-text" id="lr-prompt"></p></div>
+              <div class="tp-text"><p class="ref-text" id="lr-prompt"></p>
+                <details class="ref-visual" id="lr-data" hidden><summary>📊 Số liệu của biểu đồ</summary><ul class="data-list" id="lr-data-list"></ul></details>
+              </div>
             </div>
           </div>
         </aside>
@@ -915,6 +925,17 @@ window.CONTENT = (function () {
     subject: 'the village of Stokeford in 1930 and 2010',
     topic_vi: 'Hai bản đồ làng Stokeford năm 1930 và 2010.',
     prompt_text: 'The maps below show the village of Stokeford in 1930 and 2010. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+    data: [
+      'Main road – 1930 and 2010 – runs east–west through the centre; unchanged',
+      'Houses – 1930 and 2010 – a row on both sides of the main road (west part)',
+      'School – 1930 – centre, north of the main road; 2010 – expanded to the west',
+      'Post office – 1930 – next to the school (east); 2010 – converted into a shop',
+      'Open fields – 1930 – along the whole northern edge; 2010 – only the north-west',
+      'Retirement home – 2010 – new, in the north-east (on former open fields)',
+      'Farmland – 1930 – the whole south; 2010 – replaced by a residential area on both sides of a new road',
+    ],
+    key_features: ['The village became more residential: farmland replaced by housing', 'New facilities: a retirement home; the school expanded', 'The main road and the row of houses remained unchanged'],
+    verified: { fixed: 0, missing_vi: '' },
     steps: [
       {
         title: 'Introduction: sự phát triển của làng Stokeford, 1930 → 2010',
@@ -1457,7 +1478,7 @@ window.AI = (function () {
     auto: 'Unknown — detect the type yourself.',
   };
   const BAND = {
-    '6.0': 'Band 6.0: clear, accurate sentences; common academic vocabulary; some complex sentences.',
+    '6.0': 'Band 6.5–7: simpler, clear sentences and common academic vocabulary, but still a clear overview, fully accurate data and error-free grammar.',
     '7.0': 'Band 7.0+: varied complex structures, precise collocations, accurate data, natural academic style.',
     '8.0': 'Band 8.0+: sophisticated yet natural; precise, concise, flexible grammar, nominalisation, no memorised phrases.',
   };
@@ -1493,6 +1514,8 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   "subject": "the exact subject in English, e.g. 'water consumption in the USA and China'",
   "topic_vi": "one Vietnamese sentence: what the task shows",
   "prompt_text": "the task question exactly as written if visible, else ''",
+  "data": [ "Car – 2000 – 60%" ],   // DATA SHEET — write it FIRST: every figure / feature the essay may use, one fact per line, copied exactly from the task with its unit (maps: 'School – 1930 – centre, north of the main road'; processes: 'Stage 3 – clay is shaped in moulds')
+  "key_features": [ "3-4 most important features in English: main trends / differences / stages, highest and lowest, biggest change, exceptions" ],
   "steps": [  // exactly 4 items in this order: Introduction, Overview, Body 1, Body 2
     {
       "title": "Vietnamese title of what this paragraph does for THIS task",
@@ -1525,11 +1548,18 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
    - A frame may be reused in another slot for more data. Frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation; list unused frames in "skipped" with the reason.
    - If one of her frames does not suit this task (e.g. "was surrounded by" when nothing on the map is surrounded, "the opposite was true for" when all lines rose), do NOT force it: set "status": "replaced", explain why in "why_vi", give the pattern you use instead in "alt_frame", and write the options from that pattern.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
-3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
+3. DATA ACCURACY comes first — one wrong figure ruins the essay. Write the "data" sheet from the task first, then use ONLY those facts. Every figure, unit, year, category, place, direction and stage must be exactly as in the task; copy the unit (%, million, tonnes…); use "about/approximately" only when a value lies between gridlines; comparisons and calculations (doubled, three times, a gap of 10 points, the highest/lowest, overtook) must be arithmetically true; never describe a trend, change or stage that is not shown; for maps keep which map/year each feature belongs to.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
 5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 1-2 sentences, no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
 6. All guidance and meanings in Vietnamese; all options in English. Keep guide_vi short (1-2 sentences): which data this paragraph covers.
-7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).`;
+7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).
+8. HIGH BAND INSIDE HER OUTLINE: her frames decide the sentence pattern and the fixed words; the band comes from what fills the [brackets] and from accuracy. Meet the IELTS descriptors at the target level (never below Band 7 for accuracy and Task Achievement):
+   - Task Achievement: the Overview states the key_features (main trends / differences / stages) with no figures; body sentences select and group the key features and support them with accurate data and comparisons; no irrelevant detail, no data dumping.
+   - Coherence & Cohesion: clear progression in her frame order; referencing (the former / the latter, this figure, the respective figures, respectively) instead of repeating the same noun; no mechanical linking.
+   - Lexical Resource: precise words from her lists and the paraphrase list; do not repeat a key verb or noun within a paragraph when a correct synonym exists; accurate collocations (rose sharply, a significant increase in, accounted for the largest proportion of).
+   - Grammatical Range & Accuracy: her frames already mix simple and complex sentences (while / whereas / which / with + noun / before + V-ing / respectively); keep articles, prepositions, agreement and tense error-free.
+   - Length: with one option chosen for every sentence, the essay is 170-200 words.
+9. Before replying, re-read every option against your data sheet and fix any wrong figure, unit, year, place, comparison or grammar slip.`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -1549,7 +1579,8 @@ Reply with ONLY one JSON object:
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
   "prompt_text": "the question text exactly as written in the image, or '' if there is none",
   "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
-}`;
+}
+Accuracy rules: copy printed numbers exactly; when a value must be read from an axis, give the closest value you can read and write "about"; always keep the unit; list series in the legend's order with every labelled point; do not guess anything you cannot see. Before replying, look at the image again and check every value, label and position you wrote.`;
 
   function buildPrompt({ text, type, band, visual, detected }) {
     return `${RULES}
@@ -1565,6 +1596,10 @@ ${SHAPE}`;
   }
 
   const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
+  function dataBlock(analysis) {
+    const d = (analysis && analysis.data) || [];
+    return d.length ? `DATA SHEET (checked against the task — use only these facts):\n${d.map(x => '- ' + x).join('\n')}\n` : '';
+  }
   // Gợi ý lại MỘT câu, dựa trên các câu học sinh đã chọn
   function buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }) {
     const outline = analysis.outline || G.outlineFor(analysis.task_type);
@@ -1580,6 +1615,7 @@ Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes([outline])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
+${dataBlock(analysis)}
 Other paragraphs already written by the student:
 ${done || '(none yet)'}
 
@@ -1591,6 +1627,7 @@ It must follow naturally from the sentences chosen above (continue their ideas, 
 ${later || '  (this is the last sentence of the paragraph)'}
 Do not reuse these earlier options:
 ${slot.options.map(o => '- ' + o.text).join('\n')}
+Every figure, unit, year, place and comparison must match the task data exactly — re-check each option before replying.
 
 Reply with ONLY one JSON object for this ONE sentence slot:
 { "f": [frame numbers], "status": "fit" | "replaced", "why_vi": "", "alt_frame": "", "focus_vi": "...", "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 1, "text": "..." } ] }`;
@@ -1612,6 +1649,7 @@ Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes([outline])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
+${dataBlock(analysis)}
 Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Other paragraphs already written by the student:
 ${done || '(none yet)'}
@@ -1800,6 +1838,8 @@ Reply with ONLY one JSON object:
     }));
     if (r.steps.some(s => !s.sentences.length)) throw new Error('AI trả về gợi ý chưa đầy đủ. Bấm thử lại.');
     r.paraphrase = normParaphrase(r.paraphrase);
+    r.data = (Array.isArray(r.data) ? r.data : []).map(x => String(x).trim()).filter(Boolean);
+    r.key_features = (Array.isArray(r.key_features) ? r.key_features : []).map(x => String(x).trim()).filter(Boolean);
     return r;
   }
 
@@ -1868,6 +1908,57 @@ Reply with ONLY one JSON object:
     r.outline = G.outlineFor(r.task_type, r.outline);
     return r;
   }
+  /* Bước kiểm tra: một giám khảo khác đối chiếu TỪNG câu gợi ý với đề (số liệu, ngữ pháp, khung) và sửa câu sai */
+  function buildVerifyPrompt({ text, band, visual, analysis }) {
+    const outline = analysis.outline || G.outlineFor(analysis.task_type);
+    const list = analysis.steps.map((st, p) => st.sentences.map((sl, k) => {
+      const plan = sl.status === 'replaced' ? `pattern: ${sl.alt_frame}` : `frame F${sl.f.join('/F')}`;
+      return `${NAMES[p]} — sentence ${k + 1} (${plan}; content: ${sl.focus_vi})\n` + sl.options.map((o, j) => `  [${p + 1}.${k + 1}.${j + 1}] ${o.text}`).join('\n');
+    }).join('\n')).join('\n');
+    return `You are a strict senior IELTS Writing Task 1 examiner checking suggestion sentences written for Ms. Gigi's students. Students will copy them, so every sentence must be factually exact and error-free.
+Target level: ${BAND[band] || BAND['7.0']}
+
+${outlineNotes([outline])}
+
+${taskBlock(text || analysis.prompt_text, visual)}
+DATA SHEET made by the writer (it may itself contain mistakes — check it against the task too):
+${(analysis.data || []).map((x, i) => `(${i + 1}) ${x}`).join('\n') || '(none)'}
+Key features planned for the Overview: ${(analysis.key_features || []).join('; ') || '(none)'}
+
+SUGGESTIONS — [paragraph.sentence.option] text:
+${list}
+
+Check EVERY option:
+1. Data: each figure, unit, year, category, place, direction, stage and trend must match the task exactly; comparisons and calculations must be true; nothing invented; the Overview has no figures; maps keep the right map/year.
+2. Language: grammar, articles, prepositions, agreement, tense (maps past / present perfect for "now"; process present simple passive), word choice, collocation, punctuation — at the target level.
+3. Ms. Gigi: the frame's fixed words are kept exactly and the [brackets] are filled with real content; her rules (account for only with %, no "witness" with Percentage/Number/Figure, side → on, part → in, no "the given chart").
+4. Coherence: every option of a sentence reads naturally after any option of the sentence before it, without repeating its data.
+Correct only what is wrong, keep her frame wording, and keep the three options of a sentence different from each other. Do not list options that are already correct.
+
+Reply with ONLY one JSON object:
+{
+  "fixes": [ { "id": "2.1.3", "text": "the corrected option", "why_vi": "short Vietnamese reason" } ],
+  "data_fixes": [ { "n": 4, "text": "the corrected fact" } ],
+  "missing_vi": "Vietnamese note on any key feature of the task that no sentence covers, or ''"
+}`;
+  }
+  async function verify({ text, band, visual, analysis, signal }) {
+    const r = await ask(buildVerifyPrompt({ text, band, visual, analysis }), null, signal, 'medium');
+    let fixed = 0;
+    for (const f of (r && Array.isArray(r.fixes) ? r.fixes : [])) {
+      const [p, k, j] = String(f && f.id || '').split('.').map(n => +n - 1);
+      const op = analysis.steps[p] && analysis.steps[p].sentences[k] && analysis.steps[p].sentences[k].options[j];
+      const t = String(f.text || '').trim();
+      if (op && t && t !== op.text) { op.text = t; op.fixed_vi = String(f.why_vi || ''); fixed++; }
+    }
+    for (const d of (r && Array.isArray(r.data_fixes) ? r.data_fixes : [])) {
+      const n = +(d && d.n) - 1;
+      if (analysis.data && analysis.data[n] != null && d.text) analysis.data[n] = String(d.text);
+    }
+    analysis.verified = { fixed, missing_vi: String((r && r.missing_vi) || '') };
+    return analysis;
+  }
+
   async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
     const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
     if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
@@ -1889,6 +1980,7 @@ Reply with ONLY one JSON object:
   "subject": "exact subject in English",
   "topic_vi": "one Vietnamese sentence: what the visual shows",
   "prompt_text": "the task question if visible, else ''",
+  "data": [ "one fact per line copied exactly from the task, with its unit — write this FIRST" ],
   "lesson": {
     "objectives_vi": ["2-3 lesson objectives in Vietnamese"],
     "reading_steps": [ { "q_vi": "guided question to read the visual (Vietnamese)", "a": "answer (Vietnamese, with the real figures)" } ],   // 5-7 questions: what it shows, units, time/categories, highest, lowest, main trend/change, special point
@@ -1913,7 +2005,8 @@ Reply with ONLY one JSON object:
 Build a short LESSON and small scaffolded EXERCISES that help her students get familiar with THIS visual and with each sentence of her outline BEFORE they write the full essay.
 
 Rules:
-- Use only the real content of the task (exact subjects, categories, places, years, units, figures). Never invent data; approximate with "about" when values are read from an axis.
+- DATA ACCURACY first: write the "data" sheet from the task, then use only those facts. Exact subjects, categories, places, years, units and figures; never invent data; approximate with "about" only when a value is read between gridlines; comparisons and calculations must be true. Every exercise answer (mcq, tf, gap, order, write model) must be correct according to the data — re-check each answer key before replying.
+- Model sentences are high-band (Band 7-8+) yet keep her frames: accurate data with comparisons, precise collocations, no repeated words within a paragraph, error-free grammar.
 - Follow the teacher's outline below. Every model sentence and every exercise sentence must be written from her numbered frames (F1, F2...) for the right paragraph, keeping the frames' fixed words; tag model sentences with the frame number.
 - Respect her grammar rules (account for only with %, no bare "trọc lốc" subjects, "witness" not with Percentage/Number/Figure, maps = past tense, process = present simple passive).
 - Exercises go from easy to hard: understanding the visual → vocabulary → sentence building → writing. Each type has exactly ${count} items (match: ${Math.max(count, 6)} pairs; write: one item per paragraph, 4 items).
@@ -1945,6 +2038,7 @@ ${LESSON_SHAPE}`;
     L.vocab = arr(L.vocab).filter(v => v && v.phrase);
     L.mistakes_vi = arr(L.mistakes_vi).map(String);
     r.paraphrase = normParaphrase(r.paraphrase);
+    r.data = arr(r.data).map(x => String(x).trim()).filter(Boolean);
     r.exercises = r.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
       if (e.type === 'mcq') e.items = e.items.filter(it => Array.isArray(it.options) && it.options.length > 1).map(it => ({ ...it, answer: Math.min(Math.max(+it.answer || 0, 0), it.options.length - 1) }));
       if (e.type === 'gap') {
@@ -1964,7 +2058,7 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -2084,7 +2178,7 @@ window.LESSON = (function () {
           catch (oe) { if (!L.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.'); }
         }
       }
-      stage('Bước 2/2 · AI đang soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
+      stage('Bước 2/2 · AI ghi bảng số liệu của biểu đồ rồi soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
       const type = L.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : L.type;
       const types = TYPE_ORDER.filter(t => L.types.includes(t));
       const data = await AI.makeLesson({ text: L.prompt, type, band: L.band, visual, detected, types, count: L.count, signal: ctl.signal });
@@ -2108,6 +2202,8 @@ window.LESSON = (function () {
     // Biểu đồ + đề nằm ở khung cố định bên trái, bài giảng / bài tập cuộn bên phải
     H.setPaneImage($('#pane-lesson'), L.image);
     $('#lr-prompt').textContent = L.prompt || d.prompt_text || '';
+    $('#lr-data').hidden = !(d.data && d.data.length);
+    $('#lr-data-list').innerHTML = (d.data || []).map(x => `<li>${esc(x)}</li>`).join('');
     $('#lr-body').innerHTML = L.tab === 'lesson' ? lessonView(d, o) : exercisesView(d);
     const sc = L.tab === 'ex' ? scoreText() : '';
     $('#lr-score').textContent = sc; $('#lr-score').hidden = !sc;
@@ -2353,6 +2449,7 @@ window.LESSON = (function () {
       subject: 'the percentage of commuters in Metro City travelling by car, bus and bicycle, 2000–2025',
       topic_vi: 'Tỷ lệ người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp (2000–2025).',
       prompt_text: 'The line graph below shows the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+      data: ['Car – 2000: 60%, 2005: 58%, 2010: 55%, 2015: 48%, 2020: 40%, 2025: 35%', 'Bus – 2000: 25%, 2005: 27%, 2010: 30%, 2015: 33%, 2020: 36%, 2025: 39%', 'Bicycle – 2000: 5%, 2005: 7%, 2010: 10%, 2015: 13%, 2020: 17%, 2025: 20%', 'Bus overtook car between 2020 and 2025'],
       lesson: {
         objectives_vi: ['Đọc hiểu biểu đồ đường: trục, đơn vị, mốc thời gian và 3 đường số liệu.', 'Nhận ra 2 xu hướng ngược nhau và điểm hai đường cắt nhau.', 'Viết từng câu theo khung Line graph của Ms. Gigi.'],
         reading_steps: [
@@ -2740,31 +2837,37 @@ window.LESSON = (function () {
       // Bước 1: ảnh → chữ. Luôn thử gửi ảnh cho AI; nếu chế độ xem không gửi được ảnh thì OCR trong trình duyệt.
       S.visual = null;
       let detected = '';
+      const total = S.image ? 3 : 2;
       if (S.image) {
         try {
-          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
+          stage('Bước 1/3 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
           const r = await AI.readImage({ image: S.image, signal: ctl.signal });
           S.visual = r.visual; detected = r.task_type;
           if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
         } catch (e) {
           if (e.code === 'cancelled') throw e;
           if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
+          stage('Bước 1/3 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
           try {
-            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
+            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/3 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
           } catch (oe) {
             if (!S.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.');
           }
         }
       }
-      stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
+      stage(`Bước ${total - 1}/${total} · AI ghi bảng số liệu của đề rồi tạo gợi ý từng câu theo dàn ý…`);
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
       const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
+      // Bước kiểm tra: đối chiếu từng câu gợi ý với đề (số liệu, ngữ pháp, khung) — lỗi thì giữ bản chưa kiểm tra
+      stage(`Bước ${total}/${total} · Giám khảo AI đối chiếu từng câu gợi ý với số liệu của đề và sửa lỗi…`);
+      try { await AI.verify({ text: S.prompt || r.prompt_text, band: S.band, visual: S.visual, analysis: r, signal: ctl.signal }); }
+      catch (ve) { if (ve.code === 'cancelled') throw ve; r.verified = null; }
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.picks = [[], [], [], []]; S.open = null; S.isDemo = false;
       clearSlotState();
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
-      toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
+      const v = r.verified;
+      toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${v ? `đã đối chiếu số liệu với đề${v.fixed ? `, sửa ${v.fixed} câu gợi ý` : ', không thấy lỗi'}` : 'chưa kiểm tra lại được số liệu, hãy đối chiếu với đề'}`, 4500);
     } catch (e) {
       show('setup');
       if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
@@ -3055,6 +3158,12 @@ window.LESSON = (function () {
       $('#ref-visual-title').textContent = S.visual.source === 'ocr' ? 'Chữ đọc được từ ảnh (OCR)' : 'AI đọc được từ ảnh';
       $('#ref-visual-text').textContent = S.visual.text;
     } else vis.hidden = true;
+    const data = a.data || [], v = a.verified;
+    $('#ref-data').hidden = !data.length;
+    $('#ref-data-title').textContent = v ? '📊 Số liệu dùng trong bài · đã đối chiếu với đề' : '📊 Số liệu dùng trong bài';
+    $('#ref-data-list').innerHTML = data.map(x => `<li>${esc(x)}</li>`).join('');
+    $('#ref-data-note').innerHTML = v && v.missing_vi ? `⚠️ ${esc(v.missing_vi)}` : '';
+    if (v && v.missing_vi && !$('#ref-data').dataset.seen) { $('#ref-data').open = true; $('#ref-data').dataset.seen = '1'; }
     renderParaphrase();
     setPaneImage($('#pane-write'), S.image);
     const total = S.paras.reduce((n, p) => n + wc(p), 0);

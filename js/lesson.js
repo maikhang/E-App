@@ -114,7 +114,7 @@ window.LESSON = (function () {
           catch (oe) { if (!L.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.'); }
         }
       }
-      stage('Bước 2/2 · AI đang soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
+      stage('Bước 2/2 · AI ghi bảng số liệu của biểu đồ rồi soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
       const type = L.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : L.type;
       const types = TYPE_ORDER.filter(t => L.types.includes(t));
       const data = await AI.makeLesson({ text: L.prompt, type, band: L.band, visual, detected, types, count: L.count, signal: ctl.signal });
@@ -138,6 +138,8 @@ window.LESSON = (function () {
     // Biểu đồ + đề nằm ở khung cố định bên trái, bài giảng / bài tập cuộn bên phải
     H.setPaneImage($('#pane-lesson'), L.image);
     $('#lr-prompt').textContent = L.prompt || d.prompt_text || '';
+    $('#lr-data').hidden = !(d.data && d.data.length);
+    $('#lr-data-list').innerHTML = (d.data || []).map(x => `<li>${esc(x)}</li>`).join('');
     $('#lr-body').innerHTML = L.tab === 'lesson' ? lessonView(d, o) : exercisesView(d);
     const sc = L.tab === 'ex' ? scoreText() : '';
     $('#lr-score').textContent = sc; $('#lr-score').hidden = !sc;
@@ -383,6 +385,7 @@ window.LESSON = (function () {
       subject: 'the percentage of commuters in Metro City travelling by car, bus and bicycle, 2000–2025',
       topic_vi: 'Tỷ lệ người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp (2000–2025).',
       prompt_text: 'The line graph below shows the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+      data: ['Car – 2000: 60%, 2005: 58%, 2010: 55%, 2015: 48%, 2020: 40%, 2025: 35%', 'Bus – 2000: 25%, 2005: 27%, 2010: 30%, 2015: 33%, 2020: 36%, 2025: 39%', 'Bicycle – 2000: 5%, 2005: 7%, 2010: 10%, 2015: 13%, 2020: 17%, 2025: 20%', 'Bus overtook car between 2020 and 2025'],
       lesson: {
         objectives_vi: ['Đọc hiểu biểu đồ đường: trục, đơn vị, mốc thời gian và 3 đường số liệu.', 'Nhận ra 2 xu hướng ngược nhau và điểm hai đường cắt nhau.', 'Viết từng câu theo khung Line graph của Ms. Gigi.'],
         reading_steps: [

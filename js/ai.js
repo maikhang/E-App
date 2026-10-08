@@ -13,7 +13,7 @@ window.AI = (function () {
     auto: 'Unknown — detect the type yourself.',
   };
   const BAND = {
-    '6.0': 'Band 6.0: clear, accurate sentences; common academic vocabulary; some complex sentences.',
+    '6.0': 'Band 6.5–7: simpler, clear sentences and common academic vocabulary, but still a clear overview, fully accurate data and error-free grammar.',
     '7.0': 'Band 7.0+: varied complex structures, precise collocations, accurate data, natural academic style.',
     '8.0': 'Band 8.0+: sophisticated yet natural; precise, concise, flexible grammar, nominalisation, no memorised phrases.',
   };
@@ -49,6 +49,8 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   "subject": "the exact subject in English, e.g. 'water consumption in the USA and China'",
   "topic_vi": "one Vietnamese sentence: what the task shows",
   "prompt_text": "the task question exactly as written if visible, else ''",
+  "data": [ "Car – 2000 – 60%" ],   // DATA SHEET — write it FIRST: every figure / feature the essay may use, one fact per line, copied exactly from the task with its unit (maps: 'School – 1930 – centre, north of the main road'; processes: 'Stage 3 – clay is shaped in moulds')
+  "key_features": [ "3-4 most important features in English: main trends / differences / stages, highest and lowest, biggest change, exceptions" ],
   "steps": [  // exactly 4 items in this order: Introduction, Overview, Body 1, Body 2
     {
       "title": "Vietnamese title of what this paragraph does for THIS task",
@@ -81,11 +83,18 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
    - A frame may be reused in another slot for more data. Frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation; list unused frames in "skipped" with the reason.
    - If one of her frames does not suit this task (e.g. "was surrounded by" when nothing on the map is surrounded, "the opposite was true for" when all lines rose), do NOT force it: set "status": "replaced", explain why in "why_vi", give the pattern you use instead in "alt_frame", and write the options from that pattern.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
-3. Quote real figures from the visual (approximate with "about/around/approximately" if unclear). Never invent data that is not shown.
+3. DATA ACCURACY comes first — one wrong figure ruins the essay. Write the "data" sheet from the task first, then use ONLY those facts. Every figure, unit, year, category, place, direction and stage must be exactly as in the task; copy the unit (%, million, tonnes…); use "about/approximately" only when a value lies between gridlines; comparisons and calculations (doubled, three times, a gap of 10 points, the highest/lowest, overtook) must be arithmetically true; never describe a trend, change or stage that is not shown; for maps keep which map/year each feature belongs to.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
 5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 1-2 sentences, no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
 6. All guidance and meanings in Vietnamese; all options in English. Keep guide_vi short (1-2 sentences): which data this paragraph covers.
-7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).`;
+7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).
+8. HIGH BAND INSIDE HER OUTLINE: her frames decide the sentence pattern and the fixed words; the band comes from what fills the [brackets] and from accuracy. Meet the IELTS descriptors at the target level (never below Band 7 for accuracy and Task Achievement):
+   - Task Achievement: the Overview states the key_features (main trends / differences / stages) with no figures; body sentences select and group the key features and support them with accurate data and comparisons; no irrelevant detail, no data dumping.
+   - Coherence & Cohesion: clear progression in her frame order; referencing (the former / the latter, this figure, the respective figures, respectively) instead of repeating the same noun; no mechanical linking.
+   - Lexical Resource: precise words from her lists and the paraphrase list; do not repeat a key verb or noun within a paragraph when a correct synonym exists; accurate collocations (rose sharply, a significant increase in, accounted for the largest proportion of).
+   - Grammatical Range & Accuracy: her frames already mix simple and complex sentences (while / whereas / which / with + noun / before + V-ing / respectively); keep articles, prepositions, agreement and tense error-free.
+   - Length: with one option chosen for every sentence, the essay is 170-200 words.
+9. Before replying, re-read every option against your data sheet and fix any wrong figure, unit, year, place, comparison or grammar slip.`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -105,7 +114,8 @@ Reply with ONLY one JSON object:
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
   "prompt_text": "the question text exactly as written in the image, or '' if there is none",
   "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
-}`;
+}
+Accuracy rules: copy printed numbers exactly; when a value must be read from an axis, give the closest value you can read and write "about"; always keep the unit; list series in the legend's order with every labelled point; do not guess anything you cannot see. Before replying, look at the image again and check every value, label and position you wrote.`;
 
   function buildPrompt({ text, type, band, visual, detected }) {
     return `${RULES}
@@ -121,6 +131,10 @@ ${SHAPE}`;
   }
 
   const NAMES = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
+  function dataBlock(analysis) {
+    const d = (analysis && analysis.data) || [];
+    return d.length ? `DATA SHEET (checked against the task — use only these facts):\n${d.map(x => '- ' + x).join('\n')}\n` : '';
+  }
   // Gợi ý lại MỘT câu, dựa trên các câu học sinh đã chọn
   function buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }) {
     const outline = analysis.outline || G.outlineFor(analysis.task_type);
@@ -136,6 +150,7 @@ Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes([outline])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
+${dataBlock(analysis)}
 Other paragraphs already written by the student:
 ${done || '(none yet)'}
 
@@ -147,6 +162,7 @@ It must follow naturally from the sentences chosen above (continue their ideas, 
 ${later || '  (this is the last sentence of the paragraph)'}
 Do not reuse these earlier options:
 ${slot.options.map(o => '- ' + o.text).join('\n')}
+Every figure, unit, year, place and comparison must match the task data exactly — re-check each option before replying.
 
 Reply with ONLY one JSON object for this ONE sentence slot:
 { "f": [frame numbers], "status": "fit" | "replaced", "why_vi": "", "alt_frame": "", "focus_vi": "...", "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 1, "text": "..." } ] }`;
@@ -168,6 +184,7 @@ Target level: ${BAND[band] || BAND['7.0']}
 ${outlineNotes([outline])}
 
 ${taskBlock(text || analysis.prompt_text, visual)}
+${dataBlock(analysis)}
 Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
 Other paragraphs already written by the student:
 ${done || '(none yet)'}
@@ -356,6 +373,8 @@ Reply with ONLY one JSON object:
     }));
     if (r.steps.some(s => !s.sentences.length)) throw new Error('AI trả về gợi ý chưa đầy đủ. Bấm thử lại.');
     r.paraphrase = normParaphrase(r.paraphrase);
+    r.data = (Array.isArray(r.data) ? r.data : []).map(x => String(x).trim()).filter(Boolean);
+    r.key_features = (Array.isArray(r.key_features) ? r.key_features : []).map(x => String(x).trim()).filter(Boolean);
     return r;
   }
 
@@ -424,6 +443,57 @@ Reply with ONLY one JSON object:
     r.outline = G.outlineFor(r.task_type, r.outline);
     return r;
   }
+  /* Bước kiểm tra: một giám khảo khác đối chiếu TỪNG câu gợi ý với đề (số liệu, ngữ pháp, khung) và sửa câu sai */
+  function buildVerifyPrompt({ text, band, visual, analysis }) {
+    const outline = analysis.outline || G.outlineFor(analysis.task_type);
+    const list = analysis.steps.map((st, p) => st.sentences.map((sl, k) => {
+      const plan = sl.status === 'replaced' ? `pattern: ${sl.alt_frame}` : `frame F${sl.f.join('/F')}`;
+      return `${NAMES[p]} — sentence ${k + 1} (${plan}; content: ${sl.focus_vi})\n` + sl.options.map((o, j) => `  [${p + 1}.${k + 1}.${j + 1}] ${o.text}`).join('\n');
+    }).join('\n')).join('\n');
+    return `You are a strict senior IELTS Writing Task 1 examiner checking suggestion sentences written for Ms. Gigi's students. Students will copy them, so every sentence must be factually exact and error-free.
+Target level: ${BAND[band] || BAND['7.0']}
+
+${outlineNotes([outline])}
+
+${taskBlock(text || analysis.prompt_text, visual)}
+DATA SHEET made by the writer (it may itself contain mistakes — check it against the task too):
+${(analysis.data || []).map((x, i) => `(${i + 1}) ${x}`).join('\n') || '(none)'}
+Key features planned for the Overview: ${(analysis.key_features || []).join('; ') || '(none)'}
+
+SUGGESTIONS — [paragraph.sentence.option] text:
+${list}
+
+Check EVERY option:
+1. Data: each figure, unit, year, category, place, direction, stage and trend must match the task exactly; comparisons and calculations must be true; nothing invented; the Overview has no figures; maps keep the right map/year.
+2. Language: grammar, articles, prepositions, agreement, tense (maps past / present perfect for "now"; process present simple passive), word choice, collocation, punctuation — at the target level.
+3. Ms. Gigi: the frame's fixed words are kept exactly and the [brackets] are filled with real content; her rules (account for only with %, no "witness" with Percentage/Number/Figure, side → on, part → in, no "the given chart").
+4. Coherence: every option of a sentence reads naturally after any option of the sentence before it, without repeating its data.
+Correct only what is wrong, keep her frame wording, and keep the three options of a sentence different from each other. Do not list options that are already correct.
+
+Reply with ONLY one JSON object:
+{
+  "fixes": [ { "id": "2.1.3", "text": "the corrected option", "why_vi": "short Vietnamese reason" } ],
+  "data_fixes": [ { "n": 4, "text": "the corrected fact" } ],
+  "missing_vi": "Vietnamese note on any key feature of the task that no sentence covers, or ''"
+}`;
+  }
+  async function verify({ text, band, visual, analysis, signal }) {
+    const r = await ask(buildVerifyPrompt({ text, band, visual, analysis }), null, signal, 'medium');
+    let fixed = 0;
+    for (const f of (r && Array.isArray(r.fixes) ? r.fixes : [])) {
+      const [p, k, j] = String(f && f.id || '').split('.').map(n => +n - 1);
+      const op = analysis.steps[p] && analysis.steps[p].sentences[k] && analysis.steps[p].sentences[k].options[j];
+      const t = String(f.text || '').trim();
+      if (op && t && t !== op.text) { op.text = t; op.fixed_vi = String(f.why_vi || ''); fixed++; }
+    }
+    for (const d of (r && Array.isArray(r.data_fixes) ? r.data_fixes : [])) {
+      const n = +(d && d.n) - 1;
+      if (analysis.data && analysis.data[n] != null && d.text) analysis.data[n] = String(d.text);
+    }
+    analysis.verified = { fixed, missing_vi: String((r && r.missing_vi) || '') };
+    return analysis;
+  }
+
   async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
     const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
     if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
@@ -445,6 +515,7 @@ Reply with ONLY one JSON object:
   "subject": "exact subject in English",
   "topic_vi": "one Vietnamese sentence: what the visual shows",
   "prompt_text": "the task question if visible, else ''",
+  "data": [ "one fact per line copied exactly from the task, with its unit — write this FIRST" ],
   "lesson": {
     "objectives_vi": ["2-3 lesson objectives in Vietnamese"],
     "reading_steps": [ { "q_vi": "guided question to read the visual (Vietnamese)", "a": "answer (Vietnamese, with the real figures)" } ],   // 5-7 questions: what it shows, units, time/categories, highest, lowest, main trend/change, special point
@@ -469,7 +540,8 @@ Reply with ONLY one JSON object:
 Build a short LESSON and small scaffolded EXERCISES that help her students get familiar with THIS visual and with each sentence of her outline BEFORE they write the full essay.
 
 Rules:
-- Use only the real content of the task (exact subjects, categories, places, years, units, figures). Never invent data; approximate with "about" when values are read from an axis.
+- DATA ACCURACY first: write the "data" sheet from the task, then use only those facts. Exact subjects, categories, places, years, units and figures; never invent data; approximate with "about" only when a value is read between gridlines; comparisons and calculations must be true. Every exercise answer (mcq, tf, gap, order, write model) must be correct according to the data — re-check each answer key before replying.
+- Model sentences are high-band (Band 7-8+) yet keep her frames: accurate data with comparisons, precise collocations, no repeated words within a paragraph, error-free grammar.
 - Follow the teacher's outline below. Every model sentence and every exercise sentence must be written from her numbered frames (F1, F2...) for the right paragraph, keeping the frames' fixed words; tag model sentences with the frame number.
 - Respect her grammar rules (account for only with %, no bare "trọc lốc" subjects, "witness" not with Percentage/Number/Figure, maps = past tense, process = present simple passive).
 - Exercises go from easy to hard: understanding the visual → vocabulary → sentence building → writing. Each type has exactly ${count} items (match: ${Math.max(count, 6)} pairs; write: one item per paragraph, 4 items).
@@ -501,6 +573,7 @@ ${LESSON_SHAPE}`;
     L.vocab = arr(L.vocab).filter(v => v && v.phrase);
     L.mistakes_vi = arr(L.mistakes_vi).map(String);
     r.paraphrase = normParaphrase(r.paraphrase);
+    r.data = arr(r.data).map(x => String(x).trim()).filter(Boolean);
     r.exercises = r.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
       if (e.type === 'mcq') e.items = e.items.filter(it => Array.isArray(it.options) && it.options.length > 1).map(it => ({ ...it, answer: Math.min(Math.max(+it.answer || 0, 0), it.options.length - 1) }));
       if (e.type === 'gap') {
@@ -520,5 +593,5 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();

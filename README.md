@@ -39,6 +39,12 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - Đoạn văn được kiểm tra theo quy tắc của cô (account for chỉ dùng cho %, witness, Body 1 Maps không nói thay đổi, Process dùng bị động hiện tại, side→ON, part→IN…).
 - Nút “📚 Dàn ý Ms. Gigi” mở thư viện theo từng dạng.
 
+## Số liệu đúng đề & điểm cao trong khuôn dàn ý
+- AI ghi **bảng số liệu** chép đúng từ đề trước (mỗi dòng một số liệu kèm đơn vị), rồi mọi câu gợi ý chỉ được dùng số liệu trong bảng. Bảng hiện ở khung đề: “📊 Số liệu dùng trong bài”.
+- **Bước kiểm tra**: một lượt AI khác đóng vai giám khảo đối chiếu TỪNG câu gợi ý với đề (số liệu, phép so sánh, đơn vị, năm, vị trí; ngữ pháp; chữ cố định của khung; quy tắc của cô) và sửa câu sai; báo nếu bài còn thiếu đặc điểm chính. Nếu bước này lỗi, app vẫn mở gợi ý và nhắc giáo viên tự đối chiếu.
+- Tiêu chí band cao (Task Achievement, Coherence, Lexical, Grammar) áp dụng **bên trong khung của cô**: khung quyết định mẫu câu và chữ cố định; điểm cao đến từ nội dung điền vào [..], số liệu chính xác, so sánh, từ vựng trong bảng của cô, không lặp từ, 170–200 từ.
+- Gợi ý lại một câu, chấm câu tự viết và bài giảng/bài tập (kể cả đáp án) cũng dùng bảng số liệu này. Mức thấp nhất là “Band 6.5 · câu dễ hơn” (câu đơn giản hơn nhưng vẫn đúng số liệu và ngữ pháp).
+
 ## AI
 - Dán ảnh đề (không cần gõ chữ) vẫn dùng được AI: bước 1 AI đọc ảnh thành chữ (câu đề + toàn bộ số liệu/nội dung hình, hiện ở mục “AI đọc được từ ảnh” để kiểm tra), bước 2 tạo gợi ý. Nếu chế độ xem không gửi được ảnh, app tự đọc chữ trong ảnh bằng OCR (Tesseract.js đóng gói trong `vendor/tesseract`).
 - Mở trong claude.ai: dùng tài khoản Claude của người xem, không cần API key.

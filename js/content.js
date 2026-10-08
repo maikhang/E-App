@@ -103,6 +103,17 @@ window.CONTENT = (function () {
     subject: 'the village of Stokeford in 1930 and 2010',
     topic_vi: 'Hai bản đồ làng Stokeford năm 1930 và 2010.',
     prompt_text: 'The maps below show the village of Stokeford in 1930 and 2010. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+    data: [
+      'Main road – 1930 and 2010 – runs east–west through the centre; unchanged',
+      'Houses – 1930 and 2010 – a row on both sides of the main road (west part)',
+      'School – 1930 – centre, north of the main road; 2010 – expanded to the west',
+      'Post office – 1930 – next to the school (east); 2010 – converted into a shop',
+      'Open fields – 1930 – along the whole northern edge; 2010 – only the north-west',
+      'Retirement home – 2010 – new, in the north-east (on former open fields)',
+      'Farmland – 1930 – the whole south; 2010 – replaced by a residential area on both sides of a new road',
+    ],
+    key_features: ['The village became more residential: farmland replaced by housing', 'New facilities: a retirement home; the school expanded', 'The main road and the row of houses remained unchanged'],
+    verified: { fixed: 0, missing_vi: '' },
     steps: [
       {
         title: 'Introduction: sự phát triển của làng Stokeford, 1930 → 2010',

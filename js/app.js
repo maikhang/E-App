@@ -203,31 +203,37 @@
       // Bước 1: ảnh → chữ. Luôn thử gửi ảnh cho AI; nếu chế độ xem không gửi được ảnh thì OCR trong trình duyệt.
       S.visual = null;
       let detected = '';
+      const total = S.image ? 3 : 2;
       if (S.image) {
         try {
-          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
+          stage('Bước 1/3 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
           const r = await AI.readImage({ image: S.image, signal: ctl.signal });
           S.visual = r.visual; detected = r.task_type;
           if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
         } catch (e) {
           if (e.code === 'cancelled') throw e;
           if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
+          stage('Bước 1/3 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
           try {
-            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
+            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/3 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
           } catch (oe) {
             if (!S.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.');
           }
         }
       }
-      stage('Bước 2/2 · AI đang tạo gợi ý bám sát đề cho 4 đoạn…');
+      stage(`Bước ${total - 1}/${total} · AI ghi bảng số liệu của đề rồi tạo gợi ý từng câu theo dàn ý…`);
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
       const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
+      // Bước kiểm tra: đối chiếu từng câu gợi ý với đề (số liệu, ngữ pháp, khung) — lỗi thì giữ bản chưa kiểm tra
+      stage(`Bước ${total}/${total} · Giám khảo AI đối chiếu từng câu gợi ý với số liệu của đề và sửa lỗi…`);
+      try { await AI.verify({ text: S.prompt || r.prompt_text, band: S.band, visual: S.visual, analysis: r, signal: ctl.signal }); }
+      catch (ve) { if (ve.code === 'cancelled') throw ve; r.verified = null; }
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.picks = [[], [], [], []]; S.open = null; S.isDemo = false;
       clearSlotState();
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
-      toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
+      const v = r.verified;
+      toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${v ? `đã đối chiếu số liệu với đề${v.fixed ? `, sửa ${v.fixed} câu gợi ý` : ', không thấy lỗi'}` : 'chưa kiểm tra lại được số liệu, hãy đối chiếu với đề'}`, 4500);
     } catch (e) {
       show('setup');
       if (e.code !== 'cancelled') showSetupError('⚠️ ' + (e.message || 'AI không đọc được đề. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
@@ -518,6 +524,12 @@
       $('#ref-visual-title').textContent = S.visual.source === 'ocr' ? 'Chữ đọc được từ ảnh (OCR)' : 'AI đọc được từ ảnh';
       $('#ref-visual-text').textContent = S.visual.text;
     } else vis.hidden = true;
+    const data = a.data || [], v = a.verified;
+    $('#ref-data').hidden = !data.length;
+    $('#ref-data-title').textContent = v ? '📊 Số liệu dùng trong bài · đã đối chiếu với đề' : '📊 Số liệu dùng trong bài';
+    $('#ref-data-list').innerHTML = data.map(x => `<li>${esc(x)}</li>`).join('');
+    $('#ref-data-note').innerHTML = v && v.missing_vi ? `⚠️ ${esc(v.missing_vi)}` : '';
+    if (v && v.missing_vi && !$('#ref-data').dataset.seen) { $('#ref-data').open = true; $('#ref-data').dataset.seen = '1'; }
     renderParaphrase();
     setPaneImage($('#pane-write'), S.image);
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
