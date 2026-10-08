@@ -32,6 +32,12 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - Nút sao chép: **bài giảng**, **phiếu bài tập** (không đáp án, kèm ảnh biểu đồ khi dán vào Word/Docs), **đáp án**.
 - “Xem bài giảng mẫu” dùng một biểu đồ đường minh hoạ (số liệu tự soạn).
 
+## 🧩 Cấu trúc câu đã dùng trong bài
+Ở trang bài hoàn chỉnh có mục **“Cấu trúc câu đã dùng trong bài”** để học sinh ôn lại: mỗi cấu trúc có tên (Việt + Anh), công thức, cách dùng và câu ví dụ lấy từ chính bài của em (phần cấu trúc được tô vàng, ghi rõ đoạn · câu mấy).
+- Nhận diện ngay trong trình duyệt (`js/structures.js`): mệnh đề quan hệ rút gọn, cụm V-ing sau dấu phẩy, rút gọn mệnh đề trạng ngữ (before/after + V-ing), mệnh đề quan hệ, bị động, hiện tại hoàn thành, while/whereas, with + danh từ, so sánh, danh từ hoá, động từ xu hướng, account for, respectively, the former/the latter, There was/were, resulted in, trạng ngữ thời gian, từ nối. Các mục Passive Voice / There was/were / Time Clause / Contrast / Addition dùng đúng tên và công thức trong bảng cấu trúc câu của cô.
+- AI tự phân tích kỹ hơn khi mở trang (mỗi phiên bản bài một lần) và thêm **bài luyện tập** cho từng cấu trúc (viết lại câu, có đáp án).
+- Có trong “Sao chép bài học hoàn chỉnh” (mục 3, bảng màu + luyện tập + đáp án) và nút riêng “📋 Sao chép cấu trúc câu”.
+
 ## Dàn ý Ms. Gigi
 `js/gigi.js` chứa toàn bộ dàn ý từ tài liệu *IELTS WRITING Ms. Gigi*: 6 dạng (Line/Bar xu hướng, Bar/Pie/Table so sánh, Maps, Floor plan, Process nhân tạo, Process tự nhiên) với khung câu Introduction/Overview/Body 1/Body 2, quy tắc, từ vựng và bài mẫu, cùng các quy tắc chung (chủ thể, quy tắc “trọc lốc”, từ đồng nghĩa, so sánh 3 mức độ, nâng cấp Band 7+).
 - AI chọn đúng dàn ý cho đề, lập kế hoạch từng câu theo khung (giữ nguyên chữ cố định của khung, chỉ điền phần [..] bằng nội dung của đề); khung không hợp đề thì đổi và giải thích lý do.
@@ -55,6 +61,7 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 Sửa trong `src/index.html`, `css/`, `js/` rồi chạy `python3 build.py` để tạo lại `index.html` và `dist/task1-coach.html` (bản đăng claude.ai).
 
 - `js/content.js` – dàn ý & từ vựng Maps, bài mẫu
-- `js/ai.js` – gọi AI đọc đề, tạo gợi ý, soạn bài giảng & bài tập
+- `js/structures.js` – danh mục & nhận diện cấu trúc câu trong bài
+- `js/ai.js` – gọi AI đọc đề, tạo gợi ý, kiểm tra số liệu, chấm câu, phân tích cấu trúc câu, soạn bài giảng & bài tập
 - `js/lesson.js` – mục Bài giảng & bài tập
 - `js/app.js` – giao diện

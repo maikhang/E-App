@@ -193,6 +193,13 @@
             <div class="paper" id="paper"></div>
             <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm các bảng màu: thông tin đề → bài viết (mỗi đoạn một màu) → phân tích từng câu ↔ khung Ms. Gigi (ô vàng = khung đã đổi vì không hợp đề) → từ vựng → bảng paraphrase có nghĩa tiếng Việt. Dán vào Word, Google Docs, Gmail giữ nguyên bảng màu; dán vào Zalo/Messenger sẽ thành chữ thường có đánh số.</p>
           </div>
+          <div class="card structs-card">
+            <div class="row between">
+              <div><h3>🧩 Cấu trúc câu đã dùng trong bài</h3><p class="muted small" id="structs-meta">Ôn lại các cấu trúc em đã dùng — phần tô vàng là cấu trúc nằm trong câu của em.</p></div>
+              <div class="row"><button type="button" class="btn sm" id="btn-structs-ai">🤖 AI phân tích kỹ + bài luyện tập</button><button type="button" class="btn sm primary" id="btn-copy-structs">📋 Sao chép cấu trúc câu</button></div>
+            </div>
+            <div class="structs" id="structs"></div>
+          </div>
           <details class="card preview-card" open>
             <summary><h3>👁️ Xem trước bản gửi học sinh</h3><span class="muted small">Đúng như khi dán vào Word / Google Docs</span></summary>
             <div class="lesson-preview" id="lesson-preview"></div>
@@ -341,6 +348,7 @@
 
   <script src="js/content.js"></script>
   <script src="js/gigi.js"></script>
+  <script src="js/structures.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/lesson.js"></script>
   <script src="js/app.js"></script>

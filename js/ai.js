@@ -494,6 +494,54 @@ Reply with ONLY one JSON object:
     return analysis;
   }
 
+  /* Cấu trúc câu đã dùng trong bài: AI chỉ ra đúng chỗ trong bài + giải thích + bài luyện tập */
+  function buildStructPrompt({ sentences, band }) {
+    const S = window.STRUCTS;
+    return `You are an IELTS Writing Task 1 grammar teacher for Vietnamese students of Ms. Gigi. The student has finished the essay below. List the SENTENCE STRUCTURES actually used in it, so the student can review them.
+Target level: ${BAND[band] || BAND['7.0']}
+
+Essay sentences ([paragraph.sentence] text):
+${sentences.map(x => `[${x.p + 1}.${x.n + 1}] ${x.text}`).join('\n')}
+
+Structure catalogue (use these ids; "other" only for a useful structure not listed):
+${S.CATALOG.map(c => `- ${c.id}: ${c.name_en} — ${c.formula}`).join('\n')}
+
+Rules:
+- Only structures that really appear. Be precise: a reduced relative clause is a noun followed by a participle phrase without which/who (e.g. "houses located along the road", "people using buses"); "was located" is passive, not a reduced clause; ", reaching 40%" is a participle clause.
+- "part" must be copied EXACTLY (same words, same case) from that sentence and show the whole structure (e.g. the full which-clause), at most 14 words.
+- 6-10 structures, most useful for a high band first (complex structures before simple ones). Up to 3 examples each.
+- use_vi: 1-2 short Vietnamese sentences explaining how the structure works, using THIS essay.
+- practice: one small review exercise per structure in the same topic: "from" is a simpler sentence (or two short sentences) about the task data to rewrite with the structure; "to" is the model answer; q_vi is the Vietnamese instruction (e.g. "Rút gọn mệnh đề quan hệ trong câu sau"). Keep the data true to the essay.
+
+Reply with ONLY one JSON object:
+{ "items": [ { "id": "reduced_rel", "name_vi": "only for other", "name_en": "only for other", "formula": "only for other", "use_vi": "...", "examples": [ { "s": "3.2", "part": "exact words" } ], "practice": { "q_vi": "...", "from": "...", "to": "..." } } ] }`;
+  }
+  async function analyzeStructures({ sentences, band, signal }) {
+    const r = await ask(buildStructPrompt({ sentences, band }), null, signal, 'low');
+    const S = window.STRUCTS, byKey = {};
+    sentences.forEach(x => { byKey[`${x.p + 1}.${x.n + 1}`] = x; });
+    const items = (r && Array.isArray(r.items) ? r.items : []).map(it => {
+      const known = S.BY_ID[it && it.id];
+      if (!known && !(it && it.name_vi)) return null;
+      const examples = (Array.isArray(it.examples) ? it.examples : []).map(e => {
+        const s = byKey[String(e && e.s).trim()], part = String((e && e.part) || '').trim();
+        if (!s || !part) return null;
+        const at = s.text.toLowerCase().indexOf(part.toLowerCase());
+        return at < 0 ? null : { p: s.p, n: s.n, text: s.text, part: s.text.slice(at, at + part.length) };
+      }).filter(Boolean).slice(0, 3);
+      if (!examples.length) return null;
+      const pr = it.practice && it.practice.from && it.practice.to ? { q_vi: String(it.practice.q_vi || 'Viết lại câu dùng cấu trúc này'), from: String(it.practice.from), to: String(it.practice.to) } : null;
+      return {
+        id: known ? known.id : 'other',
+        name_vi: known ? known.name_vi : String(it.name_vi), name_en: known ? known.name_en : String(it.name_en || ''),
+        formula: known ? known.formula : String(it.formula || ''), use_vi: String(it.use_vi || (known && known.use_vi) || ''),
+        examples, practice: pr,
+      };
+    }).filter(Boolean);
+    if (!items.length) throw new Error('AI chưa tìm được cấu trúc câu trong bài. Thử lại.');
+    return items;
+  }
+
   async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
     const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
     if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
@@ -593,5 +641,5 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();

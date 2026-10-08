@@ -338,6 +338,22 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 111, 69, .45); } 100% { box-shadow: 0 0 0 12px rgba(47, 111, 69, 0); } }
 @media (prefers-reduced-motion: reduce) { .btn.pulse { animation: none; box-shadow: 0 0 0 3px var(--accent-soft); } }
 
+/* Cấu trúc câu đã dùng trong bài */
+.structs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; margin-top: 14px; }
+.structs-busy { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--muted); background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.st-item { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.st-head { display: flex; align-items: flex-start; gap: 10px; }
+.st-no { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 13px; }
+.st-formula { font-size: 13px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 5px 9px; }
+.st-use { font-size: 13px; color: var(--muted); }
+.st-ex { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-family: var(--font-essay); font-size: 15px; line-height: 1.6; }
+.st-where { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--pc); border: 1px solid currentColor; border-radius: 999px; padding: 0 7px; margin-right: 2px; vertical-align: 1px; }
+mark.st-hl { background: var(--mark); color: var(--mark-ink); font-weight: 600; }
+.st-prac { margin-top: 4px; font-size: 13px; background: var(--ink-soft); border-radius: 8px; padding: 8px 10px; }
+.st-from { font-family: var(--font-essay); font-size: 15px; margin-top: 2px; }
+.st-prac summary { cursor: pointer; color: var(--accent); font-weight: 600; margin-top: 4px; }
+.st-to { font-family: var(--font-essay); font-size: 15px; color: #136c3a; margin-top: 2px; }
+
 /* Xem trước bản gửi học sinh */
 .preview-card summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; list-style: none; }
 .preview-card summary::-webkit-details-marker { display: none; }
@@ -672,6 +688,13 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             </div>
             <div class="paper" id="paper"></div>
             <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm các bảng màu: thông tin đề → bài viết (mỗi đoạn một màu) → phân tích từng câu ↔ khung Ms. Gigi (ô vàng = khung đã đổi vì không hợp đề) → từ vựng → bảng paraphrase có nghĩa tiếng Việt. Dán vào Word, Google Docs, Gmail giữ nguyên bảng màu; dán vào Zalo/Messenger sẽ thành chữ thường có đánh số.</p>
+          </div>
+          <div class="card structs-card">
+            <div class="row between">
+              <div><h3>🧩 Cấu trúc câu đã dùng trong bài</h3><p class="muted small" id="structs-meta">Ôn lại các cấu trúc em đã dùng — phần tô vàng là cấu trúc nằm trong câu của em.</p></div>
+              <div class="row"><button type="button" class="btn sm" id="btn-structs-ai">🤖 AI phân tích kỹ + bài luyện tập</button><button type="button" class="btn sm primary" id="btn-copy-structs">📋 Sao chép cấu trúc câu</button></div>
+            </div>
+            <div class="structs" id="structs"></div>
           </div>
           <details class="card preview-card" open>
             <summary><h3>👁️ Xem trước bản gửi học sinh</h3><span class="muted small">Đúng như khi dán vào Word / Google Docs</span></summary>
@@ -1463,6 +1486,123 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
 })();
 </script>
   <script>
+/* 🧩 Cấu trúc câu đã dùng trong bài — để học sinh ôn lại sau khi viết xong.
+ * CATALOG: tên, công thức, cách dùng (5 cấu trúc trùng tên với bảng cấu trúc câu của Ms. Gigi).
+ * detect(): nhận diện nhanh bằng mẫu câu ngay trong trình duyệt; AI (ai.js → analyzeStructures)
+ * phân tích kỹ hơn và thêm bài luyện tập. */
+window.STRUCTS = (function () {
+  const AUX = 'is|are|was|were|be|been|being';
+  const IRREG = 'built|made|done|shown|given|taken|grown|cut|put|kept|left|known|seen|found|held|brought|sold|spent|driven|chosen|drawn|thrown|worn|run|set|laid|fed|dug|frozen|broken|written|eaten|split|spread|sent|bought|paid|lost|won|hung|ground|shut';
+  const PART = `(?:[a-z]+ed|${IRREG})`;
+  const PREP = 'in|on|at|by|to|next|near|along|between|from|for|over|across|around|into|beside|opposite|behind|alongside|close|through|towards|throughout';
+  // từ đứng trước KHÔNG phải danh từ → không phải mệnh đề quan hệ rút gọn
+  const NOT_NOUN = 'is|are|was|were|be|been|being|has|have|had|which|that|who|it|they|he|she|and|or|but|also|then|not|later|subsequently|newly|recently|still|already|further|largely|mainly|partly|completely|entirely|gradually|significantly|eventually|finally|once|when|while|after|before';
+
+  const CATALOG = [
+    { id: 'reduced_rel', name_vi: 'Mệnh đề quan hệ rút gọn', name_en: 'Reduced relative clause',
+      formula: 'N + V3/ed (bị động) · N + V-ing (chủ động)  =  N + which/who + be + V3 · N + which/who + V',
+      use_vi: 'Bỏ “which/who + to be” để câu gọn và học thuật hơn: “a school (which was) located in the centre”, “people (who were) using buses”.',
+      re: [new RegExp(`\\b(?!(?:${NOT_NOUN})\\b)(?![a-z]+ly\\b)[a-z]+\\s+(?:located|situated|positioned|placed|built|constructed|surrounded|used|made|known|called|connected|linked|designed|shown|given|found|represented|produced|consumed|owned|lying|running|leading|stretching|extending|connecting|bordered|lined|occupied)\\s+(?:${PREP})\\b`, 'i'),
+        /\b(?:people|commuters|students|residents|households|those|users|workers|visitors|tourists|passengers|men|women|children|adults|employees|consumers)\s+(?!were\b|was\b)[a-z]+ing\b/i] },
+    { id: 'participle', name_vi: 'Cụm V-ing sau dấu phẩy (rút gọn mệnh đề)', name_en: 'Participle clause',
+      formula: 'Mệnh đề chính, V-ing + O  (= …, and it + V / which + V)',
+      use_vi: 'Nối thêm kết quả hoặc số liệu vào cuối câu mà không cần “and/which”: “…, reaching a peak of 40% in 2020”.', extend: true,
+      re: [/,\s+(?!which\b|while\b|whereas\b|with\b|and\b|but\b|respectively\b|during\b|according\b|including\b|following\b|accounting\b)[a-z]+ing\b/i, /,\s+followed by\b/i, /,\s+accounting for\b/i] },
+    { id: 'adv_reduced', name_vi: 'Rút gọn mệnh đề trạng ngữ', name_en: 'Reduced adverbial clause',
+      formula: 'before / after / when + V-ing   ·   before being + V3 (bị động)',
+      use_vi: 'Hai hành động cùng chủ ngữ: bỏ chủ ngữ ở vế sau, động từ chuyển thành V-ing — hay dùng trong Process và Line graph.',
+      re: [/\b(?:before|after|when|while|once)\s+(?:being\s+)?[a-z]+(?:ing|ed)\b/i] },
+    { id: 'relative', name_vi: 'Mệnh đề quan hệ', name_en: 'Relative clause',
+      formula: 'N, which / who / where + V …',
+      use_vi: 'Thêm thông tin cho danh từ ngay trong câu, tránh viết thêm một câu ngắn: “…a residential area, which was located on both sides of a new road”.', extend: true,
+      re: [/\b(?:which|who|whose|where)\b/i] },
+    { id: 'passive', name_vi: 'Câu bị động', name_en: 'Passive Voice',
+      formula: 'S + was/were + V3   (Process: S + is/are + V3)',
+      use_vi: 'Khi vật/công trình chịu tác động, không cần nói ai làm: Maps — was built, was converted into; Process — is heated, are packed.',
+      re: [new RegExp(`\\b(?:${AUX})\\s+(?:[a-z]+ly\\s+)?${PART}\\b`, 'i')] },
+    { id: 'pres_perfect', name_vi: 'Thì hiện tại hoàn thành', name_en: 'Present perfect',
+      formula: 'S + has/have (+ been) + V3',
+      use_vi: 'Thay đổi kéo dài tới hiện tại (bản đồ “now / present”): “A car park has been built”.',
+      re: [/\b(?:has|have)\s+(?:[a-z]+ly\s+)?(?:been\s+)?(?:[a-z]+ed|built|made|grown|risen|fallen|seen|become|shown)\b/i] },
+    { id: 'contrast', name_vi: 'Câu đối lập', name_en: 'Contrast',
+      formula: 'S + V…, while / whereas S + V…   ·   In contrast, / However, S + V',
+      use_vi: 'Đặt hai đối tượng hoặc hai xu hướng ngược nhau trong cùng một câu để so sánh.', extend: true,
+      re: [/\b(?:while|whereas)\b(?!\s+[a-z]+ing\b)/i, /\b(?:In contrast|By contrast|Conversely|On the other hand|However)\b/] },
+    { id: 'with_np', name_vi: 'Cụm “with + danh từ”', name_en: 'With + noun phrase',
+      formula: 'Mệnh đề, with + N (+ V-ing / số liệu)',
+      use_vi: 'Gắn thêm chi tiết hoặc số liệu vào câu: “…, with the addition of new housing”, “…, with cars accounting for 60%”.', extend: true,
+      re: [/,\s*with\s+(?:the|a|an|[a-z]+)\b/i, /\bwith the (?:addition|construction|removal|exception|introduction|conversion|demolition|expansion|redevelopment)\b/i] },
+    { id: 'comparison', name_vi: 'So sánh hơn / so sánh nhất', name_en: 'Comparatives & superlatives',
+      formula: 'the highest / the largest + N  ·  adj-er / more … than  ·  twice as … as  ·  compared with',
+      use_vi: 'Task 1 luôn cần so sánh: chỉ ra cao nhất, thấp nhất, gấp bao nhiêu lần.',
+      re: [/\bthe\s+(?:highest|lowest|largest|smallest|biggest|greatest|most|least)\b/i, /\b[a-z]+er\s+than\b/i, /\b(?:more|less|fewer)\s+(?:[a-z]+\s+)?than\b/i, /\b(?:twice|three times|four times|half)\s+(?:as|the)\b/i, /\b(?:compared (?:with|to)|in comparison (?:with|to))\b/i] },
+    { id: 'nominal', name_vi: 'Danh từ hoá', name_en: 'Nominalisation',
+      formula: 'a + adj + increase/decrease in + N  ·  underwent / experienced + N  ·  the addition / construction of + N',
+      use_vi: 'Biến động từ thành cụm danh từ cho câu trang trọng, đa dạng hơn: “a sharp increase in…”, “underwent significant development”.',
+      re: [/\b(?:a|an)\s+(?:[a-z]+\s+)?(?:increase|decrease|rise|fall|drop|decline|growth|reduction|surge|dip|fluctuation)\s+(?:in|of)\b/i, /\b(?:underwent|undergone|experienced|saw|witnessed)\s+(?:[a-z]+\s+)?(?:development|changes?|transformation|growth|increase|decrease|decline|rise|fall|expansion)\b/i, /\bthe (?:addition|construction|removal|redevelopment|conversion|demolition|expansion|introduction) of\b/i] },
+    { id: 'trend', name_vi: 'Động từ xu hướng + trạng từ', name_en: 'Trend verbs & adverbs',
+      formula: 'S + rose / fell / increased + adv (sharply, steadily) + from X to Y / by X',
+      use_vi: 'Tả xu hướng có mức độ và số liệu đi kèm (from … to …, by …).',
+      re: [/\b(?:rose|fell|increased|decreased|declined|dropped|grew|climbed|plummeted|surged|soared|dipped|plunged|recovered|peaked|fluctuated|levell?ed off|stabili[sz]ed)\b(?:\s+[a-z]+ly)?(?:\s+(?:from|to|by)\s+(?:about\s+|around\s+|approximately\s+|just\s+)?[\d.,]*\d%?)?/i] },
+    { id: 'account', name_vi: 'Account for / make up (chỉ dùng với %)', name_en: 'Proportion verbs',
+      formula: 'S + accounted for / made up / constituted + %',
+      use_vi: 'Nói về tỷ lệ phần trăm của tổng (100%). Không dùng với số tuyệt đối.',
+      re: [/\b(?:accounted|accounts?|accounting)\s+for\b/i, /\b(?:made|makes?|making)\s+up\b/i, /\bconstitut(?:ed|es?|ing)\b/i] },
+    { id: 'respectively', name_vi: '“Respectively” — lần lượt là', name_en: 'Respectively',
+      formula: 'A and B + V + X and Y, respectively',
+      use_vi: 'Gộp số liệu của hai đối tượng vào một câu, thứ tự số khớp thứ tự đối tượng.',
+      re: [/\brespectively\b/i] },
+    { id: 'former_latter', name_vi: 'The former / the latter', name_en: 'Referencing',
+      formula: 'the former (cái trước) / the latter (cái sau)',
+      use_vi: 'Thay cho việc lặp lại danh từ vừa nhắc — tăng điểm Coherence.',
+      re: [/\bthe\s+(?:former|latter)\b/i] },
+    { id: 'there_be', name_vi: 'There was / were', name_en: 'There was/were',
+      formula: 'There + was/were + N',
+      use_vi: 'Giới thiệu sự tồn tại của công trình / số liệu.',
+      re: [/\b[Tt]here\s+(?:is|are|was|were|has been|have been|had been)\b/] },
+    { id: 'result', name_vi: 'Câu kết quả', name_en: 'Cause & result',
+      formula: 'S + resulted in / led to + N',
+      use_vi: 'Tóm lại hệ quả của các thay đổi (thường là câu cuối Body 2 dạng Maps).',
+      re: [/\b(?:resulted in|resulting in|led to|leading to)\b/i] },
+    { id: 'time', name_vi: 'Trạng ngữ thời gian đầu câu', name_en: 'Time Clause',
+      formula: 'In + [Year], S + V   ·   By + [Year], S + V',
+      use_vi: 'Mở câu bằng mốc thời gian để người đọc biết đang nói về năm nào. “By 2010” = tính đến năm 2010.',
+      start: /^(?:In|By|Between|From|Over|During|After|Before|Throughout|Since)\s+(?:the\s+)?(?:\d{4}|[a-z]+\s+(?:period|decade|years|century))[^,]*,?/ },
+    { id: 'addition', name_vi: 'Từ nối thêm ý / thứ tự', name_en: 'Addition',
+      formula: 'Moreover, / Additionally, / In addition, S + V   ·   First, / Next, / Finally,',
+      use_vi: 'Nối ý giữa các câu cho mạch lạc; Process dùng từ chỉ thứ tự.',
+      start: /^(?:Additionally|Moreover|In addition|Furthermore|Firstly|First|Next|Then|After that|Subsequently|Finally|Meanwhile|Similarly|Likewise|Following this|At the next stage)\b,?/ },
+  ];
+  const BY_ID = Object.fromEntries(CATALOG.map(c => [c.id, c]));
+
+  // sentences: [{ p, n, text }] → [{ id, examples: [{ p, n, text, part }] }] theo thứ tự trong CATALOG
+  function detect(sentences, maxEx = 3) {
+    const out = [];
+    for (const c of CATALOG) {
+      const ex = [];
+      for (const s of sentences) {
+        let m = null;
+        if (c.start) m = s.text.match(c.start);
+        else for (const re of c.re) { m = s.text.match(re); if (m) break; }
+        if (!m || m[0].trim().length < 2) continue;
+        let part = m[0];
+        // mệnh đề (which…, while…, with…, , V-ing…) → tô cả cụm tới dấu câu kế tiếp (tối đa 12 từ)
+        if (c.extend) {
+          part = s.text.slice(m.index).replace(/^[,\s]+/, '').match(/^[^,.;:]*/)[0].split(/\s+/).slice(0, 12).join(' ');
+          while (/\s(?:and|or|the|a|an|of|to|in|on|at|for|with|by)$/i.test(part)) part = part.replace(/\s+\S+$/, '');
+        }
+        part = part.replace(/^[,\s]+|[,\s]+$/g, '');
+        if (part && s.text.includes(part)) ex.push({ p: s.p, n: s.n, text: s.text, part });
+        if (ex.length >= maxEx) break;
+      }
+      if (ex.length) out.push({ id: c.id, examples: ex });
+    }
+    return out;
+  }
+  return { CATALOG, BY_ID, detect };
+})();
+</script>
+  <script>
 /* AI đọc đề & tạo gợi ý bám sát đề cho IELTS Writing Task 1.
  *  - Mở trong claude.ai: dùng Claude của người xem (capability `sample`), không cần API key.
  *  - Mở file riêng: cần Anthropic API key (lưu trong trình duyệt). */
@@ -1959,6 +2099,54 @@ Reply with ONLY one JSON object:
     return analysis;
   }
 
+  /* Cấu trúc câu đã dùng trong bài: AI chỉ ra đúng chỗ trong bài + giải thích + bài luyện tập */
+  function buildStructPrompt({ sentences, band }) {
+    const S = window.STRUCTS;
+    return `You are an IELTS Writing Task 1 grammar teacher for Vietnamese students of Ms. Gigi. The student has finished the essay below. List the SENTENCE STRUCTURES actually used in it, so the student can review them.
+Target level: ${BAND[band] || BAND['7.0']}
+
+Essay sentences ([paragraph.sentence] text):
+${sentences.map(x => `[${x.p + 1}.${x.n + 1}] ${x.text}`).join('\n')}
+
+Structure catalogue (use these ids; "other" only for a useful structure not listed):
+${S.CATALOG.map(c => `- ${c.id}: ${c.name_en} — ${c.formula}`).join('\n')}
+
+Rules:
+- Only structures that really appear. Be precise: a reduced relative clause is a noun followed by a participle phrase without which/who (e.g. "houses located along the road", "people using buses"); "was located" is passive, not a reduced clause; ", reaching 40%" is a participle clause.
+- "part" must be copied EXACTLY (same words, same case) from that sentence and show the whole structure (e.g. the full which-clause), at most 14 words.
+- 6-10 structures, most useful for a high band first (complex structures before simple ones). Up to 3 examples each.
+- use_vi: 1-2 short Vietnamese sentences explaining how the structure works, using THIS essay.
+- practice: one small review exercise per structure in the same topic: "from" is a simpler sentence (or two short sentences) about the task data to rewrite with the structure; "to" is the model answer; q_vi is the Vietnamese instruction (e.g. "Rút gọn mệnh đề quan hệ trong câu sau"). Keep the data true to the essay.
+
+Reply with ONLY one JSON object:
+{ "items": [ { "id": "reduced_rel", "name_vi": "only for other", "name_en": "only for other", "formula": "only for other", "use_vi": "...", "examples": [ { "s": "3.2", "part": "exact words" } ], "practice": { "q_vi": "...", "from": "...", "to": "..." } } ] }`;
+  }
+  async function analyzeStructures({ sentences, band, signal }) {
+    const r = await ask(buildStructPrompt({ sentences, band }), null, signal, 'low');
+    const S = window.STRUCTS, byKey = {};
+    sentences.forEach(x => { byKey[`${x.p + 1}.${x.n + 1}`] = x; });
+    const items = (r && Array.isArray(r.items) ? r.items : []).map(it => {
+      const known = S.BY_ID[it && it.id];
+      if (!known && !(it && it.name_vi)) return null;
+      const examples = (Array.isArray(it.examples) ? it.examples : []).map(e => {
+        const s = byKey[String(e && e.s).trim()], part = String((e && e.part) || '').trim();
+        if (!s || !part) return null;
+        const at = s.text.toLowerCase().indexOf(part.toLowerCase());
+        return at < 0 ? null : { p: s.p, n: s.n, text: s.text, part: s.text.slice(at, at + part.length) };
+      }).filter(Boolean).slice(0, 3);
+      if (!examples.length) return null;
+      const pr = it.practice && it.practice.from && it.practice.to ? { q_vi: String(it.practice.q_vi || 'Viết lại câu dùng cấu trúc này'), from: String(it.practice.from), to: String(it.practice.to) } : null;
+      return {
+        id: known ? known.id : 'other',
+        name_vi: known ? known.name_vi : String(it.name_vi), name_en: known ? known.name_en : String(it.name_en || ''),
+        formula: known ? known.formula : String(it.formula || ''), use_vi: String(it.use_vi || (known && known.use_vi) || ''),
+        examples, practice: pr,
+      };
+    }).filter(Boolean);
+    if (!items.length) throw new Error('AI chưa tìm được cấu trúc câu trong bài. Thử lại.');
+    return items;
+  }
+
   async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
     const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
     if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
@@ -2058,7 +2246,7 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -2633,7 +2821,7 @@ window.LESSON = (function () {
 </script>
   <script>
 (function () {
-  const C = window.CONTENT, G = window.GIGI;
+  const C = window.CONTENT, G = window.GIGI, STRUCTS = window.STRUCTS;
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE = 'e-app.task1.v2';
@@ -2643,7 +2831,7 @@ window.LESSON = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, structs: null, isDemo: false };
   }
   let S = load();
   function load() {
@@ -3238,6 +3426,7 @@ window.LESSON = (function () {
         vocab: (a.steps && a.steps[k] && a.steps[k].vocab) || [],
       })),
       paraphrase: a.paraphrase || [],
+      structs: (ensureStructs() || { items: [] }).items,
     };
   }
   const NUM = ['①', '②', '③', '④'];
@@ -3267,8 +3456,9 @@ window.LESSON = (function () {
       x.skipped.forEach(sk => out.push(`  (Không dùng K${sk.f}: ${sk.why_vi})`));
       if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
     });
+    out.push(...structsPlain(d.structs, 3));
     if (d.paraphrase.length) {
-      out.push('', line, '🔁 3. TỪ PARAPHRASE (từ trong đề → cách viết khác)', line);
+      out.push('', line, `🔁 ${d.structs.length ? 4 : 3}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
       d.paraphrase.forEach(x => out.push(`• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
         ...x.alternatives.map(v => `   → ${v.phrase}${v.meaning_vi ? ' (' + v.meaning_vi + ')' : ''}${v.note_vi ? ' – ' + v.note_vi : ''}`)));
     }
@@ -3326,8 +3516,9 @@ window.LESSON = (function () {
       h += table(rows);
     });
 
+    h += structsHtml(d.structs, 3);
     if (d.paraphrase.length) {
-      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)');
+      h += h2(`🔁 ${d.structs.length ? 4 : 3}. Từ paraphrase (từ trong đề → cách viết khác)`);
       const hd = 'background:#2f6f45;color:#ffffff;border-color:#2f6f45';
       let rows = `<tr>${th('Từ trong đề', hd)}${th('Nghĩa', hd)}${th('Cách viết khác', hd)}${th('Nghĩa', hd)}${th('Lưu ý', hd)}</tr>`;
       d.paraphrase.forEach((x, n) => {
@@ -3369,7 +3560,126 @@ window.LESSON = (function () {
       <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
+    renderStructs();
     $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
+    // Lần đầu xem bài hoàn chỉnh: AI phân tích kỹ cấu trúc câu (mỗi phiên bản bài một lần)
+    if (S.structs && S.structs.source === 'local' && !structTried.has(S.structs.essay)) structsAI(true);
+  }
+
+  /* ---------- Cấu trúc câu đã dùng trong bài (ôn lại) ---------- */
+  function essaySentences() {
+    const out = [];
+    STEP_NAMES.forEach((_, p) => {
+      const ps = picksOf(p).filter(x => x && x.text);
+      const list = ps.length ? ps.map(x => x.text.trim()) : (S.paras[p] || '').split(/(?<=[.!?])\s+/).filter(Boolean);
+      list.forEach((text, n) => out.push({ p, n, text }));
+    });
+    return out;
+  }
+  let structBusy = false;
+  const structTried = new Set();
+  // Kết quả gắn với đúng nội dung bài: bài đổi thì nhận diện lại
+  function ensureStructs() {
+    const essay = essayText();
+    if (!essay) return null;
+    if (!S.structs || S.structs.essay !== essay) {
+      const items = STRUCTS.detect(essaySentences()).map(x => {
+        const c = STRUCTS.BY_ID[x.id];
+        return { id: c.id, name_vi: c.name_vi, name_en: c.name_en, formula: c.formula, use_vi: c.use_vi, examples: x.examples, practice: null };
+      });
+      S.structs = { essay, source: 'local', items };
+      save();
+    }
+    return S.structs;
+  }
+  function hlPart(text, part) {
+    const at = text.indexOf(part);
+    return at < 0 ? esc(text) : `${esc(text.slice(0, at))}<mark class="st-hl">${esc(part)}</mark>${esc(text.slice(at + part.length))}`;
+  }
+  function renderStructs() {
+    const st = ensureStructs(), box = $('#structs');
+    $('#btn-structs-ai').hidden = !st || st.source === 'ai';
+    $('#btn-structs-ai').disabled = structBusy;
+    if (!st) { box.innerHTML = '<p class="muted">Chưa có bài viết.</p>'; return; }
+    $('#structs-meta').textContent = st.source === 'ai'
+      ? 'AI đã chỉ ra các cấu trúc trong bài, kèm bài luyện tập để ôn lại. Phần tô vàng là cấu trúc nằm trong câu của em.'
+      : 'Nhận diện nhanh theo mẫu câu — phần tô vàng là cấu trúc nằm trong câu của em. Bấm “AI phân tích kỹ” để AI kiểm tra lại và thêm bài luyện tập.';
+    box.innerHTML = (structBusy ? '<p class="structs-busy" role="status"><span class="spinner"></span> AI đang phân tích kỹ các cấu trúc câu trong bài…</p>' : '') +
+      (st.items.length ? st.items.map((it, k) => `<div class="st-item">
+        <div class="st-head"><span class="st-no">${k + 1}</span><div><b>${esc(it.name_vi)}</b>${it.name_en ? ` <span class="muted small">· ${esc(it.name_en)}</span>` : ''}</div></div>
+        ${it.formula ? `<p class="st-formula">📐 ${esc(it.formula)}</p>` : ''}
+        ${it.use_vi ? `<p class="st-use">${esc(it.use_vi)}</p>` : ''}
+        <ul class="st-ex">${it.examples.map(e => `<li><span class="st-where" style="--pc:${PCOLOR[e.p]}">${STEP_NAMES[e.p]} · câu ${e.n + 1}</span> ${hlPart(e.text, e.part)}</li>`).join('')}</ul>
+        ${it.practice ? `<div class="st-prac"><b>✍️ Luyện tập:</b> ${esc(it.practice.q_vi)}<p class="st-from">${esc(it.practice.from)}</p><details><summary>Xem đáp án</summary><p class="st-to">→ ${esc(it.practice.to)}</p></details></div>` : ''}
+      </div>`).join('') : '<p class="muted">Chưa nhận ra cấu trúc nào trong bài.</p>');
+  }
+  async function structsAI(auto) {
+    const st = ensureStructs();
+    if (!st || structBusy) return;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { if (!auto) openKey(); return; }
+    structBusy = true; structTried.add(st.essay);
+    if (S.view === 'review') renderStructs();
+    try {
+      const items = await AI.analyzeStructures({ sentences: essaySentences(), band: S.band });
+      if (S.structs && S.structs.essay === st.essay) { S.structs = { essay: st.essay, source: 'ai', items }; save(); }
+      if (!auto) toast('AI đã phân tích xong cấu trúc câu trong bài.');
+    } catch (e) {
+      if (!auto) toast('⚠️ ' + (e.message || 'AI chưa phân tích được cấu trúc câu. Thử lại.'), 4000);
+    } finally {
+      structBusy = false;
+      if (S.view === 'review') renderReview();
+    }
+  }
+  // Phần “Cấu trúc câu” dùng chung cho bản sao chép bài học và nút sao chép riêng
+  function structsPlain(items, no) {
+    if (!items.length) return [];
+    const line = '━━━━━━━━━━━━━━━━━━━━';
+    const out = ['', line, `🧩 ${no ? no + '. ' : ''}CẤU TRÚC CÂU ĐÃ DÙNG TRONG BÀI (phần trong [ ] là cấu trúc)`, line];
+    items.forEach((it, k) => {
+      out.push('', `${k + 1}) ${it.name_vi}${it.name_en ? ' (' + it.name_en + ')' : ''}`);
+      if (it.formula) out.push(`   Công thức: ${it.formula}`);
+      if (it.use_vi) out.push(`   Cách dùng: ${it.use_vi}`);
+      it.examples.forEach(e => out.push(`   • ${STEP_NAMES[e.p]} · câu ${e.n + 1}: ${e.text.replace(e.part, () => '[' + e.part + ']')}`));
+    });
+    const prac = items.filter(it => it.practice);
+    if (prac.length) {
+      out.push('', '✍️ LUYỆN TẬP CẤU TRÚC');
+      prac.forEach((it, k) => out.push(`${k + 1}. ${it.practice.q_vi}: ${it.practice.from}`));
+      out.push('', '🔑 ĐÁP ÁN');
+      prac.forEach((it, k) => out.push(`${k + 1}. ${it.practice.to}`));
+    }
+    return out;
+  }
+  function structsHtml(items, no) {
+    if (!items.length) return '';
+    const B = '1px solid #d5dfd0';
+    const td = (x, st) => `<td style="border:${B};padding:7px 9px;vertical-align:top;${st || ''}">${x}</td>`;
+    const hd = 'background:#2f6f45;color:#ffffff;border:1px solid #2f6f45;padding:7px 9px;text-align:left';
+    const mark = e => { const at = e.text.indexOf(e.part); return at < 0 ? esc(e.text) : `${esc(e.text.slice(0, at))}<span style="background:#fff0b3;font-weight:bold">${esc(e.part)}</span>${esc(e.text.slice(at + e.part.length))}`; };
+    let h = `<h2 style="font-size:17px;margin:22px 0 8px;color:#2f6f45;border-bottom:3px solid #2f6f45;padding-bottom:4px">🧩 ${no ? no + '. ' : ''}Cấu trúc câu đã dùng trong bài</h2>
+      <p style="margin:0 0 10px;color:#5b6957">Phần <span style="background:#fff0b3;font-weight:bold">tô vàng</span> là cấu trúc nằm trong câu của em — đọc lại công thức rồi làm phần luyện tập.</p>
+      <table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5"><tr><th style="${hd};width:28px">#</th><th style="${hd};width:22%">Cấu trúc</th><th style="${hd};width:32%">Công thức &amp; cách dùng</th><th style="${hd}">Ví dụ trong bài</th></tr>`;
+    items.forEach((it, k) => {
+      const bg = k % 2 ? '#ffffff' : '#f3f8f0';
+      h += `<tr>${td(`<b>${k + 1}</b>`, `background:${bg}`)}${td(`<b>${esc(it.name_vi)}</b>${it.name_en ? `<br><span style="color:#5b6957;font-size:12px">${esc(it.name_en)}</span>` : ''}`, `background:${bg}`)}${td(`${it.formula ? `<b style="color:#2f6f45">${esc(it.formula)}</b><br>` : ''}${esc(it.use_vi || '')}`, `background:${bg}`)}${td(it.examples.map(e => `<div style="margin-bottom:4px"><span style="font-size:11px;font-weight:bold;color:${PCOLOR[e.p]}">${STEP_NAMES[e.p]} · câu ${e.n + 1}</span><br><span style="font-family:Georgia,'Times New Roman',serif;font-size:15px">${mark(e)}</span></div>`).join(''), `background:${bg}`)}</tr>`;
+    });
+    h += '</table>';
+    const prac = items.filter(it => it.practice);
+    if (prac.length) {
+      h += `<h3 style="font-size:15px;margin:12px 0 6px;color:#2f6f45">✍️ Luyện tập cấu trúc</h3><ol style="margin:0 0 10px;padding-left:22px">${prac.map(it => `<li style="margin-bottom:6px"><b>${esc(it.practice.q_vi)}</b><br><span style="font-family:Georgia,'Times New Roman',serif">${esc(it.practice.from)}</span></li>`).join('')}</ol>
+        <h3 style="font-size:15px;margin:12px 0 6px;color:#2f6f45">🔑 Đáp án</h3><ol style="margin:0 0 10px;padding-left:22px">${prac.map(it => `<li style="margin-bottom:4px;font-family:Georgia,'Times New Roman',serif">${esc(it.practice.to)}</li>`).join('')}</ol>`;
+    }
+    return h;
+  }
+  function copyStructs() {
+    const st = ensureStructs();
+    if (!st || !st.items.length) { toast('Chưa có cấu trúc câu để sao chép.'); return; }
+    const a = S.analysis || {};
+    const title = `📘 Ms. Nhi Gigi · Ôn cấu trúc câu${a.subject ? ' · ' + a.subject : ''}`;
+    copyRich([title].concat(structsPlain(st.items, '')).join('\n'),
+      `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px"><h1 style="font-size:20px;margin:0 0 4px">${esc(title)}</h1>${structsHtml(st.items, '')}</div>`,
+      'Đã sao chép cấu trúc câu + bài luyện tập — gửi học sinh ôn lại.');
   }
   function essayText() {
     return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
@@ -3493,6 +3803,8 @@ window.LESSON = (function () {
         return;
       }
       case 'btn-copy-lesson': copyLesson(); return;
+      case 'btn-structs-ai': structsAI(false); return;
+      case 'btn-copy-structs': copyStructs(); return;
       case 'btn-copy-all': {
         const txt = essayText();
         if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }

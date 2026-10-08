@@ -1,5 +1,5 @@
 (function () {
-  const C = window.CONTENT, G = window.GIGI;
+  const C = window.CONTENT, G = window.GIGI, STRUCTS = window.STRUCTS;
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const STORE = 'e-app.task1.v2';
@@ -9,7 +9,7 @@
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, structs: null, isDemo: false };
   }
   let S = load();
   function load() {
@@ -604,6 +604,7 @@
         vocab: (a.steps && a.steps[k] && a.steps[k].vocab) || [],
       })),
       paraphrase: a.paraphrase || [],
+      structs: (ensureStructs() || { items: [] }).items,
     };
   }
   const NUM = ['①', '②', '③', '④'];
@@ -633,8 +634,9 @@
       x.skipped.forEach(sk => out.push(`  (Không dùng K${sk.f}: ${sk.why_vi})`));
       if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
     });
+    out.push(...structsPlain(d.structs, 3));
     if (d.paraphrase.length) {
-      out.push('', line, '🔁 3. TỪ PARAPHRASE (từ trong đề → cách viết khác)', line);
+      out.push('', line, `🔁 ${d.structs.length ? 4 : 3}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
       d.paraphrase.forEach(x => out.push(`• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
         ...x.alternatives.map(v => `   → ${v.phrase}${v.meaning_vi ? ' (' + v.meaning_vi + ')' : ''}${v.note_vi ? ' – ' + v.note_vi : ''}`)));
     }
@@ -692,8 +694,9 @@
       h += table(rows);
     });
 
+    h += structsHtml(d.structs, 3);
     if (d.paraphrase.length) {
-      h += h2('🔁 3. Từ paraphrase (từ trong đề → cách viết khác)');
+      h += h2(`🔁 ${d.structs.length ? 4 : 3}. Từ paraphrase (từ trong đề → cách viết khác)`);
       const hd = 'background:#2f6f45;color:#ffffff;border-color:#2f6f45';
       let rows = `<tr>${th('Từ trong đề', hd)}${th('Nghĩa', hd)}${th('Cách viết khác', hd)}${th('Nghĩa', hd)}${th('Lưu ý', hd)}</tr>`;
       d.paraphrase.forEach((x, n) => {
@@ -735,7 +738,126 @@
       <h3><span>Đoạn ${k + 1}: ${n}</span><a href="#" class="edit" data-edit="${k}">Sửa đoạn này</a></h3>
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
+    renderStructs();
     $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
+    // Lần đầu xem bài hoàn chỉnh: AI phân tích kỹ cấu trúc câu (mỗi phiên bản bài một lần)
+    if (S.structs && S.structs.source === 'local' && !structTried.has(S.structs.essay)) structsAI(true);
+  }
+
+  /* ---------- Cấu trúc câu đã dùng trong bài (ôn lại) ---------- */
+  function essaySentences() {
+    const out = [];
+    STEP_NAMES.forEach((_, p) => {
+      const ps = picksOf(p).filter(x => x && x.text);
+      const list = ps.length ? ps.map(x => x.text.trim()) : (S.paras[p] || '').split(/(?<=[.!?])\s+/).filter(Boolean);
+      list.forEach((text, n) => out.push({ p, n, text }));
+    });
+    return out;
+  }
+  let structBusy = false;
+  const structTried = new Set();
+  // Kết quả gắn với đúng nội dung bài: bài đổi thì nhận diện lại
+  function ensureStructs() {
+    const essay = essayText();
+    if (!essay) return null;
+    if (!S.structs || S.structs.essay !== essay) {
+      const items = STRUCTS.detect(essaySentences()).map(x => {
+        const c = STRUCTS.BY_ID[x.id];
+        return { id: c.id, name_vi: c.name_vi, name_en: c.name_en, formula: c.formula, use_vi: c.use_vi, examples: x.examples, practice: null };
+      });
+      S.structs = { essay, source: 'local', items };
+      save();
+    }
+    return S.structs;
+  }
+  function hlPart(text, part) {
+    const at = text.indexOf(part);
+    return at < 0 ? esc(text) : `${esc(text.slice(0, at))}<mark class="st-hl">${esc(part)}</mark>${esc(text.slice(at + part.length))}`;
+  }
+  function renderStructs() {
+    const st = ensureStructs(), box = $('#structs');
+    $('#btn-structs-ai').hidden = !st || st.source === 'ai';
+    $('#btn-structs-ai').disabled = structBusy;
+    if (!st) { box.innerHTML = '<p class="muted">Chưa có bài viết.</p>'; return; }
+    $('#structs-meta').textContent = st.source === 'ai'
+      ? 'AI đã chỉ ra các cấu trúc trong bài, kèm bài luyện tập để ôn lại. Phần tô vàng là cấu trúc nằm trong câu của em.'
+      : 'Nhận diện nhanh theo mẫu câu — phần tô vàng là cấu trúc nằm trong câu của em. Bấm “AI phân tích kỹ” để AI kiểm tra lại và thêm bài luyện tập.';
+    box.innerHTML = (structBusy ? '<p class="structs-busy" role="status"><span class="spinner"></span> AI đang phân tích kỹ các cấu trúc câu trong bài…</p>' : '') +
+      (st.items.length ? st.items.map((it, k) => `<div class="st-item">
+        <div class="st-head"><span class="st-no">${k + 1}</span><div><b>${esc(it.name_vi)}</b>${it.name_en ? ` <span class="muted small">· ${esc(it.name_en)}</span>` : ''}</div></div>
+        ${it.formula ? `<p class="st-formula">📐 ${esc(it.formula)}</p>` : ''}
+        ${it.use_vi ? `<p class="st-use">${esc(it.use_vi)}</p>` : ''}
+        <ul class="st-ex">${it.examples.map(e => `<li><span class="st-where" style="--pc:${PCOLOR[e.p]}">${STEP_NAMES[e.p]} · câu ${e.n + 1}</span> ${hlPart(e.text, e.part)}</li>`).join('')}</ul>
+        ${it.practice ? `<div class="st-prac"><b>✍️ Luyện tập:</b> ${esc(it.practice.q_vi)}<p class="st-from">${esc(it.practice.from)}</p><details><summary>Xem đáp án</summary><p class="st-to">→ ${esc(it.practice.to)}</p></details></div>` : ''}
+      </div>`).join('') : '<p class="muted">Chưa nhận ra cấu trúc nào trong bài.</p>');
+  }
+  async function structsAI(auto) {
+    const st = ensureStructs();
+    if (!st || structBusy) return;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { if (!auto) openKey(); return; }
+    structBusy = true; structTried.add(st.essay);
+    if (S.view === 'review') renderStructs();
+    try {
+      const items = await AI.analyzeStructures({ sentences: essaySentences(), band: S.band });
+      if (S.structs && S.structs.essay === st.essay) { S.structs = { essay: st.essay, source: 'ai', items }; save(); }
+      if (!auto) toast('AI đã phân tích xong cấu trúc câu trong bài.');
+    } catch (e) {
+      if (!auto) toast('⚠️ ' + (e.message || 'AI chưa phân tích được cấu trúc câu. Thử lại.'), 4000);
+    } finally {
+      structBusy = false;
+      if (S.view === 'review') renderReview();
+    }
+  }
+  // Phần “Cấu trúc câu” dùng chung cho bản sao chép bài học và nút sao chép riêng
+  function structsPlain(items, no) {
+    if (!items.length) return [];
+    const line = '━━━━━━━━━━━━━━━━━━━━';
+    const out = ['', line, `🧩 ${no ? no + '. ' : ''}CẤU TRÚC CÂU ĐÃ DÙNG TRONG BÀI (phần trong [ ] là cấu trúc)`, line];
+    items.forEach((it, k) => {
+      out.push('', `${k + 1}) ${it.name_vi}${it.name_en ? ' (' + it.name_en + ')' : ''}`);
+      if (it.formula) out.push(`   Công thức: ${it.formula}`);
+      if (it.use_vi) out.push(`   Cách dùng: ${it.use_vi}`);
+      it.examples.forEach(e => out.push(`   • ${STEP_NAMES[e.p]} · câu ${e.n + 1}: ${e.text.replace(e.part, () => '[' + e.part + ']')}`));
+    });
+    const prac = items.filter(it => it.practice);
+    if (prac.length) {
+      out.push('', '✍️ LUYỆN TẬP CẤU TRÚC');
+      prac.forEach((it, k) => out.push(`${k + 1}. ${it.practice.q_vi}: ${it.practice.from}`));
+      out.push('', '🔑 ĐÁP ÁN');
+      prac.forEach((it, k) => out.push(`${k + 1}. ${it.practice.to}`));
+    }
+    return out;
+  }
+  function structsHtml(items, no) {
+    if (!items.length) return '';
+    const B = '1px solid #d5dfd0';
+    const td = (x, st) => `<td style="border:${B};padding:7px 9px;vertical-align:top;${st || ''}">${x}</td>`;
+    const hd = 'background:#2f6f45;color:#ffffff;border:1px solid #2f6f45;padding:7px 9px;text-align:left';
+    const mark = e => { const at = e.text.indexOf(e.part); return at < 0 ? esc(e.text) : `${esc(e.text.slice(0, at))}<span style="background:#fff0b3;font-weight:bold">${esc(e.part)}</span>${esc(e.text.slice(at + e.part.length))}`; };
+    let h = `<h2 style="font-size:17px;margin:22px 0 8px;color:#2f6f45;border-bottom:3px solid #2f6f45;padding-bottom:4px">🧩 ${no ? no + '. ' : ''}Cấu trúc câu đã dùng trong bài</h2>
+      <p style="margin:0 0 10px;color:#5b6957">Phần <span style="background:#fff0b3;font-weight:bold">tô vàng</span> là cấu trúc nằm trong câu của em — đọc lại công thức rồi làm phần luyện tập.</p>
+      <table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5"><tr><th style="${hd};width:28px">#</th><th style="${hd};width:22%">Cấu trúc</th><th style="${hd};width:32%">Công thức &amp; cách dùng</th><th style="${hd}">Ví dụ trong bài</th></tr>`;
+    items.forEach((it, k) => {
+      const bg = k % 2 ? '#ffffff' : '#f3f8f0';
+      h += `<tr>${td(`<b>${k + 1}</b>`, `background:${bg}`)}${td(`<b>${esc(it.name_vi)}</b>${it.name_en ? `<br><span style="color:#5b6957;font-size:12px">${esc(it.name_en)}</span>` : ''}`, `background:${bg}`)}${td(`${it.formula ? `<b style="color:#2f6f45">${esc(it.formula)}</b><br>` : ''}${esc(it.use_vi || '')}`, `background:${bg}`)}${td(it.examples.map(e => `<div style="margin-bottom:4px"><span style="font-size:11px;font-weight:bold;color:${PCOLOR[e.p]}">${STEP_NAMES[e.p]} · câu ${e.n + 1}</span><br><span style="font-family:Georgia,'Times New Roman',serif;font-size:15px">${mark(e)}</span></div>`).join(''), `background:${bg}`)}</tr>`;
+    });
+    h += '</table>';
+    const prac = items.filter(it => it.practice);
+    if (prac.length) {
+      h += `<h3 style="font-size:15px;margin:12px 0 6px;color:#2f6f45">✍️ Luyện tập cấu trúc</h3><ol style="margin:0 0 10px;padding-left:22px">${prac.map(it => `<li style="margin-bottom:6px"><b>${esc(it.practice.q_vi)}</b><br><span style="font-family:Georgia,'Times New Roman',serif">${esc(it.practice.from)}</span></li>`).join('')}</ol>
+        <h3 style="font-size:15px;margin:12px 0 6px;color:#2f6f45">🔑 Đáp án</h3><ol style="margin:0 0 10px;padding-left:22px">${prac.map(it => `<li style="margin-bottom:4px;font-family:Georgia,'Times New Roman',serif">${esc(it.practice.to)}</li>`).join('')}</ol>`;
+    }
+    return h;
+  }
+  function copyStructs() {
+    const st = ensureStructs();
+    if (!st || !st.items.length) { toast('Chưa có cấu trúc câu để sao chép.'); return; }
+    const a = S.analysis || {};
+    const title = `📘 Ms. Nhi Gigi · Ôn cấu trúc câu${a.subject ? ' · ' + a.subject : ''}`;
+    copyRich([title].concat(structsPlain(st.items, '')).join('\n'),
+      `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px"><h1 style="font-size:20px;margin:0 0 4px">${esc(title)}</h1>${structsHtml(st.items, '')}</div>`,
+      'Đã sao chép cấu trúc câu + bài luyện tập — gửi học sinh ôn lại.');
   }
   function essayText() {
     return S.paras.map(p => p.trim()).filter(Boolean).join('\n\n');
@@ -859,6 +981,8 @@
         return;
       }
       case 'btn-copy-lesson': copyLesson(); return;
+      case 'btn-structs-ai': structsAI(false); return;
+      case 'btn-copy-structs': copyStructs(); return;
       case 'btn-copy-all': {
         const txt = essayText();
         if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }
