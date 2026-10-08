@@ -321,5 +321,95 @@ Reply with ONLY one JSON object: { "options": [ [ { "f": 1, "text": "..." }, ...
     return n;
   }
 
-  return { readImage, ocr, analyze, regenerate, available, getKey, setKey };
+  /* ---------- Bài giảng & bài tập làm quen biểu đồ ---------- */
+  const EX_TYPES = {
+    mcq: 'Đọc biểu đồ — trắc nghiệm về số liệu (cao nhất/thấp nhất, xu hướng, so sánh)',
+    tf: 'Đúng / Sai / Không có thông tin về biểu đồ',
+    match: 'Nối từ trong đề với từ paraphrase',
+    gap: 'Điền từ vào câu theo khung Ms. Gigi (có ngân hàng từ)',
+    order: 'Sắp xếp cụm từ thành câu đúng khung',
+    write: 'Viết câu theo khung cho từng đoạn (có bài mẫu)',
+  };
+  const LESSON_SHAPE = `{
+  "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "outline": "trend" | "compare" | "maps" | "floorplan" | "process_man" | "process_nat",
+  "subject": "exact subject in English",
+  "topic_vi": "one Vietnamese sentence: what the visual shows",
+  "prompt_text": "the task question if visible, else ''",
+  "lesson": {
+    "objectives_vi": ["2-3 lesson objectives in Vietnamese"],
+    "reading_steps": [ { "q_vi": "guided question to read the visual (Vietnamese)", "a": "answer (Vietnamese, with the real figures)" } ],   // 5-7 questions: what it shows, units, time/categories, highest, lowest, main trend/change, special point
+    "key_features": ["3-5 key features in Vietnamese with real figures"],
+    "plan": [ { "step": "intro" | "overview" | "body1" | "body2", "focus_vi": "what this paragraph covers and which data (Vietnamese)", "model": [ { "f": 1, "text": "model sentence written from frame F1" } ] } ],   // exactly 4 items in order
+    "vocab": [ { "phrase": "...", "meaning_vi": "...", "example": "example sentence about THIS visual" } ],   // 8-12 items
+    "mistakes_vi": ["3-4 common mistakes on this visual and the correct form"]
+  },
+  "paraphrase": [ { "word": "...", "meaning_vi": "...", "alternatives": [ { "phrase": "...", "meaning_vi": "...", "note_vi": "" } ] } ],   // 8-12 key words of the prompt
+  "exercises": [   // one object per requested type, in the order requested
+    { "type": "mcq", "title_vi": "...", "instruction_vi": "...", "items": [ { "q": "question in English", "options": ["...", "...", "..."], "answer": 0, "explain_vi": "..." } ] },
+    { "type": "tf", "title_vi": "...", "instruction_vi": "...", "items": [ { "statement": "English statement about the visual", "answer": "T" | "F" | "NG", "explain_vi": "..." } ] },
+    { "type": "match", "title_vi": "...", "instruction_vi": "...", "items": [ { "left": "word from the prompt", "right": "its paraphrase", "meaning_vi": "..." } ] },
+    { "type": "gap", "title_vi": "...", "instruction_vi": "...", "bank": ["every answer plus 2-3 distractors"], "items": [ { "sentence": "sentence about THIS visual with each blank written as ____", "answers": ["answer for blank 1", "..."], "explain_vi": "..." } ] },
+    { "type": "order", "title_vi": "...", "instruction_vi": "...", "items": [ { "frame": "K1 · Introduction", "chunks": ["chunks", "in the CORRECT order", "3-8 chunks"], "explain_vi": "..." } ] },
+    { "type": "write", "title_vi": "...", "instruction_vi": "...", "items": [ { "para": "Introduction" | "Overview" | "Body 1" | "Body 2", "frame": "the exact Ms. Gigi frame to use", "task_vi": "what to write about (Vietnamese)", "hint_vi": "which data/words to use", "model": "model sentence" } ] }
+  ]
+}`;
+  function buildLessonPrompt({ text, type, band, visual, detected, types, count }) {
+    const wanted = types.map((t, i) => `${i + 1}. "${t}": ${EX_TYPES[t]}`).join('\n');
+    return `You are an IELTS Writing Task 1 teacher assistant for Ms. Gigi, a Vietnamese teacher.
+Build a short LESSON and small scaffolded EXERCISES that help her students get familiar with THIS visual and with each sentence of her outline BEFORE they write the full essay.
+
+Rules:
+- Use only the real content of the task (exact subjects, categories, places, years, units, figures). Never invent data; approximate with "about" when values are read from an axis.
+- Follow the teacher's outline below. Every model sentence and every exercise sentence must be written from her numbered frames (F1, F2...) for the right paragraph, keeping the frames' fixed words; tag model sentences with the frame number.
+- Respect her grammar rules (account for only with %, no bare "trọc lốc" subjects, "witness" not with Percentage/Number/Figure, maps = past tense, process = present simple passive).
+- Exercises go from easy to hard: understanding the visual → vocabulary → sentence building → writing. Each type has exactly ${count} items (match: ${Math.max(count, 6)} pairs; write: one item per paragraph, 4 items).
+- gap: blanks focus on her key phrases (trend verbs, comparison phrases, prepositions, frame words); "answers" must appear in "bank".
+- order: chunks are short phrases (not single letters), given in the CORRECT order — the app shuffles them.
+- mcq: exactly one correct option; "answer" is its 0-based index. tf: use NG only when the visual really does not say.
+- instruction_vi must work both on screen and on a printed worksheet (say "chọn / điền / sắp xếp / nối / viết", never "bấm").
+- All instructions, explanations and meanings in Vietnamese; all English content in natural academic English at ${BAND[band] || BAND['7.0']}
+
+Exercise types requested (in this order):
+${wanted}
+
+Task type selected by the teacher: ${TYPE_HINT[type] || TYPE_HINT.auto}${detected ? ' (image reader detected: ' + detected + ')' : ''}
+
+${outlineNotes(OUTLINE_CANDIDATES[type] || OUTLINE_CANDIDATES.auto)}
+
+${taskBlock(text, visual)}
+Reply with ONLY one JSON object in this shape:
+${LESSON_SHAPE}`;
+  }
+  function validateLesson(r, types) {
+    if (!r || !r.lesson || !Array.isArray(r.exercises)) throw new Error('AI trả về bài giảng chưa đầy đủ. Bấm thử lại.');
+    const L = r.lesson;
+    const arr = x => (Array.isArray(x) ? x : []);
+    L.objectives_vi = arr(L.objectives_vi).map(String);
+    L.reading_steps = arr(L.reading_steps).filter(x => x && x.q_vi).map(x => ({ q_vi: String(x.q_vi), a: String(x.a || '') }));
+    L.key_features = arr(L.key_features).map(String);
+    L.plan = arr(L.plan).slice(0, 4).map((x, i) => ({ step: G.STEP_KEYS[i], focus_vi: String((x && x.focus_vi) || ''), model: normOption(x && x.model).parts || [] }));
+    L.vocab = arr(L.vocab).filter(v => v && v.phrase);
+    L.mistakes_vi = arr(L.mistakes_vi).map(String);
+    r.paraphrase = normParaphrase(r.paraphrase);
+    r.exercises = r.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
+      if (e.type === 'mcq') e.items = e.items.filter(it => Array.isArray(it.options) && it.options.length > 1).map(it => ({ ...it, answer: Math.min(Math.max(+it.answer || 0, 0), it.options.length - 1) }));
+      if (e.type === 'gap') {
+        e.items = e.items.filter(it => it.sentence && Array.isArray(it.answers));
+        e.bank = [...new Set(arr(e.bank).concat(e.items.flatMap(it => it.answers)).map(String))];
+      }
+      if (e.type === 'order') e.items = e.items.filter(it => Array.isArray(it.chunks) && it.chunks.length > 1);
+      if (e.type === 'tf') e.items = e.items.map(it => ({ ...it, answer: ['T', 'F', 'NG'].includes(it.answer) ? it.answer : (it.answer === true ? 'T' : 'F') }));
+      return e;
+    }).filter(e => e.items.length);
+    if (!r.exercises.length) throw new Error('AI chưa tạo được bài tập. Bấm thử lại.');
+    r.outline = G.outlineFor(r.task_type, r.outline);
+    return r;
+  }
+  async function makeLesson({ text, type, band, visual, detected, types, count, signal }) {
+    const r = await ask(buildLessonPrompt({ text, type, band, visual, detected, types, count }), null, signal);
+    return validateLesson(r, types);
+  }
+
+  return { readImage, ocr, analyze, regenerate, makeLesson, EX_TYPES, available, getKey, setKey };
 })();

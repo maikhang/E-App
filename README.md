@@ -12,6 +12,13 @@ Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) →
 
 “Xem bài mẫu” mở một bài Maps có sẵn (đề minh hoạ) để xem app hoạt động mà không cần AI.
 
+## 🎓 Bài giảng & bài tập
+Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (Ctrl+V / kéo thả / chọn ảnh), chọn dạng bài tập, trình độ và số câu; AI soạn:
+- **Bài giảng**: mục tiêu, câu hỏi dẫn dắt đọc biểu đồ (ẩn đáp án để hỏi lớp), đặc điểm chính, khung dàn ý Ms. Gigi từng đoạn kèm câu mẫu K1/K2…, từ vựng, paraphrase, lỗi hay mắc.
+- **Bài tập từ dễ đến khó**: trắc nghiệm đọc biểu đồ, Đúng/Sai/Không có thông tin, nối từ paraphrase, điền từ theo khung (ngân hàng từ), sắp xếp câu theo khung, viết câu theo khung (kiểm tra theo quy tắc + câu mẫu). Làm và chấm điểm ngay trên app.
+- Nút sao chép: **bài giảng**, **phiếu bài tập** (không đáp án, kèm ảnh biểu đồ khi dán vào Word/Docs), **đáp án**.
+- “Xem bài giảng mẫu” dùng một biểu đồ đường minh hoạ (số liệu tự soạn).
+
 ## Dàn ý Ms. Gigi
 `js/gigi.js` chứa toàn bộ dàn ý từ tài liệu *IELTS WRITING Ms. Gigi*: 6 dạng (Line/Bar xu hướng, Bar/Pie/Table so sánh, Maps, Floor plan, Process nhân tạo, Process tự nhiên) với khung câu Introduction/Overview/Body 1/Body 2, quy tắc, từ vựng và bài mẫu, cùng các quy tắc chung (chủ thể, quy tắc “trọc lốc”, từ đồng nghĩa, so sánh 3 mức độ, nâng cấp Band 7+).
 - AI chọn đúng dàn ý cho đề và viết gợi ý 1 bám sát khung câu; gợi ý 2–3 dùng các cấu trúc khác trong dàn ý.
@@ -29,5 +36,6 @@ Web app luyện viết IELTS Writing Task 1: dán đề (chữ hoặc ảnh) →
 Sửa trong `src/index.html`, `css/`, `js/` rồi chạy `python3 build.py` để tạo lại `index.html` và `dist/task1-coach.html` (bản đăng claude.ai).
 
 - `js/content.js` – dàn ý & từ vựng Maps, bài mẫu
-- `js/ai.js` – gọi AI đọc đề và tạo gợi ý
+- `js/ai.js` – gọi AI đọc đề, tạo gợi ý, soạn bài giảng & bài tập
+- `js/lesson.js` – mục Bài giảng & bài tập
 - `js/app.js` – giao diện

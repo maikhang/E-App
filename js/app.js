@@ -35,7 +35,10 @@
   /* ================= Views ================= */
   function show(view) {
     S.view = view; save();
-    for (const v of ['setup', 'loading', 'wizard', 'review']) $('#view-' + v).hidden = v !== view;
+    for (const v of ['setup', 'loading', 'wizard', 'review', 'lesson']) $('#view-' + v).hidden = v !== view;
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', (b.dataset.mode === 'lesson') === (view === 'lesson')));
+    $('#btn-new').hidden = view === 'lesson';
+    if (view === 'lesson') LESSON.render();
     if (view === 'setup') renderSetup();
     if (view === 'wizard') renderStep();
     if (view === 'review') renderReview();
@@ -324,6 +327,17 @@
     }
     return h + '</div>';
   }
+  async function copyRich(plain, html, okMsg) {
+    try {
+      if (window.ClipboardItem && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([plain], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
+      } else await navigator.clipboard.writeText(plain);
+      toast(okMsg);
+    } catch (e) {
+      try { await navigator.clipboard.writeText(plain); toast(okMsg); }
+      catch (e2) { toast('Trình duyệt chặn sao chép. Hãy bôi đen nội dung và nhấn Ctrl+C.'); }
+    }
+  }
   async function copyLesson() {
     if (!S.paras.some(p => p.trim())) { toast('Chưa có bài viết để sao chép.'); return; }
     const plain = lessonPlain(), html = lessonHtml();
@@ -423,6 +437,8 @@
     const t = e.target.closest('button, a, .dropzone, [data-close]');
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
+    if (t.dataset.mode) { show(t.dataset.mode === 'lesson' ? 'lesson' : (S.analysis ? 'wizard' : 'setup')); return; }
+    if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
     if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
     if (t.dataset.opt != null) {
@@ -489,7 +505,9 @@
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];
     const img = items.find(i => i.type.startsWith('image/'));
-    if (!img || S.view !== 'setup') return;
+    if (!img) return;
+    if (S.view === 'lesson' && LESSON.setupVisible()) { e.preventDefault(); LESSON.takeImage(img.getAsFile()); return; }
+    if (S.view !== 'setup') return;
     e.preventDefault(); takeFile(img.getAsFile());
   });
   const dz = $('#dropzone');
@@ -498,8 +516,9 @@
   dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); takeFile(e.dataTransfer.files[0]); });
 
   /* ================= Start ================= */
+  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
-  show(S.view === 'loading' ? 'setup' : (S.view !== 'setup' && !S.analysis ? 'setup' : S.view));
+  show(S.view === 'loading' ? 'setup' : (S.view !== 'setup' && S.view !== 'lesson' && !S.analysis ? 'setup' : S.view));
   AI.available().then(a => { AVAIL = a; if (a.via === 'claude') $('#btn-key').hidden = true; if (S.view === 'setup') renderSetup(); });
 })();
