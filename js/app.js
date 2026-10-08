@@ -224,7 +224,7 @@
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
       const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.picks = [[], [], [], []]; S.open = null; S.isDemo = false;
-      revealed.clear();
+      clearSlotState();
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       show('wizard');
       toast(`Dàn ý Ms. Gigi: ${G.OUTLINES[r.outline].short} — ${r.subject || ''}`, 3500);
@@ -239,7 +239,7 @@
 
   function loadDemo() {
     S = Object.assign(blank(), { band: S.band, type: 'maps', blur: S.blur, prompt: C.demo.prompt_text, image: C.demoImage, analysis: JSON.parse(JSON.stringify(C.demo)), isDemo: true });
-    revealed.clear();
+    clearSlotState();
     show('wizard');
     toast('Đang xem bài mẫu (đề minh hoạ). Bấm “Nhập đề khác” để dùng đề của bạn.', 3500);
   }
@@ -275,6 +275,9 @@
   }
   const revealed = new Set();   // các câu đã bấm "xem gợi ý" khi đang che mờ
   const pending = {};           // câu đang được AI gợi ý lại: key → true
+  const checks = {};            // kết quả chấm câu tự viết: key → { status, input, result | issues | error }
+  const drafts = {};            // chữ đang gõ trong ô tự viết: key → text
+  function clearSlotState() { revealed.clear(); for (const o of [checks, drafts]) for (const k in o) delete o[k]; }
 
   function renderFrame(i) {
     const o = G.OUTLINES[outlineOf(S.analysis)];
@@ -312,7 +315,7 @@
       const head = `<div class="slot-head"><span class="slot-title">Câu ${k + 1}</span>${fTags}${sl.status === 'replaced' ? '<span class="tag-warn">đã đổi khung</span>' : ''}<span class="slot-focus">${esc(sl.focus_vi)}</span></div>`;
       if (p && k !== cur) {
         return `<li class="slot done"><span class="slot-no" style="--pc:${PCOLOR[i]}">✓</span><div class="slot-body">${head}
-          ${p.skipped ? '<p class="chosen muted">(Đã bỏ qua câu này)</p>' : `<p class="chosen">${p.f ? `<span class="fno">K${p.f}</span>` : '<span class="fno own-fno">Tự viết</span>'} ${hl(p.text, st.vocab, fixed)}</p>`}
+          ${p.skipped ? '<p class="chosen muted">(Đã bỏ qua câu này)</p>' : `<p class="chosen">${p.f ? `<span class="fno">K${p.f}</span>` : '<span class="fno own-fno">Tự viết</span>'}${ckBadge(p)} ${hl(p.text, st.vocab, fixed)}</p>`}
           <button type="button" class="link" data-reopen="${k}">✏️ Đổi câu này</button></div></li>`;
       }
       if (k !== cur) {
@@ -327,13 +330,15 @@
               <span class="sopt-l">${LETTER[j]}</span><span class="sopt-t">${hl(op.text, st.vocab, fixed)}</span>${sl.f.length > 1 || op.f !== sl.f[0] ? `<span class="fno">K${op.f}</span>` : ''}</button>`).join('')}
             ${blurred ? `<button type="button" class="reveal" data-reveal="${key}">👀 Em đã nghĩ xong theo khung — xem gợi ý</button>` : ''}
           </div>`;
-      const ownVal = p && p.custom ? p.text : '';
+      const ownVal = drafts[key] != null ? drafts[key] : (p && p.custom ? (p.orig || p.text) : '');
+      const ck = checks[key], stale = !!ck && ck.status !== 'pending' && ck.input !== ownVal.trim();
       return `<li class="slot current" id="slot-cur"><span class="slot-no" style="--pc:${PCOLOR[i]}">${k + 1}</span><div class="slot-body">${head}${frames}
         ${opts}
         <div class="own"><label class="sr" for="own-${key}">Tự viết câu ${k + 1}</label>
-          <input id="own-${key}" class="own-in" data-slot="${k}" value="${esc(ownVal)}" placeholder="✍️ Hoặc tự viết câu ${k + 1} theo khung…" autocomplete="off">
-          <button type="button" class="btn sm primary" data-own="${k}">Dùng câu này</button></div>
+          <input id="own-${key}" class="own-in" data-slot="${k}" value="${esc(ownVal)}" placeholder="✍️ Hoặc tự viết câu ${k + 1} theo khung, rồi bấm “Chấm câu”…" autocomplete="off">
+          <button type="button" class="btn sm primary" data-grade="${k}" ${ck && ck.status === 'pending' ? 'disabled' : ''}>${ck && ck.status !== 'pending' && !stale ? '↻ Chấm lại' : '✅ Chấm câu'}</button></div>
         <div class="own-lint" id="own-lint"></div>
+        ${checkHtml(k, ck, stale)}
         <div class="slot-tools">${S.isDemo ? '' : `<button type="button" class="btn sm ghost" data-sregen="${k}" ${pending[key] ? 'disabled' : ''}>↻ Gợi ý khác cho câu này</button>`}
           <button type="button" class="btn sm ghost" data-skipslot="${k}">⏭ Bỏ qua câu này</button>
           ${p ? `<button type="button" class="btn sm ghost" data-keep="${k}">Giữ câu đã chọn</button>` : ''}</div>
@@ -389,15 +394,99 @@
     const op = S.analysis.steps[S.step].sentences[k].options[j];
     setPick(k, { text: op.text, f: op.f, custom: false });
   }
-  function useOwn(k) {
+  /* ---------- Chấm câu học sinh tự viết ---------- */
+  const ETYPE = { grammar: 'Ngữ pháp', spelling: 'Chính tả', punctuation: 'Dấu câu', vocabulary: 'Từ vựng', data: 'Số liệu', rule: 'Quy tắc Ms. Gigi', frame: 'Khung câu', coherence: 'Liên kết' };
+  const lintSentence = (text, k) => G.lint(text, outlineOf(S.analysis), S.step).filter(m => !(k > 0 && /Overall/.test(m)));
+  // So sánh từng từ: câu của em → câu đã sửa (gạch đỏ phần bỏ, tô xanh phần thêm)
+  function diffHtml(a, b) {
+    if (!/[.!?]$/.test(a)) a += (b.match(/[.!?]$/) || [''])[0];   // thiếu dấu chấm cuối câu không tính là sửa cả từ cuối
+    const A = a.split(/\s+/).filter(Boolean), B = b.split(/\s+/).filter(Boolean);
+    const L = Array.from({ length: A.length + 1 }, () => new Array(B.length + 1).fill(0));
+    for (let x = A.length - 1; x >= 0; x--) for (let y = B.length - 1; y >= 0; y--) L[x][y] = A[x] === B[y] ? L[x + 1][y + 1] + 1 : Math.max(L[x + 1][y], L[x][y + 1]);
+    const ops = [];
+    let x = 0, y = 0;
+    while (x < A.length || y < B.length) {
+      if (x < A.length && y < B.length && A[x] === B[y]) { ops.push(['=', A[x++]]); y++; }
+      else if (y >= B.length || (x < A.length && L[x + 1][y] >= L[x][y + 1])) ops.push(['-', A[x++]]);
+      else ops.push(['+', B[y++]]);
+    }
+    const out = [];
+    for (const [op, w] of ops) {
+      const last = out[out.length - 1];
+      if (last && last[0] === op) last[1].push(w); else out.push([op, [w]]);
+    }
+    return out.map(([op, ws]) => { const t = esc(ws.join(' ')); return op === '=' ? t : op === '-' ? `<del>${t}</del>` : `<ins>${t}</ins>`; }).join(' ');
+  }
+  function ckBadge(p) {
+    if (!p.custom || !p.verdict) return '';
+    const n = (p.errors || []).length;
+    if (p.verdict === 'correct') return ' <span class="ck-badge ok">✅ Đúng</span>';
+    if (p.used === 'orig') return ` <span class="ck-badge warn">⚠️ Còn ${n || 1} lỗi</span>`;
+    return ` <span class="ck-badge fix">✏️ Đã sửa ${n || 1} lỗi</span>`;
+  }
+  function checkHtml(k, ck, stale) {
+    if (!ck) return '';
+    if (ck.status === 'pending') return '<div class="check busy" role="status"><span class="spinner"></span> Cô AI đang chấm câu của em…</div>';
+    const staleNote = '<p class="check-stale-note">✏️ Em vừa sửa câu — bấm “Chấm câu” để chấm lại.</p>';
+    const cls = `check ${stale ? 'stale' : ''}`;
+    if (ck.status === 'error') return `<div class="${cls} bad">${staleNote}<p class="check-head">⚠️ Chưa chấm được</p><p>${esc(ck.error)}</p>
+      <div class="check-acts"><button type="button" class="btn sm" data-grade="${k}">↻ Chấm lại</button><button type="button" class="btn sm ghost" data-useorig="${k}">Dùng câu của em</button></div></div>`;
+    if (ck.status === 'local') return `<div class="${cls} warn">${staleNote}<p class="check-head">⚠️ Chưa chấm được bằng AI</p>
+      <p class="small">${AVAIL.via === 'claude' ? '' : 'Mở app trong claude.ai hoặc thêm API key (⚙️) để AI chấm ngữ pháp, số liệu và sửa câu. '}Kiểm tra nhanh theo quy tắc của cô: ${ck.issues.length ? '' : 'không thấy lỗi quy tắc.'}</p>
+      ${ck.issues.length ? `<ul class="check-errs">${ck.issues.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : ''}
+      <div class="check-acts"><button type="button" class="btn sm primary" data-useorig="${k}">✔ Dùng câu này</button></div></div>`;
+    const r = ck.result, n = r.errors.length;
+    const head = r.verdict === 'correct' ? '✅ Câu đúng rồi!' : r.verdict === 'minor' ? `🟡 Gần đúng — ${n || 1} lỗi nhỏ cần sửa` : `❌ Câu có ${n || 1} lỗi cần sửa`;
+    const sl = S.analysis.steps[S.step].sentences[k];
+    const fName = sl.status === 'replaced' ? 'khung thay thế' : 'khung ' + sl.f.map(x => 'K' + x).join('/');
+    return `<div class="${cls} ${r.verdict === 'correct' ? 'ok' : r.verdict === 'minor' ? 'warn' : 'bad'}" aria-live="polite">${staleNote}
+      <p class="check-head">${head}</p>
+      ${r.corrected !== ck.input ? `<p class="check-fix"><span class="check-lbl">Câu của em, đã sửa lỗi</span>${diffHtml(ck.input, r.corrected)}</p>` : ''}
+      ${n ? `<ol class="check-errs">${r.errors.map(e => `<li><span class="etag e-${e.type}">${ETYPE[e.type]}</span> ${e.wrong ? `<del>${esc(e.wrong)}</del>` : ''}${e.fix ? ` → <ins>${esc(e.fix)}</ins>` : ''}${e.why_vi ? ` <span class="why">— ${esc(e.why_vi)}</span>` : ''}</li>`).join('')}</ol>` : ''}
+      <p class="check-frame">📐 ${r.frame_ok ? `Đúng ${fName} của cô.` : `Chưa đúng ${fName}.`}${r.frame_note_vi ? ' ' + esc(r.frame_note_vi) : ''}</p>
+      ${r.praise_vi ? `<p class="check-praise">👍 ${esc(r.praise_vi)}</p>` : ''}
+      ${r.better ? `<p class="check-better">💡 <b>Câu nâng cấp (tuỳ chọn):</b> ${esc(r.better)} <button type="button" class="link" data-usebetter="${k}">Dùng câu nâng cấp</button></p>` : ''}
+      <div class="check-acts">${r.verdict === 'correct'
+        ? `<button type="button" class="btn sm primary" data-usefix="${k}">✔ Dùng câu này</button>`
+        : `<button type="button" class="btn sm primary" data-usefix="${k}">✔ Dùng câu đã sửa</button><button type="button" class="btn sm ghost" data-useorig="${k}">Giữ câu của em</button><span class="muted small">hoặc sửa trong ô rồi chấm lại</span>`}</div></div>`;
+  }
+  async function gradeOwn(k) {
+    const i = S.step, key = i + '-' + k;
     const inp = document.querySelector(`.own-in[data-slot="${k}"]`);
     const text = (inp && inp.value || '').trim();
-    if (!text) { toast('Hãy viết câu của em trước khi bấm “Dùng câu này”.'); return; }
-    const sl = S.analysis.steps[S.step].sentences[k];
-    setPick(k, { text: /[.!?]$/.test(text) ? text : text + '.', f: 0, custom: true, plan: sl.f[0] || 0 });
+    if (!text) { toast('Hãy viết câu của em vào ô trước khi bấm “Chấm câu”.'); if (inp) inp.focus(); return; }
+    if (checks[key] && checks[key].status === 'pending') return;
+    drafts[key] = text;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { checks[key] = { status: 'local', input: text, issues: lintSentence(text, k) }; refreshStep(false); return; }
+    checks[key] = { status: 'pending', input: text };
+    refreshStep(false);
+    try {
+      const result = await AI.checkSentence({ text: S.prompt, band: S.band, visual: S.visual, analysis: S.analysis, stepIndex: i, slotIndex: k, picks: S.picks, sentence: text });
+      checks[key] = { status: 'done', input: text, result };
+    } catch (e) {
+      checks[key] = { status: 'error', input: text, error: e.message || 'AI chưa chấm được câu này. Thử lại.' };
+    }
+    if (S.step === i && S.view === 'wizard') {
+      refreshStep(false);
+      const box = document.querySelector('#slot-cur .check');
+      if (box) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+  // Dùng câu tự viết: câu đã sửa ('fix'), câu nâng cấp ('better') hoặc giữ nguyên câu của em ('orig')
+  function useOwn(k, which) {
+    const i = S.step, key = i + '-' + k, ck = checks[key];
+    const orig = ck ? ck.input : String(drafts[key] || '').trim();
+    if (!orig) { toast('Hãy viết câu của em trước.'); return; }
+    const r = ck && ck.status === 'done' ? ck.result : null;
+    let text = r && which === 'fix' ? r.corrected : r && which === 'better' && r.better ? r.better : orig;
+    if (!/[.!?]$/.test(text)) text += '.';
+    const sl = S.analysis.steps[i].sentences[k];
+    delete drafts[key];
+    setPick(k, { text, f: 0, custom: true, plan: sl.f[0] || 0, orig, verdict: r ? r.verdict : '', errors: r ? r.errors : [], used: which });
     // Câu tự viết có thể khác nội dung gợi ý → AI gợi ý lại câu tiếp theo dựa trên câu này
-    const next = k + 1, st = S.analysis.steps[S.step];
-    if (next < st.sentences.length && !picksOf(S.step)[next] && !S.isDemo) regenSlot(next, true);
+    const next = k + 1, st = S.analysis.steps[i];
+    if (next < st.sentences.length && !picksOf(i)[next] && !S.isDemo) regenSlot(next, true);
   }
 
   async function regenSlot(k, auto) {
@@ -485,7 +574,8 @@
       if (!p || p.skipped || !p.text) return null;
       const f = (p.custom ? (p.plan || sl.f[0]) : (p.f || sl.f[0])) || 0;
       const replaced = sl.status === 'replaced';
-      return { f, text: p.text.trim(), custom: !!p.custom, replaced, why: sl.why_vi, frame: replaced ? sl.alt_frame : slotFrame(o, k, f) };
+      return { f, text: p.text.trim(), custom: !!p.custom, replaced, why: sl.why_vi, frame: replaced ? sl.alt_frame : slotFrame(o, k, f),
+        orig: p.orig || '', verdict: p.verdict || '', errors: p.errors || [], used: p.used || '' };
     }).filter(Boolean);
   }
   function lessonData() {
@@ -522,6 +612,11 @@
         if (r.replaced && r.why) out.push(`     Lý do: ${r.why}`);
         if (r.frame) out.push(`     Khung: ${r.frame}`);
         out.push(`     ➜ ${r.text}`);
+        if (r.verdict === 'correct') out.push('     ✅ Em tự viết đúng.');
+        else if (r.errors.length) {
+          if (r.used !== 'orig' && r.orig && r.orig !== r.text) out.push(`     ✏️ Em viết: ${r.orig}`);
+          r.errors.forEach(e => out.push(`     • ${e.wrong ? e.wrong + ' → ' : ''}${e.fix}${e.why_vi ? ' (' + e.why_vi + ')' : ''}`));
+        }
       });
       x.skipped.forEach(sk => out.push(`  (Không dùng K${sk.f}: ${sk.why_vi})`));
       if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
@@ -532,6 +627,14 @@
         ...x.alternatives.map(v => `   → ${v.phrase}${v.meaning_vi ? ' (' + v.meaning_vi + ')' : ''}${v.note_vi ? ' – ' + v.note_vi : ''}`)));
     }
     return out.join('\n');
+  }
+  // Nhận xét câu tự viết trong bảng gửi học sinh: câu gốc + lỗi đã sửa
+  function feedbackHtml(r) {
+    if (!r.custom || !r.verdict) return '';
+    const box = inner => `<div style="margin-top:6px;padding:6px 8px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;${r.verdict === 'correct' ? 'background:#e3f4e8;color:#136c3a' : 'background:#fdf0ee;color:#5b1a12'}">${inner}</div>`;
+    if (r.verdict === 'correct') return box('✅ Em tự viết đúng.');
+    const orig = r.used !== 'orig' && r.orig && r.orig !== r.text ? `✏️ <b>Em viết:</b> <span style="text-decoration:line-through;color:#b42318">${esc(r.orig)}</span><br>` : '<b>⚠️ Lỗi cần chú ý:</b><br>';
+    return box(orig + r.errors.map(e => `• ${e.wrong ? `<span style="text-decoration:line-through;color:#b42318">${esc(e.wrong)}</span> → ` : ''}<b style="color:#136c3a">${esc(e.fix)}</b>${e.why_vi ? ` <span style="color:#5b6957">— ${esc(e.why_vi)}</span>` : ''}`).join('<br>'));
   }
   // Bảng màu (style inline để dán vào Word / Google Docs / Gmail vẫn giữ màu)
   const PTINT = ['#eaf1fb', '#f0ecfa', '#e7f4ec', '#fcefe7'];
@@ -570,7 +673,7 @@
         const frame = r.replaced
           ? td(`<b style="color:#93600a">⚠️ Đổi khung K${r.f}</b>${r.why ? ` — <span style="color:#5b4300">${esc(r.why)}</span>` : ''}<br>➜ ${ph(r.frame, '#93600a')}`, 'background:#fff6dc')
           : td(ph(r.frame, c), `background:${zebra}`);
-        return `<tr>${td(no, `background:${zebra};white-space:nowrap`)}${frame}${td(esc(r.text) + (r.custom ? ' <span style="color:#5b6957;font-size:12px">(tự viết)</span>' : ''), `background:${zebra};font-family:Georgia,'Times New Roman',serif;font-size:15px`)}</tr>`;
+        return `<tr>${td(no, `background:${zebra};white-space:nowrap`)}${frame}${td(esc(r.text) + (r.custom ? ' <span style="color:#5b6957;font-size:12px">(tự viết)</span>' : '') + feedbackHtml(r), `background:${zebra};font-family:Georgia,'Times New Roman',serif;font-size:15px`)}</tr>`;
       }).join('');
       if (x.skipped.length) rows += `<tr>${td(`<span style="color:#5b6957"><b>Khung không dùng:</b> ${x.skipped.map(sk => `K${sk.f} — ${esc(sk.why_vi)}`).join(' · ')}</span>`, 'background:#f6f7f5', ' colspan="3"')}</tr>`;
       if (x.vocab.length) rows += `<tr>${td(`<b>Từ vựng:</b> ${x.vocab.map(v => `<b style="color:${c}">${esc(v.phrase)}</b>${vi(v.meaning_vi)}`).join(' · ')}`, 'background:#fbfcfa', ' colspan="3"')}</tr>`;
@@ -704,7 +807,10 @@
     // ----- Gợi ý từng câu -----
     if (t.dataset.goto != null) { S.open = null; S.step = +t.dataset.goto; save(); renderStep(); return; }
     if (t.dataset.sopt != null) { chooseOption(+t.dataset.slot, +t.dataset.sopt); return; }
-    if (t.dataset.own != null) { useOwn(+t.dataset.own); return; }
+    if (t.dataset.grade != null) { gradeOwn(+t.dataset.grade); return; }
+    if (t.dataset.usefix != null) { useOwn(+t.dataset.usefix, 'fix'); return; }
+    if (t.dataset.usebetter != null) { useOwn(+t.dataset.usebetter, 'better'); return; }
+    if (t.dataset.useorig != null) { useOwn(+t.dataset.useorig, 'orig'); return; }
     if (t.dataset.reopen != null) { S.open = { step: S.step, slot: +t.dataset.reopen }; refreshStep(true); return; }
     if (t.dataset.keep != null) { S.open = null; refreshStep(true); return; }
     if (t.dataset.skipslot != null) { setPick(+t.dataset.skipslot, { skipped: true }); return; }
@@ -732,7 +838,7 @@
       case 'btn-new': case 'btn-new-2': {
         if (S.view === 'loading') return;
         const keep = { band: S.band, type: S.type, blur: S.blur };
-        S = Object.assign(blank(), keep); revealed.clear(); save(); show('setup'); $('#prompt').focus(); return;
+        S = Object.assign(blank(), keep); clearSlotState(); save(); show('setup'); $('#prompt').focus(); return;
       }
       case 'btn-copy-pp': case 'btn-copy-pp2': {
         const a = S.analysis;
@@ -764,15 +870,23 @@
   $('#prompt').addEventListener('input', e => { S.prompt = e.target.value; save(); });
   $('#band').addEventListener('change', e => { S.band = e.target.value; save(); });
   $('#types').addEventListener('change', e => { if (e.target.name === 'type') { S.type = e.target.value; save(); } });
-  // Ô tự viết câu: kiểm tra nhanh theo quy tắc của dàn ý, Enter = dùng câu này
+  // Ô tự viết câu: kiểm tra nhanh theo quy tắc của dàn ý khi gõ, Enter = chấm câu
   $('#slots').addEventListener('input', e => {
     if (!e.target.classList.contains('own-in')) return;
-    const k = +e.target.dataset.slot;
-    const issues = G.lint(e.target.value, outlineOf(S.analysis), S.step).filter(m => !(k > 0 && /Overall/.test(m)));
-    $('#own-lint').innerHTML = e.target.value.trim() ? issues.map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('') : '';
+    const k = +e.target.dataset.slot, key = S.step + '-' + k, val = e.target.value;
+    drafts[key] = val;
+    $('#own-lint').innerHTML = val.trim() ? lintSentence(val, k).map(m => `<span class="warn-line">⚠️ ${esc(m)}</span>`).join('') : '';
+    // Sửa câu sau khi chấm → kết quả cũ mờ đi, nút đổi thành “Chấm câu”
+    const ck = checks[key], box = document.querySelector('#slot-cur .check');
+    if (ck && ck.status !== 'pending') {
+      const stale = ck.input !== val.trim();
+      if (box) box.classList.toggle('stale', stale);
+      const btn = document.querySelector(`[data-grade="${k}"]`);
+      if (btn) btn.textContent = stale ? '✅ Chấm câu' : '↻ Chấm lại';
+    }
   });
   $('#slots').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && e.target.classList.contains('own-in')) { e.preventDefault(); useOwn(+e.target.dataset.slot); }
+    if (e.key === 'Enter' && e.target.classList.contains('own-in')) { e.preventDefault(); gradeOwn(+e.target.dataset.slot); }
   });
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];

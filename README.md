@@ -13,12 +13,13 @@ Khi viết bài và khi xem bài giảng/bài tập, **ảnh đề nằm cố đ
 1. **Đề bài** – chọn dạng (Maps / Process / Charts & Tables / Tự nhận dạng), dán đề hoặc ảnh đề (Ctrl+V, kéo thả, chọn ảnh), chọn trình độ (Band 6.0 / 7.0+ / 8.0+).
 2. **AI đọc đề** – trích xuất chủ thể, số liệu, mốc thời gian.
 3. **Viết 4 đoạn, từng câu một** – Introduction → Overview → Body 1 → Body 2 (thanh 4 đoạn có màu riêng, đếm số câu đã viết). Mỗi câu ứng với một khung K1, K2… của cô:
-   - hiện khung câu → 3 gợi ý A/B/C chỉ cho **một câu** → hoặc tự viết (Enter để dùng);
+   - hiện khung câu → 3 gợi ý A/B/C chỉ cho **một câu** → hoặc tự viết;
+   - **chấm câu tự viết** (nút “✅ Chấm câu” hoặc Enter): AI chấm ngữ pháp, chính tả, từ vựng, số liệu so với đề, quy tắc của cô, đúng khung chưa; chỉ ra từng lỗi (gạch đỏ → sửa xanh, giải thích tiếng Việt) và **sửa ít nhất có thể trên chính câu của em**; kèm lời khen và câu nâng cấp tuỳ chọn. Chọn “Dùng câu đã sửa” hoặc “Giữ câu của em”; sửa trong ô thì kết quả cũ mờ đi để chấm lại. Không có AI (mở ngoài claude.ai, chưa có key) thì chỉ kiểm tra nhanh theo quy tắc của cô;
    - các gợi ý được viết để nối tiếp tự nhiên với câu đã chọn ở trước; nếu học sinh tự viết, AI tự gợi ý lại câu sau dựa trên câu đó. Nút “↻ Gợi ý khác cho câu này” cũng dựa trên các câu đã chọn;
    - khung của cô không hợp với đề → hiện ô vàng “⚠️ Khung Kx chưa phù hợp…” kèm lý do và câu thay thế; khung không dùng cho đề (ví dụ khung dành cho 2 biểu đồ) được liệt kê kèm lý do;
    - nút **🙈 Che mờ gợi ý**: gợi ý bị làm mờ cho học sinh đọc khung và tự nghĩ trước, bấm “👀 Em đã nghĩ xong…” mới hiện;
    - “✏️ Đổi câu này”, “⏭ Bỏ qua câu này”, “📐 Xem khung cả đoạn”; đoạn văn hiện dần bên dưới, có đánh số câu.
-4. **Bài hoàn chỉnh** – đếm từ, sửa lại từng đoạn, xem trước bản gửi học sinh. “📚 Sao chép bài học hoàn chỉnh” chép dạng **bảng màu** (thông tin đề, bài viết mỗi đoạn một màu, bảng từng câu ↔ khung của cô, ô vàng cho khung đã đổi, từ vựng, bảng paraphrase có nghĩa tiếng Việt) – dán vào Word/Google Docs/Gmail giữ nguyên màu, dán Zalo/Messenger thành chữ có đánh số.
+4. **Bài hoàn chỉnh** – đếm từ, sửa lại từng đoạn, xem trước bản gửi học sinh. “📚 Sao chép bài học hoàn chỉnh” chép dạng **bảng màu** (thông tin đề, bài viết mỗi đoạn một màu, bảng từng câu ↔ khung của cô, ô vàng cho khung đã đổi, câu tự viết kèm câu gốc và lỗi đã sửa, từ vựng, bảng paraphrase có nghĩa tiếng Việt) – dán vào Word/Google Docs/Gmail giữ nguyên màu, dán Zalo/Messenger thành chữ có đánh số.
 
 📚 **Kho từ vựng**: quy tắc chống viết chung chung, từ vựng riêng của đề đang làm, và toàn bộ dàn ý Maps (bảng A/B, cấu trúc viết, cấu trúc câu, lưu ý IN/AT/ON/TO, mẹo). Với đề Maps, AI bắt buộc dùng bộ từ vựng này.
 

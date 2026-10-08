@@ -152,6 +152,76 @@ Reply with ONLY one JSON object for this ONE sentence slot:
 { "f": [frame numbers], "status": "fit" | "replaced", "why_vi": "", "alt_frame": "", "focus_vi": "...", "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 1, "text": "..." } ] }`;
   }
 
+  // Chấm MỘT câu học sinh tự viết: chỉ ra lỗi + sửa ít nhất có thể, giữ ý và cách viết của học sinh
+  function buildCheckPrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks, sentence }) {
+    const outline = analysis.outline || G.outlineFor(analysis.task_type);
+    const st = analysis.steps[stepIndex], slot = st.sentences[slotIndex];
+    const frames = G.OUTLINES[outline][G.STEP_KEYS[stepIndex]].frames;
+    const done = picks.map((ps, i) => (ps || []).filter(p => p && p.text).map(p => p.text).join(' ')).map((t, i) => (t && i !== stepIndex ? `${NAMES[i]}: ${t}` : '')).filter(Boolean).join('\n');
+    const cur = (picks[stepIndex] || []).slice(0, slotIndex).map((p, k) => (p && p.text ? `  Sentence ${k + 1}: ${p.text}` : '')).filter(Boolean).join('\n');
+    const plan = slot.status === 'replaced'
+      ? `the teacher's frame F${slot.f.join('/F')} does not suit this task (${slot.why_vi}), so the pattern is: ${slot.alt_frame}`
+      : slot.f.map(n => `F${n}: ${frames[n - 1] || ''}`).join(' OR ');
+    return `You are an IELTS Writing Task 1 examiner and a kind teacher of Vietnamese students who write with Ms. Gigi's outline. A student wrote ONE sentence of their essay by themselves. Check it and correct it.
+Target level: ${BAND[band] || BAND['7.0']}
+
+${outlineNotes([outline])}
+
+${taskBlock(text || analysis.prompt_text, visual)}
+Task type: ${analysis.task_type}. Subject: ${analysis.subject}.
+Other paragraphs already written by the student:
+${done || '(none yet)'}
+
+The student is writing the ${NAMES[stepIndex]} paragraph. Sentences already in this paragraph:
+${cur || '  (this is the first sentence)'}
+This is sentence ${slotIndex + 1}. Planned frame — ${plan}. Planned content: ${slot.focus_vi || '(free)'}.
+Reference sentences for this slot (they show the correct data; the student does NOT have to copy them):
+${slot.options.map(o => '- ' + o.text).join('\n')}
+
+Student's sentence:
+"""${sentence}"""
+
+Check, in this order:
+1. Grammar, spelling, punctuation, word choice and collocation.
+2. Accuracy against the task data (figures, years, units, places, categories, trends). A wrong or invented fact is an error of type "data".
+3. Ms. Gigi's rules for this paragraph (Overview starts with "Overall," and has no figures; Body 1 of maps describes only the first map; account for / make up / constitute only with percentages; no "witness" with Percentage/Number/Figure; correct tense; "side" → on, "part" → in; never "the given chart"; subjects kept whole).
+4. The planned frame: are its fixed words kept and the [brackets] filled with real content? Using a different but correct structure is NOT an error — just mention it in frame_note_vi.
+5. Coherence with the sentences before it (no repeated data, suitable linker).
+Correct with the SMALLEST possible changes: keep the student's own words, ideas and structure, change only what is wrong. Never rewrite a correct sentence for style, and never add new information unless the sentence is incomplete.
+Explain every error in simple Vietnamese for a student (what is wrong and the rule).
+
+Reply with ONLY one JSON object:
+{
+  "verdict": "correct" | "minor" | "wrong",   // correct = no errors; minor = only small slips (article, plural -s, punctuation, spelling); wrong = grammar, data, rule or meaning errors
+  "corrected": "the student's sentence with only the necessary fixes (exactly the student's sentence when verdict is correct)",
+  "errors": [ { "type": "grammar" | "spelling" | "punctuation" | "vocabulary" | "data" | "rule" | "frame" | "coherence", "wrong": "exact words copied from the student's sentence", "fix": "the corrected words", "why_vi": "short Vietnamese explanation" } ],
+  "frame_ok": true | false,
+  "frame_note_vi": "one short Vietnamese note about the frame, '' if it follows the frame",
+  "praise_vi": "one short Vietnamese sentence praising what the student did well",
+  "better": "optional higher-band version that keeps the student's idea, or '' if the corrected sentence is already good"
+}`;
+  }
+  const ERR_TYPES = ['grammar', 'spelling', 'punctuation', 'vocabulary', 'data', 'rule', 'frame', 'coherence'];
+  function normCheck(r, sentence) {
+    if (!r || typeof r !== 'object') throw new Error('AI chưa chấm được câu này. Thử lại.');
+    const errors = (Array.isArray(r.errors) ? r.errors : []).filter(e => e && (e.wrong || e.fix || e.why_vi)).map(e => ({
+      type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong: String(e.wrong || ''), fix: String(e.fix || ''), why_vi: String(e.why_vi || ''),
+    }));
+    const corrected = String(r.corrected || '').trim() || sentence;
+    let verdict = ['correct', 'minor', 'wrong'].includes(r.verdict) ? r.verdict : (errors.length ? 'wrong' : 'correct');
+    if (verdict === 'correct' && (errors.length || corrected !== sentence)) verdict = 'minor';
+    if (verdict !== 'correct' && !errors.length && corrected === sentence) verdict = 'correct';
+    const better = String(r.better || '').trim();
+    return {
+      verdict, corrected, errors,
+      frame_ok: r.frame_ok !== false, frame_note_vi: String(r.frame_note_vi || ''), praise_vi: String(r.praise_vi || ''),
+      better: better && better !== corrected ? better : '',
+    };
+  }
+  async function checkSentence(args) {
+    return normCheck(await ask(buildCheckPrompt(args), null, args.signal, 'low'), args.sentence);
+  }
+
   /* ---------- Backends ---------- */
   let samplePromise = null;
   function getSample() {
@@ -197,7 +267,7 @@ Reply with ONLY one JSON object for this ONE sentence slot:
     return JSON.parse(a >= 0 ? t.slice(a, b + 1) : t);
   }
 
-  async function ask(prompt, image, signal) {
+  async function ask(prompt, image, signal, effort = 'medium') {
     const sample = await getSample();
     if (sample) {
       try {
@@ -222,7 +292,7 @@ Reply with ONLY one JSON object for this ONE sentence slot:
       model: MODEL,
       max_tokens: 32000,
       messages: [{ role: 'user', content }],
-      output_config: { effort: 'medium' },
+      output_config: { effort },
       // nếu bị bộ lọc an toàn từ chối, server tự chuyển sang model dự phòng
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
@@ -450,5 +520,5 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, regenSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, regenSentence, checkSentence, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();

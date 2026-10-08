@@ -283,6 +283,37 @@ mark { background: var(--mark); color: var(--mark-ink); border-radius: 3px; padd
 .slot-tools .btn:hover { color: var(--text); }
 .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+/* Chấm câu tự viết */
+.check { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface); font-size: 14px; }
+.check.ok { border-color: #a9d6b6; background: #eef8f1; }
+.check.warn { border-color: #ecd9a6; background: var(--warn-soft); }
+.check.bad { border-color: #f0bdb6; background: #fdf3f1; }
+.check.busy { flex-direction: row; align-items: center; gap: 10px; color: var(--muted); background: var(--surface-2); }
+.check-head { font-weight: 700; font-size: 15px; }
+.check.ok .check-head { color: #136c3a; }
+.check.warn .check-head { color: var(--warn); }
+.check.bad .check-head { color: var(--err); }
+.check-fix { font-family: var(--font-essay); font-size: 16px; line-height: 1.75; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.check-lbl { display: block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.check del { color: var(--err); background: #fde3df; text-decoration: line-through; border-radius: 3px; padding: 0 2px; }
+.check ins { color: #136c3a; background: #d5efdd; text-decoration: none; font-weight: 600; border-radius: 3px; padding: 0 2px; }
+.check-errs { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.etag { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1.5; padding: 0 7px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); margin-right: 2px; }
+.etag.e-data { color: var(--err); border-color: #f0bdb6; }
+.etag.e-rule, .etag.e-frame { color: var(--accent); border-color: #a9d6b6; }
+.why { color: var(--muted); }
+.check-frame, .check-praise, .check-better { font-size: 13px; }
+.check-better { color: var(--text); }
+.check-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.check-stale-note { display: none; font-size: 13px; font-weight: 600; color: var(--warn); }
+.check.stale .check-stale-note { display: block; }
+.check.stale .check-acts { display: none; }
+.check.stale > :not(.check-stale-note) { opacity: .5; }
+.ck-badge { font-family: var(--font-ui); font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 8px; vertical-align: 2px; }
+.ck-badge.ok { background: #d5efdd; color: #136c3a; }
+.ck-badge.fix { background: var(--accent-soft); color: var(--accent); }
+.ck-badge.warn { background: var(--warn-soft); color: var(--warn); }
+
 .para-preview { margin-top: 10px; font-family: var(--font-essay); font-size: 17px; line-height: 1.8; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
 .para-preview .muted { font-family: var(--font-ui); font-size: 14px; font-style: italic; }
 .ps sup { font-family: var(--font-ui); font-size: 10px; font-weight: 700; color: var(--accent); margin-right: 2px; }
