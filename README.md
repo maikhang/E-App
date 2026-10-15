@@ -57,6 +57,8 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - Nút “📚 Dàn ý Ms. Gigi” mở thư viện theo từng dạng.
 
 ## Số liệu đúng đề & điểm cao trong khuôn dàn ý
+- **Đọc số liệu từ ảnh**: biểu đồ không ghi số trên từng điểm thì AI bắt buộc ước lượng từng điểm theo vạch chia của trục (ghi “about”); nếu lần đọc đầu thiếu số, app tự đọc riêng số liệu thêm một lần. Số đọc được hiện ở “AI đọc được từ ảnh” → “DATA VALUES”.
+- Khung câu của cô là mặc định: chỉ đổi khung khi nghĩa của khung trái với số liệu, không bao giờ đổi vì “thiếu số”. Bước kiểm tra trả lại khung của cô nếu việc đổi khung không cần thiết. Câu Body của dạng biểu đồ phải có số liệu + từ xu hướng/so sánh; câu nào thiếu sẽ có nhãn “⚠️ thiếu số liệu”. Nút “↻ Đọc lại đề & tạo lại gợi ý” ở khung đề để chạy lại cho cùng đề.
 - AI ghi **bảng số liệu** chép đúng từ đề trước (mỗi dòng một số liệu kèm đơn vị), rồi mọi câu gợi ý chỉ được dùng số liệu trong bảng. Bảng hiện ở khung đề: “📊 Số liệu dùng trong bài”.
 - **Bước kiểm tra**: một lượt AI khác đóng vai giám khảo đối chiếu TỪNG câu gợi ý với đề (số liệu, phép so sánh, đơn vị, năm, vị trí; ngữ pháp; chữ cố định của khung; quy tắc của cô) và sửa câu sai; báo nếu bài còn thiếu đặc điểm chính. Nếu bước này lỗi, app vẫn mở gợi ý và nhắc giáo viên tự đối chiếu.
 - Tiêu chí band cao (Task Achievement, Coherence, Lexical, Grammar) áp dụng **bên trong khung của cô**: khung quyết định mẫu câu và chữ cố định; điểm cao đến từ nội dung điền vào [..], số liệu chính xác, so sánh, từ vựng trong bảng của cô, không lặp từ, 170–200 từ.

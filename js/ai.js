@@ -49,7 +49,7 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   "subject": "the exact subject in English, e.g. 'water consumption in the USA and China'",
   "topic_vi": "one Vietnamese sentence: what the task shows",
   "prompt_text": "the task question exactly as written if visible, else ''",
-  "data": [ "Car – 2000 – 60%" ],   // DATA SHEET — write it FIRST: every figure / feature the essay may use, one fact per line, copied exactly from the task with its unit (maps: 'School – 1930 – centre, north of the main road'; processes: 'Stage 3 – clay is shaped in moulds')
+  "data": [ "Coal (million tonnes) – 1990: 120; 2000: about 145; 2010: about 160" ],   // DATA SHEET — write it FIRST: the FIGURES the essay uses, one series / category per line with every value and its unit (maps: 'School – 1930 – centre, north of the main road'; processes: 'Stage 3 – clay is shaped in moulds'). Never lines like 'Title – …', 'Legend – …' or 'Time axis – …'
   "key_features": [ "3-4 most important features in English: main trends / differences / stages, highest and lowest, biggest change, exceptions" ],
   "steps": [  // exactly 4 items in this order: Introduction, Overview, Body 1, Body 2
     {
@@ -81,9 +81,10 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
    - Keep each frame's fixed words EXACTLY (e.g. "In 1995, the layout of the town included several key features."); only replace the [brackets] with the task's real content and choose among the "/" alternatives the frame offers; tag every option with its frame number "f".
    - Some frames of a paragraph are alternatives for the same sentence (e.g. Introduction K1/K2, Overview K1/K2 for maps): put them in ONE slot ("f": [1, 2]) and offer options from each.
    - A frame may be reused in another slot for more data. Frames marked "(2 biểu đồ)" / "(Nếu cùng xu hướng)" are used only in that situation; list unused frames in "skipped" with the reason.
-   - If one of her frames does not suit this task (e.g. "was surrounded by" when nothing on the map is surrounded, "the opposite was true for" when all lines rose), do NOT force it: set "status": "replaced", explain why in "why_vi", give the pattern you use instead in "alt_frame", and write the options from that pattern.
+   - Her frames are the default — use them. Set "status": "replaced" ONLY when the frame's meaning contradicts the data (e.g. "was surrounded by" when nothing on the map is surrounded, "the opposite was true for" when all lines rose): explain why in "why_vi", give the pattern in "alt_frame" and write the options from it. NEVER replace a frame because figures seem missing or to avoid figures — read / estimate the figures from the visual instead. For line or bar charts over time her Body frames always fit.
+   - Body paragraphs carry the data: every Body sentence (except an opening frame that has no [figure] slot) gives real figures with their unit AND a trend or comparison word from her lists (rose steadily from about 25% to 39%; fell to 36%, while…; was overtaken by…). Sentences that only describe the chart (e.g. "the data were recorded every five years", "the next data points cover…") are forbidden.
 2. NO generic template writing: use the EXACT subjects, countries, categories, places, units and years from the task. Never write "the given chart" or placeholders like X/Y or [..].
-3. DATA ACCURACY comes first — one wrong figure ruins the essay. Write the "data" sheet from the task first, then use ONLY those facts. Every figure, unit, year, category, place, direction and stage must be exactly as in the task; copy the unit (%, million, tonnes…); use "about/approximately" only when a value lies between gridlines; comparisons and calculations (doubled, three times, a gap of 10 points, the highest/lowest, overtook) must be arithmetically true; never describe a trend, change or stage that is not shown; for maps keep which map/year each feature belongs to.
+3. DATA ACCURACY comes first — one wrong figure ruins the essay. Write the "data" sheet from the task first (if the task contains a "DATA VALUES" block, copy its numbers exactly — they were read from the image), then use ONLY those facts. Every figure, unit, year, category, place, direction and stage must be exactly as in the task; copy the unit (%, million, tonnes…); use "about/approximately" only when a value lies between gridlines; comparisons and calculations (doubled, three times, a gap of 10 points, the highest/lowest, overtook) must be arithmetically true; never describe a trend, change or stage that is not shown; for maps keep which map/year each feature belongs to.
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (present perfect only if the second map is "now"/"present"); processes = present simple passive.
 5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 1-2 sentences, no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
 6. All guidance and meanings in Vietnamese; all options in English. Keep guide_vi short (1-2 sentences): which data this paragraph covers.
@@ -107,15 +108,24 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
     return t;
   }
 
+  // Biểu đồ không ghi số trên điểm → BẮT BUỘC ước lượng theo vạch chia (lỗi cũ: AI bỏ qua số liệu)
+  const READ_VALUES_RULES = `How to read the values:
+- Copy printed numbers exactly (data labels, table cells, pie percentages).
+- Charts WITHOUT data labels: you MUST still give a number for every point — never skip a value, never write "not labelled" or "unclear". First read the gridline values on the y-axis (they may be uneven steps such as 0, 15, 30, 45 or 0, 14, 28, 42), then place each point between the two nearest gridlines and interpolate (a point one third of the way from 30 to 45 ≈ 35). Round to a whole number (or to the axis precision) and set "approx": true.
+- Keep the unit (%, million, tonnes…). List series in the legend's order and points in the axis order.
+- Check the overall shape: which series is highest / lowest at the start and the end, which rise or fall, and where lines cross — your numbers must agree with it.`;
   const READ_PROMPT = `The attached image is an IELTS Writing Task 1 question (it may show the question text, a chart, table, map or process diagram).
 Read it very carefully and transcribe everything a student needs to write the answer.
 Reply with ONLY one JSON object:
 {
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
   "prompt_text": "the question text exactly as written in the image, or '' if there is none",
-  "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; every category/series with every value and year (estimate from the axis with 'about' when needed); for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels"
+  "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels",
+  "values": [ { "series": "Series A", "unit": "unit", "points": [ { "x": "1990", "v": 35, "approx": true } ] } ]   // charts and tables ONLY: every series (legend item / table row / pie) with a value for EVERY labelled point (year / category / column); [] for maps and processes
 }
-Accuracy rules: copy printed numbers exactly; when a value must be read from an axis, give the closest value you can read and write "about"; always keep the unit; list series in the legend's order with every labelled point; do not guess anything you cannot see. Before replying, look at the image again and check every value, label and position you wrote.`;
+${READ_VALUES_RULES}
+Before replying, look at the image again and check every value, label and position you wrote.`;
+
 
   function buildPrompt({ text, type, band, visual, detected }) {
     return `${RULES}
@@ -163,6 +173,7 @@ ${later || '  (this is the last sentence of the paragraph)'}
 Do not reuse these earlier options:
 ${slot.options.map(o => '- ' + o.text).join('\n')}
 Every figure, unit, year, place and comparison must match the task data exactly — re-check each option before replying.
+${stepIndex >= 2 ? 'This is a Body sentence: give real figures with their unit and trend / comparison words from her lists (never describe the chart itself, e.g. "the data were recorded every five years").\n' : ''}Use her frame (status "fit") unless its meaning contradicts the data; only then set status "replaced" with why_vi and alt_frame.
 
 Reply with ONLY one JSON object for this ONE sentence slot:
 { "f": [frame numbers], "status": "fit" | "replaced", "why_vi": "", "alt_frame": "", "focus_vi": "...", "options": [ { "f": 1, "text": "one sentence" }, { "f": 1, "text": "..." }, { "f": 1, "text": "..." } ] }`;
@@ -379,11 +390,30 @@ Reply with ONLY one JSON object:
   }
 
   /* Bước 1: AI đọc ảnh đề → chữ (câu đề + toàn bộ số liệu/nội dung hình) */
+  const VALUES_PROMPT = `The attached image is an IELTS Writing Task 1 chart or table. Read the value of EVERY data point.
+${READ_VALUES_RULES}
+Reply with ONLY one JSON object:
+{ "values": [ { "series": "name from the legend / row", "unit": "unit", "points": [ { "x": "year or category", "v": 0, "approx": true } ] } ] }`;
+  function normValues(list) {
+    return (Array.isArray(list) ? list : []).filter(x => x && x.series && Array.isArray(x.points)).map(x => ({
+      series: String(x.series), unit: String(x.unit || ''),
+      points: x.points.filter(p => p && p.x != null && p.v != null && p.v !== '').map(p => ({ x: String(p.x), v: p.v, approx: !!p.approx })),
+    })).filter(x => x.points.length);
+  }
+  const valuesText = vals => vals.map(x => `${x.series}${x.unit ? ' (' + x.unit + ')' : ''}: ${x.points.map(p => `${p.x}: ${p.approx ? 'about ' : ''}${p.v}`).join('; ')}`).join('\n');
   async function readImage({ image, signal }) {
-    const r = await ask(READ_PROMPT, image, signal);
-    const text = String((r && r.visual_data) || '').trim();
+    const r = await ask(READ_PROMPT, image, signal, 'high');
+    let text = String((r && r.visual_data) || '').trim();
     if (!text && !(r && r.prompt_text)) throw new Error('AI không đọc được nội dung ảnh. Thử ảnh rõ hơn hoặc gõ đề vào ô văn bản.');
-    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), visual: { source: 'ai', text } };
+    // Biểu đồ / bảng mà chưa có số → đọc riêng số liệu từng điểm thêm một lần
+    let values = normValues(r.values);
+    const isChart = /^(line|bar|pie|table|mixed)$/.test(r.task_type || '');
+    if (isChart && values.reduce((n, x) => n + x.points.length, 0) < 3) {
+      try { values = normValues((await ask(VALUES_PROMPT, image, signal, 'high')).values); }
+      catch (e) { if (e.code === 'cancelled') throw e; }
+    }
+    if (values.length) text += '\n\nDATA VALUES read from the image ("about" = estimated from the gridlines):\n' + valuesText(values);
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, visual: { source: 'ai', text } };
   }
 
   /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */
@@ -466,7 +496,8 @@ ${list}
 Check EVERY option:
 1. Data: each figure, unit, year, category, place, direction, stage and trend must match the task exactly; comparisons and calculations must be true; nothing invented; the Overview has no figures; maps keep the right map/year.
 2. Language: grammar, articles, prepositions, agreement, tense (maps past / present perfect for "now"; process present simple passive), word choice, collocation, punctuation — at the target level.
-3. Ms. Gigi: the frame's fixed words are kept exactly and the [brackets] are filled with real content; her rules (account for only with %, no "witness" with Percentage/Number/Figure, side → on, part → in, no "the given chart").
+3. Ms. Gigi: the frame's fixed words are kept exactly and the [brackets] are filled with real content; her rules (account for only with %, no "witness" with Percentage/Number/Figure, side → on, part → in, no "the given chart"). A sentence marked "pattern:" replaced her frame — if her frame actually fits the data, put it back ("restore") and rewrite its options from her frame.
+5. Body sentences must give real figures with units and trend / comparison language (unless the frame is an opening sentence with no figure slot). A body option with no figures or only describing the chart ("data were recorded every five years") is wrong — rewrite it with the data.
 4. Coherence: every option of a sentence reads naturally after any option of the sentence before it, without repeating its data.
 Correct only what is wrong, keep her frame wording, and keep the three options of a sentence different from each other. Do not list options that are already correct.
 
@@ -474,6 +505,9 @@ Reply with ONLY one JSON object:
 {
   "fixes": [ { "id": "2.1.3", "text": "the corrected option", "why_vi": "short Vietnamese reason" } ],
   "data_fixes": [ { "n": 4, "text": "the corrected fact" } ],
+  "data_add": [ "facts with figures missing from the data sheet" ],
+  "restore": [ { "id": "3.2", "f": [2], "focus_vi": "what the sentence now says (Vietnamese)" } ],   // sentences whose replacement was not needed: back to her frame number(s); also give the new option texts in "fixes"
+
   "missing_vi": "Vietnamese note on any key feature of the task that no sentence covers, or ''"
 }`;
   }
@@ -489,6 +523,15 @@ Reply with ONLY one JSON object:
     for (const d of (r && Array.isArray(r.data_fixes) ? r.data_fixes : [])) {
       const n = +(d && d.n) - 1;
       if (analysis.data && analysis.data[n] != null && d.text) analysis.data[n] = String(d.text);
+    }
+    for (const d of (r && Array.isArray(r.data_add) ? r.data_add : [])) if (d) (analysis.data = analysis.data || []).push(String(d));
+    for (const x of (r && Array.isArray(r.restore) ? r.restore : [])) {
+      const [p, k] = String(x && x.id || '').split('.').map(n => +n - 1);
+      const sl = analysis.steps[p] && analysis.steps[p].sentences[k];
+      if (!sl || sl.status !== 'replaced') continue;
+      const f = (Array.isArray(x.f) ? x.f : [x.f]).map(n => +n).filter(n => n > 0);
+      Object.assign(sl, { status: 'fit', why_vi: '', alt_frame: '' }, f.length ? { f } : {}, x.focus_vi ? { focus_vi: String(x.focus_vi) } : {});
+      fixed++;
     }
     analysis.verified = { fixed, missing_vi: String((r && r.missing_vi) || '') };
     return analysis;

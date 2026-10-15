@@ -121,6 +121,7 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .ref-visual p { margin-top: 6px; white-space: pre-wrap; color: var(--muted); max-height: 260px; overflow: auto; }
 .data-list { margin: 6px 0 0; padding-left: 18px; color: var(--text); display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
 .data-note:empty { display: none; }
+.tp-redo { margin-top: 8px; }
 .data-note { margin-top: 6px; color: var(--warn); }
 .elapsed { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; }

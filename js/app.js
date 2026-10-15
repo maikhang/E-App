@@ -268,6 +268,10 @@
 
   const outlineOf = a => G.outlineFor(a && a.task_type, a && a.outline);
   const LETTER = 'ABCD';
+  const CHART_OUTLINES = ['trend', 'compare'];   // dạng có số liệu: câu Body phải có số
+  // Câu Body có số liệu (không tính năm) hoặc từ chỉ xu hướng / so sánh theo dàn ý của cô
+  const hasData = t => /%|\b(?!(?:1[89]|20)\d{2}\b)\d+(?:[.,]\d+)?\b/.test(t) ||
+    /\b(ros|rise|fell|fall|increas|decreas|declin|drop|grew|grow|climb|soar|plung|plummet|surg|overtak|intersect|peak|remain|stabl|fluctuat|surpass|exceed|higher|lower|highest|lowest|doubl|tripl)/i.test(t);
   const PCOLOR = ['#1f63b8', '#5a3fb5', '#1a7a43', '#c2501f'];   // màu từng đoạn (dùng chung cho bảng sao chép)
   const slotFrame = (o, i, f) => o[G.STEP_KEYS[i]].frames[f - 1] || '';
   const frameHtml = t => esc(t).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>');
@@ -320,7 +324,8 @@
         ? `<div class="notice"><b>⚠️ Khung ${sl.f.map(n => 'K' + n).join('/')} của cô chưa phù hợp với đề này.</b> ${esc(sl.why_vi)}<br><span class="notice-alt">→ Đổi sang câu thay thế: <span class="slot-frame-txt">${frameHtml(sl.alt_frame)}</span></span></div>`
         : sl.f.map(n => `<div class="slot-frame"><span class="fno">K${n}</span> ${frameHtml(slotFrame(o, i, n))}</div>`).join('');
       const fTags = sl.f.map(n => `<span class="fno">K${n}</span>`).join('');
-      const head = `<div class="slot-head"><span class="slot-title">Câu ${k + 1}</span>${fTags}${sl.status === 'replaced' ? '<span class="tag-warn">đã đổi khung</span>' : ''}<span class="slot-focus">${esc(sl.focus_vi)}</span></div>`;
+      const noData = CHART_OUTLINES.includes(outlineOf(a)) && i >= 2 && !sl.options.some(op => hasData(op.text));
+      const head = `<div class="slot-head"><span class="slot-title">Câu ${k + 1}</span>${fTags}${sl.status === 'replaced' ? '<span class="tag-warn">đã đổi khung</span>' : ''}${noData ? `<span class="tag-warn" title="Câu Body cần có số liệu và xu hướng theo dàn ý của cô">⚠️ thiếu số liệu${S.isDemo ? '' : ' — bấm ↻ Gợi ý khác'}</span>` : ''}<span class="slot-focus">${esc(sl.focus_vi)}</span></div>`;
       if (p && k !== cur) {
         return `<li class="slot done"><span class="slot-no" style="--pc:${PCOLOR[i]}">✓</span><div class="slot-body">${head}
           ${p.skipped ? '<p class="chosen muted">(Đã bỏ qua câu này)</p>' : `<p class="chosen">${p.f ? `<span class="fno">K${p.f}</span>` : '<span class="fno own-fno">Tự viết</span>'}${ckBadge(p)} ${hl(p.text, st.vocab, fixed)}</p>`}
@@ -533,6 +538,7 @@
     $('#ref-data-note').innerHTML = v && v.missing_vi ? `⚠️ ${esc(v.missing_vi)}` : '';
     if (v && v.missing_vi && !$('#ref-data').dataset.seen) { $('#ref-data').open = true; $('#ref-data').dataset.seen = '1'; }
     renderParaphrase();
+    $('#btn-reanalyze').hidden = S.isDemo;
     setPaneImage($('#pane-write'), S.image);
     const total = S.paras.reduce((n, p) => n + wc(p), 0);
     $('#mini-count').textContent = `${total} / 150 từ`;
@@ -961,6 +967,7 @@
       case 'dropzone': $('#file').click(); return;
       case 'img-clear': S.image = null; S.visual = null; save(); renderImage(); return;
       case 'btn-analyze': analyze(); return;
+      case 'btn-reanalyze': if (S.prompt || S.image) { $('#prompt').value = S.prompt; analyze(); } return;
       case 'btn-demo': loadDemo(); return;
       case 'btn-stop': if (ctl) ctl.abort(); return;
       case 'btn-prev': go(-1); return;
