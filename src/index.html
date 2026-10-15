@@ -23,6 +23,7 @@
     <nav class="modes" aria-label="Chọn mục">
       <button type="button" class="mode" data-mode="write">✍️ Luyện viết bài</button>
       <button type="button" class="mode" data-mode="lesson">🎓 Bài giảng &amp; bài tập</button>
+      <button type="button" class="mode" data-mode="grade">📝 Chấm bài</button>
     </nav>
     <div class="top-actions">
       <button class="btn ghost" id="btn-vocab" type="button">📚 Dàn ý Ms. Gigi</button>
@@ -313,6 +314,97 @@
         </div>
       </div>
     </section>
+    <!-- 📝 Chấm bài -->
+    <section id="view-grade" class="view" hidden>
+      <div id="grade-setup" class="card hero">
+        <span class="kicker">Chấm bài</span>
+        <h2>Dán bài của học sinh để chấm</h2>
+        <p class="muted">AI chấm theo 4 tiêu chí IELTS (TA · CC · LR · GRA), đối chiếu số liệu với đề, xem từng đoạn có đúng dàn ý Ms. Gigi không, chỉ ra từng lỗi và sửa ngay trên bài của em, kèm bài mẫu nâng cấp theo dàn ý của cô.</p>
+        <div class="grid-2">
+          <div class="field"><span>Đề bài: dán ảnh đề (Ctrl+V, kéo thả hoặc bấm chọn)</span>
+            <div class="dropzone" id="gr-drop" tabindex="0">
+              <img id="gr-img" alt="Ảnh đề bài" hidden>
+              <div id="gr-drop-empty">
+                <div class="drop-icon" aria-hidden="true">🖼️</div>
+                <p>Bấm để chọn ảnh, kéo thả, hoặc dán bằng <kbd>Ctrl</kbd>+<kbd>V</kbd></p>
+              </div>
+              <input type="file" id="gr-file" accept="image/*" hidden>
+            </div>
+            <div class="row"><button type="button" class="btn sm ghost" id="gr-img-clear" hidden>✕ Xoá ảnh</button><button type="button" class="btn sm" id="gr-use-write">↪ Dùng đề đang luyện viết</button></div>
+          </div>
+          <label class="field"><span>…và/hoặc dán chữ của đề</span>
+            <textarea id="gr-prompt" rows="8" placeholder="The chart below shows …"></textarea>
+          </label>
+        </div>
+        <label class="field"><span>Bài viết của học sinh — dán nguyên bài, mỗi đoạn một dòng</span>
+          <textarea id="gr-essay" rows="12" placeholder="The line graph illustrates …"></textarea>
+        </label>
+        <div class="actions">
+          <label class="field inline"><span>Tên học sinh</span><input type="text" id="gr-name" placeholder="(không bắt buộc)" autocomplete="off"></label>
+          <span class="pill" id="gr-wc">0 từ</span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn primary lg" id="gr-go">📝 Chấm bài</button>
+          <button type="button" class="btn ghost" id="gr-demo">Xem bài chấm mẫu</button>
+        </div>
+        <p class="note" id="gr-note"></p>
+      </div>
+
+      <div id="grade-history" class="card" hidden>
+        <div class="row between"><h3>📚 Bài đã chấm</h3><span class="muted small">Lưu trong trình duyệt này</span></div>
+        <ul class="gr-hist" id="gr-hist"></ul>
+      </div>
+
+      <div id="grade-loading" class="card loading" hidden>
+        <div class="spinner big" aria-hidden="true"></div>
+        <h2>AI đang chấm bài…</h2>
+        <p class="stage" id="gr-stage">Đang chuẩn bị…</p>
+        <p class="muted">Đối chiếu số liệu với đề, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn, sửa lỗi và viết bài mẫu. Thường mất 1–2 phút.</p>
+        <p class="elapsed" id="gr-elapsed">0 giây</p>
+        <button type="button" class="btn" id="gr-stop">Dừng</button>
+      </div>
+
+      <div id="grade-result" class="split" hidden>
+        <aside class="task-pane" id="pane-grade" aria-label="Đề bài và bài gốc">
+          <div class="tp-head">
+            <div class="tp-tabs" role="tablist" aria-label="Khung đề">
+              <button type="button" class="tp-tab on" role="tab" aria-selected="true" data-ptab="task">🖼️ Đề bài</button>
+              <button type="button" class="tp-tab" role="tab" aria-selected="false" data-ptab="orig">📄 Bài gốc của em</button>
+            </div>
+            <div class="tp-tools" data-zoom-tools>
+              <button type="button" class="tp-btn" data-zoom="out" aria-label="Thu nhỏ ảnh">−</button>
+              <button type="button" class="tp-btn tp-zoom" data-zoom="fit" title="Bấm để xem trọn ảnh">Vừa khung</button>
+              <button type="button" class="tp-btn" data-zoom="in" aria-label="Phóng to ảnh">+</button>
+              <button type="button" class="tp-btn" id="gr-img-full" aria-label="Xem ảnh toàn màn hình" title="Xem ảnh toàn màn hình">⤢</button>
+              <button type="button" class="tp-btn tp-strip" data-strip aria-label="Đổi kích thước khung đề">▾</button>
+            </div>
+          </div>
+          <div class="tp-body">
+            <div class="tp-panel tp-task" data-panel="task">
+              <div class="tp-img fit" id="gr-img-box"><img id="gr-img-src" alt="Ảnh đề bài"></div>
+              <div class="tp-text"><p class="ref-text" id="gr-prompt-view"></p>
+                <details class="ref-visual" id="gr-data" hidden><summary>📊 Số liệu của đề</summary><ul class="data-list" id="gr-data-list"></ul></details>
+              </div>
+            </div>
+            <div class="tp-panel gr-orig" data-panel="orig" hidden><div id="gr-orig"></div></div>
+          </div>
+        </aside>
+        <div class="split-handle" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi độ rộng khung đề" tabindex="0"></div>
+        <div class="split-main">
+          <div class="card lr-bar">
+            <div class="row between">
+              <div><span class="kicker">Phiếu chấm</span><p class="muted small" id="gr-meta"></p></div>
+              <div class="row">
+                <button type="button" class="btn sm primary" id="gr-copy">📋 Sao chép phiếu chấm</button>
+                <button type="button" class="btn sm" id="gr-copy-fixed">📋 Chỉ bài đã sửa</button>
+                <button type="button" class="btn sm ghost" id="gr-new">＋ Chấm bài khác</button>
+              </div>
+            </div>
+          </div>
+          <div class="card" id="gr-body"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <dialog id="dlg-vocab" class="dlg wide">
@@ -351,6 +443,7 @@
   <script src="js/structures.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/lesson.js"></script>
+  <script src="js/grade.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

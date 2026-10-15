@@ -548,6 +548,84 @@ Reply with ONLY one JSON object:
     return r;
   }
 
+  /* ---------- Chấm bài học sinh (dán cả bài) ---------- */
+  const CRIT = ['ta', 'cc', 'lr', 'gra'];
+  // Bài → đoạn → câu, đánh số [đoạn.câu] để AI chỉ đúng chỗ
+  function splitEssay(essay) {
+    return String(essay || '').split(/\n+/).map(p => p.trim()).filter(Boolean)
+      .map(p => p.split(/(?<=[.!?])\s+(?=[A-Z0-9“"'(])/).map(s => s.trim()).filter(Boolean));
+  }
+  function buildGradePrompt({ text, visual, essay }) {
+    const paras = splitEssay(essay);
+    const words = (String(essay).match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+    return `You are a senior IELTS Writing Task 1 examiner and the teaching assistant of Ms. Gigi, a Vietnamese teacher whose students write with her outline. Grade the student's essay strictly with the public IELTS Writing Task 1 band descriptors, then give feedback for the student in simple Vietnamese.
+
+${outlineNotes(OUTLINE_CANDIDATES.auto)}
+
+${taskBlock(text, visual)}
+Student's essay (${words} words; [paragraph.sentence] numbering added for reference):
+${paras.map((ss, p) => ss.map((x, k) => `[${p + 1}.${k + 1}] ${x}`).join('\n')).join('\n\n')}
+
+Do this:
+1. Write the "data" sheet from the TASK first (every figure / feature with its unit), then check every fact in the essay against it. A wrong or invented figure, unit, year, place or trend is an error of type "data".
+2. Band each criterion in 0.5 steps (0-9) like a real examiner:
+   - ta (Task Achievement): clear overview of the main trends / differences / stages? key features selected and supported with ACCURATE data? comparisons? Under 150 words, no overview, inaccurate or missing key data, or copying the prompt lower it.
+   - cc (Coherence & Cohesion): paragraphing, logical progression, referencing, linking (not mechanical).
+   - lr (Lexical Resource): range, precision, collocation, spelling, repetition.
+   - gra (Grammatical Range & Accuracy): range of structures and how many sentences are error-free.
+   For every criterion give 1-3 "good_vi" points and 1-3 "fix_vi" points, concrete and about THIS essay.
+3. Ms. Gigi's outline: decide which of her outlines fits the task, then judge each paragraph of the essay: its role (intro / overview / body1 / body2 / other), whether it follows her outline (Introduction = 1 sentence paraphrasing the prompt; Overview starts with "Overall," and has no figures; Body 1 / Body 2 content as her outline says), which of her frame numbers it uses, and what is missing or wrong (Vietnamese).
+4. List EVERY language or data error: "s" is the sentence id like "2.1", "wrong" is copied exactly from that sentence, "fix" is the correction, "why_vi" explains the rule simply.
+5. "corrected": the student's essay with ONLY the necessary fixes — keep the student's words, ideas and paragraphs (separate paragraphs with \\n\\n). Fix every data error too.
+6. "model": a Band 8 version written with Ms. Gigi's frames for the outline you chose (4 paragraphs separated by \\n\\n, 170-200 words, accurate data), keeping the student's correct ideas.
+7. "summary_vi": 2-3 encouraging but honest sentences for the student; "priorities_vi": the 3 most important things to improve next time.
+
+Reply with ONLY one JSON object:
+{
+  "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "outline": "trend" | "compare" | "maps" | "floorplan" | "process_man" | "process_nat",
+  "data": [ "one fact per line from the task" ],
+  "bands": { "ta": 6, "cc": 6.5, "lr": 6, "gra": 5.5 },
+  "criteria": { "ta": { "good_vi": [], "fix_vi": [] }, "cc": { "good_vi": [], "fix_vi": [] }, "lr": { "good_vi": [], "fix_vi": [] }, "gra": { "good_vi": [], "fix_vi": [] } },
+  "paragraphs": [ { "p": 1, "role": "intro", "ok": true, "frames": [1], "note_vi": "" } ],
+  "errors": [ { "s": "2.1", "type": "grammar" | "spelling" | "punctuation" | "vocabulary" | "data" | "rule" | "frame" | "coherence", "wrong": "", "fix": "", "why_vi": "" } ],
+  "corrected": "",
+  "model": "",
+  "summary_vi": "",
+  "priorities_vi": []
+}`;
+  }
+  const half = x => Math.min(9, Math.max(0, Math.round((+x || 0) * 2) / 2));
+  function normGrade(r, essay) {
+    if (!r || !r.bands) throw new Error('AI chưa chấm xong bài. Bấm chấm lại.');
+    const arr = x => (Array.isArray(x) ? x : []);
+    const bands = {}, criteria = {};
+    for (const c of CRIT) {
+      bands[c] = half(r.bands[c]);
+      const cr = (r.criteria && r.criteria[c]) || {};
+      criteria[c] = { good_vi: arr(cr.good_vi).map(String).filter(Boolean), fix_vi: arr(cr.fix_vi).map(String).filter(Boolean) };
+    }
+    // Band Task 1 = trung bình 4 tiêu chí, làm tròn tới 0.5 gần nhất (.25 → .5, .75 → lên)
+    const overall = Math.round(CRIT.reduce((n, c) => n + bands[c], 0) / 4 * 2) / 2;
+    const paras = splitEssay(essay);
+    return {
+      task_type: String(r.task_type || ''), outline: G.outlineFor(r.task_type, r.outline),
+      data: arr(r.data).map(x => String(x).trim()).filter(Boolean),
+      bands, overall, criteria,
+      paragraphs: arr(r.paragraphs).filter(x => x && x.p).map(x => ({ p: +x.p, role: String(x.role || 'other'), ok: x.ok !== false, frames: arr(x.frames).map(n => +n).filter(n => n > 0), note_vi: String(x.note_vi || '') })),
+      errors: arr(r.errors).filter(e => e && (e.wrong || e.fix)).map(e => {
+        const [p, k] = String(e.s || '').split('.').map(n => +n - 1);
+        return { s: String(e.s || ''), sentence: (paras[p] && paras[p][k]) || '', type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong: String(e.wrong || ''), fix: String(e.fix || ''), why_vi: String(e.why_vi || '') };
+      }),
+      corrected: String(r.corrected || '').trim() || String(essay).trim(),
+      model: String(r.model || '').trim(),
+      summary_vi: String(r.summary_vi || ''), priorities_vi: arr(r.priorities_vi).map(String).filter(Boolean).slice(0, 3),
+    };
+  }
+  async function gradeEssay({ text, visual, essay, signal }) {
+    return normGrade(await ask(buildGradePrompt({ text, visual, essay }), null, signal, 'medium'), essay);
+  }
+
   /* ---------- Bài giảng & bài tập làm quen biểu đồ ---------- */
   const EX_TYPES = {
     mcq: 'Đọc biểu đồ — trắc nghiệm về số liệu (cao nhất/thấp nhất, xu hướng, so sánh)',
@@ -641,5 +719,5 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();

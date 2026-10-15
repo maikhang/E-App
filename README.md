@@ -25,6 +25,17 @@ Khi viết bài và khi xem bài giảng/bài tập, **ảnh đề nằm cố đ
 
 “Xem bài mẫu” mở một bài Maps có sẵn (đề minh hoạ, kèm ảnh 2 bản đồ vẽ bằng SVG) để xem app hoạt động mà không cần AI.
 
+## 📝 Chấm bài
+Mục thứ ba trên thanh đầu trang. Giáo viên dán đề (ảnh và/hoặc chữ — hoặc bấm “Dùng đề đang luyện viết”) và bài của học sinh (mỗi đoạn một dòng), bấm “📝 Chấm bài” (hoặc Ctrl+Enter). AI:
+- ghi bảng số liệu của đề rồi đối chiếu từng số liệu trong bài (sai / bịa số = lỗi “Số liệu”);
+- chấm 4 tiêu chí IELTS Task 1 (TA · CC · LR · GRA) từng nửa band, kèm ✓ làm tốt / ✗ cần sửa; **band ước tính = trung bình 4 tiêu chí, app tự làm tròn tới 0.5** (chỉ để luyện tập);
+- xét từng đoạn có đúng dàn ý Ms. Gigi không (vai trò, khung K đã dùng, thiếu gì) + kiểm tra nhanh theo quy tắc của cô;
+- liệt kê từng lỗi (loại · câu · sai → sửa · giải thích tiếng Việt);
+- **bài của em đã sửa lỗi** (giữ câu chữ của em, gạch đỏ / tô xanh) và **bài mẫu nâng cấp** theo khung của cô;
+- nhận xét chung + 3 việc cần làm ở bài sau.
+
+Đề cố định bên trái (thẻ “Bài gốc của em” để xem lại bài gốc). “📋 Sao chép phiếu chấm” chép bảng màu đầy đủ; “📋 Chỉ bài đã sửa” chép riêng bài sửa. “＋ Chấm bài khác” giữ nguyên đề để chấm học sinh tiếp theo (ảnh đề không phải đọc lại). Các bài đã chấm được lưu trong trình duyệt (“📚 Bài đã chấm”). “Xem bài chấm mẫu” mở một bài chấm sẵn, không cần AI.
+
 ## 🎓 Bài giảng & bài tập
 Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (Ctrl+V / kéo thả / chọn ảnh), chọn dạng bài tập, trình độ và số câu; AI soạn:
 - **Bài giảng**: mục tiêu, câu hỏi dẫn dắt đọc biểu đồ (ẩn đáp án để hỏi lớp), đặc điểm chính, khung dàn ý Ms. Gigi từng đoạn kèm câu mẫu K1/K2…, từ vựng, paraphrase, lỗi hay mắc.
@@ -64,4 +75,5 @@ Sửa trong `src/index.html`, `css/`, `js/` rồi chạy `python3 build.py` đ�
 - `js/structures.js` – danh mục & nhận diện cấu trúc câu trong bài
 - `js/ai.js` – gọi AI đọc đề, tạo gợi ý, kiểm tra số liệu, chấm câu, phân tích cấu trúc câu, soạn bài giảng & bài tập
 - `js/lesson.js` – mục Bài giảng & bài tập
+- `js/grade.js` – mục Chấm bài
 - `js/app.js` – giao diện

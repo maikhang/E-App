@@ -59,11 +59,13 @@
   /* ================= Views ================= */
   function show(view) {
     S.view = view; save();
-    for (const v of ['setup', 'loading', 'wizard', 'review', 'lesson']) $('#view-' + v).hidden = v !== view;
+    for (const v of ['setup', 'loading', 'wizard', 'review', 'lesson', 'grade']) $('#view-' + v).hidden = v !== view;
     $('#split-write').hidden = !WRITE_SPLIT.includes(view);
-    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', (b.dataset.mode === 'lesson') === (view === 'lesson')));
-    $('#btn-new').hidden = view === 'lesson';
+    const mode = view === 'lesson' || view === 'grade' ? view : 'write';
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    $('#btn-new').hidden = mode !== 'write';
     if (view === 'lesson') LESSON.render();
+    if (view === 'grade') GRADE.render();
     if (view === 'setup') renderSetup();
     if (view === 'wizard') renderStep();
     if (view === 'review') { renderReview(); renderPane(); }
@@ -73,7 +75,7 @@
   const WRITE_SPLIT = ['wizard', 'review'];
   // Trang rộng hơn khi có khung đề cố định (viết bài, bài giảng đã soạn)
   function syncLayout() {
-    document.body.classList.toggle('wide', WRITE_SPLIT.includes(S.view) || (S.view === 'lesson' && !$('#lesson-result').hidden));
+    document.body.classList.toggle('wide', WRITE_SPLIT.includes(S.view) || (S.view === 'lesson' && !$('#lesson-result').hidden) || (S.view === 'grade' && !$('#grade-result').hidden));
   }
 
   /* ---------- Khung đề cố định: ảnh đề luôn trên màn hình, gợi ý / bài giảng cuộn bên cạnh ---------- */
@@ -934,8 +936,9 @@
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
     if (paneClick(t)) return;
-    if (t.dataset.mode) { show(t.dataset.mode === 'lesson' ? 'lesson' : (S.analysis ? 'wizard' : 'setup')); return; }
+    if (t.dataset.mode) { show(t.dataset.mode === 'write' ? (S.analysis ? 'wizard' : 'setup') : t.dataset.mode); return; }
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
+    if (S.view === 'grade' && GRADE.onClick(t, e)) return;
     if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
     // ----- Gợi ý từng câu -----
@@ -1029,6 +1032,7 @@
     const img = items.find(i => i.type.startsWith('image/'));
     if (!img) return;
     if (S.view === 'lesson' && LESSON.setupVisible()) { e.preventDefault(); LESSON.takeImage(img.getAsFile()); return; }
+    if (S.view === 'grade' && GRADE.setupVisible()) { e.preventDefault(); GRADE.takeImage(img.getAsFile()); return; }
     if (S.view !== 'setup') return;
     e.preventDefault(); takeFile(img.getAsFile());
   });
@@ -1040,8 +1044,11 @@
   /* ================= Start ================= */
   bindPane();
   LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
+  const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
+  GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
-  show(S.view === 'loading' ? 'setup' : (S.view !== 'setup' && S.view !== 'lesson' && !S.analysis ? 'setup' : S.view));
+  show(S.view === 'loading' ? 'setup' : (WRITE_SPLIT.includes(S.view) && !S.analysis ? 'setup' : S.view));
   AI.available().then(a => { AVAIL = a; if (a.via === 'claude') $('#btn-key').hidden = true; if (S.view === 'setup') renderSetup(); });
 })();

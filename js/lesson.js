@@ -26,11 +26,14 @@ window.LESSON = (function () {
   let saveT = null;
   function save() {
     clearTimeout(saveT);
-    saveT = setTimeout(() => {
-      try { localStorage.setItem(STORE, JSON.stringify(L)); }
-      catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, L, { image: null }))); } catch (e2) { /* bỏ qua */ } }
-    }, 200);
+    saveT = setTimeout(writeNow, 200);
   }
+  function writeNow() {
+    saveT = null;
+    try { localStorage.setItem(STORE, JSON.stringify(L)); }
+    catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, L, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+  }
+  addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
 
   /* Trộn có hạt giống: cùng một bài thì thứ tự luôn giống nhau (trên màn hình và trên phiếu) */
   function seeded(str) {

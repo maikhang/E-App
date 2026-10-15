@@ -93,7 +93,8 @@ body.wide .wrap { max-width: 1680px; padding-bottom: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); min-width: 0; }
 .field > span { font-weight: 600; }
 .field.inline { flex-direction: row; align-items: center; gap: 8px; }
-input[type=password], select, textarea {
+.field.inline input[type=text] { width: 220px; max-width: 100%; }
+input[type=password], input[type=text], select, textarea {
   border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px 12px; color: var(--text); width: 100%; min-width: 0;
 }
 select { width: auto; }
@@ -461,6 +462,64 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .ex-foot { padding-top: 6px; }
 .ex-score { font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
 
+/* ---------- Chấm bài ---------- */
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.gr-hist { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gr-hist li { display: flex; gap: 6px; align-items: stretch; }
+.gr-hist-open { flex: 1; min-width: 0; display: flex; gap: 12px; align-items: center; text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 8px 12px; cursor: pointer; }
+.gr-hist-open:hover { border-color: var(--accent); }
+.gr-hist-main { min-width: 0; display: flex; flex-direction: column; }
+.gr-hist-ex { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gr-hist-band, .gr-band-pill { flex: none; min-width: 44px; text-align: center; font-weight: 700; border-radius: 10px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.hi { --lv-bg: #e3f4e8; --lv-ink: #136c3a; }
+.mid { --lv-bg: #fbf1d9; --lv-ink: #93600a; }
+.lo { --lv-bg: #fdf0ee; --lv-ink: #b42318; }
+.gr-hist-band, .gr-band-pill { background: var(--lv-bg); color: var(--lv-ink); }
+.gr-score { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 12px; }
+.gr-overall { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 14px; padding: 14px; background: var(--lv-bg); color: var(--lv-ink); }
+.gr-ov-lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.gr-ov-band { font-size: 44px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gr-ov-lv { font-size: 13px; font-weight: 600; }
+.gr-crit-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.gr-tile { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 10px 12px; background: var(--lv-bg); color: var(--lv-ink); min-width: 0; }
+.gr-tile-band { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gr-tile-name { font-size: 13px; color: var(--text); }
+.gr-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.gr-facts span { font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; }
+.gr-facts .ok { background: #e3f4e8; color: #136c3a; }
+.gr-facts .bad { background: var(--warn-soft); color: var(--warn); }
+.gr-sec { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.gr-sec h3 { font-size: 17px; }
+.gr-prio { background: var(--warn-soft); border-radius: 10px; padding: 10px 14px; }
+.gr-prio b { color: var(--warn); }
+.gr-prio ol { margin: 4px 0 0; padding-left: 20px; }
+.gr-crit { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+.gr-crit-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.gr-crit-head { display: flex; gap: 10px; align-items: center; }
+.gr-good, .gr-fix { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.gr-good li::before { content: "✓ "; color: #136c3a; font-weight: 700; }
+.gr-fix li::before { content: "✗ "; color: var(--err); font-weight: 700; }
+.gr-outline { display: flex; flex-direction: column; gap: 8px; }
+.gr-op { border-radius: 12px; padding: 10px 12px; border: 1px solid var(--border); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.gr-op.ok { background: #f0f8f2; border-color: #a9d6b6; }
+.gr-op.warn { background: #fffaf0; border-color: #ecd9a6; }
+.gr-op-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.gr-op-verdict { font-size: 12px; font-weight: 700; }
+.gr-op.ok .gr-op-verdict { color: #136c3a; }
+.gr-op.warn .gr-op-verdict { color: var(--warn); }
+.gr-pno { font-size: 11px; font-weight: 700; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 7px; margin-right: 4px; font-family: var(--font-ui); }
+.gr-errs { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.gr-errs del { color: var(--err); background: #fde3df; border-radius: 3px; padding: 0 2px; }
+.gr-errs ins { color: #136c3a; background: #d5efdd; text-decoration: none; font-weight: 600; border-radius: 3px; padding: 0 2px; }
+.gr-errs .why { display: block; color: var(--muted); font-size: 13px; }
+.gr-sref { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.gr-essay { font-family: var(--font-essay); font-size: 16px; line-height: 1.8; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+.gr-essay.model { background: #f1f6fd; border-color: #c9daf2; }
+.gr-essay del { color: var(--err); background: #fde3df; border-radius: 3px; padding: 0 2px; }
+.gr-essay ins { color: #136c3a; background: #d5efdd; text-decoration: none; font-weight: 600; border-radius: 3px; padding: 0 2px; }
+.gr-orig-p { font-family: var(--font-essay); font-size: 15px; line-height: 1.7; margin-bottom: 10px; }
+.gr-orig-p .gr-pno { display: inline-block; margin-bottom: 2px; }
+
 /* ---------- Responsive ---------- */
 /* Màn hình hẹp: khung đề thành dải dính trên cùng (▾ đổi cỡ: vừa → lớn → thu gọn) */
 @media (max-width: 999px) {
@@ -486,6 +545,9 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .grid-2 { grid-template-columns: minmax(0, 1fr); }
   h2 { font-size: 19px; }
   .nav .btn { min-width: 0; flex: 1; }
+  .gr-score { grid-template-columns: minmax(0, 1fr); }
+  .gr-ov-band { font-size: 36px; }
+  .gr-crit-tiles { grid-template-columns: minmax(0, 1fr); }
   .tp-head { padding: 6px 8px; }
   .tp-tab { padding: 5px 7px; font-size: 12px; }
   .tp-zoom { min-width: 0; font-size: 11px; }
@@ -519,6 +581,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
     <nav class="modes" aria-label="Chọn mục">
       <button type="button" class="mode" data-mode="write">✍️ Luyện viết bài</button>
       <button type="button" class="mode" data-mode="lesson">🎓 Bài giảng &amp; bài tập</button>
+      <button type="button" class="mode" data-mode="grade">📝 Chấm bài</button>
     </nav>
     <div class="top-actions">
       <button class="btn ghost" id="btn-vocab" type="button">📚 Dàn ý Ms. Gigi</button>
@@ -806,6 +869,97 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             </div>
           </div>
           <div class="card" id="lr-body"></div>
+        </div>
+      </div>
+    </section>
+    <!-- 📝 Chấm bài -->
+    <section id="view-grade" class="view" hidden>
+      <div id="grade-setup" class="card hero">
+        <span class="kicker">Chấm bài</span>
+        <h2>Dán bài của học sinh để chấm</h2>
+        <p class="muted">AI chấm theo 4 tiêu chí IELTS (TA · CC · LR · GRA), đối chiếu số liệu với đề, xem từng đoạn có đúng dàn ý Ms. Gigi không, chỉ ra từng lỗi và sửa ngay trên bài của em, kèm bài mẫu nâng cấp theo dàn ý của cô.</p>
+        <div class="grid-2">
+          <div class="field"><span>Đề bài: dán ảnh đề (Ctrl+V, kéo thả hoặc bấm chọn)</span>
+            <div class="dropzone" id="gr-drop" tabindex="0">
+              <img id="gr-img" alt="Ảnh đề bài" hidden>
+              <div id="gr-drop-empty">
+                <div class="drop-icon" aria-hidden="true">🖼️</div>
+                <p>Bấm để chọn ảnh, kéo thả, hoặc dán bằng <kbd>Ctrl</kbd>+<kbd>V</kbd></p>
+              </div>
+              <input type="file" id="gr-file" accept="image/*" hidden>
+            </div>
+            <div class="row"><button type="button" class="btn sm ghost" id="gr-img-clear" hidden>✕ Xoá ảnh</button><button type="button" class="btn sm" id="gr-use-write">↪ Dùng đề đang luyện viết</button></div>
+          </div>
+          <label class="field"><span>…và/hoặc dán chữ của đề</span>
+            <textarea id="gr-prompt" rows="8" placeholder="The chart below shows …"></textarea>
+          </label>
+        </div>
+        <label class="field"><span>Bài viết của học sinh — dán nguyên bài, mỗi đoạn một dòng</span>
+          <textarea id="gr-essay" rows="12" placeholder="The line graph illustrates …"></textarea>
+        </label>
+        <div class="actions">
+          <label class="field inline"><span>Tên học sinh</span><input type="text" id="gr-name" placeholder="(không bắt buộc)" autocomplete="off"></label>
+          <span class="pill" id="gr-wc">0 từ</span>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn primary lg" id="gr-go">📝 Chấm bài</button>
+          <button type="button" class="btn ghost" id="gr-demo">Xem bài chấm mẫu</button>
+        </div>
+        <p class="note" id="gr-note"></p>
+      </div>
+
+      <div id="grade-history" class="card" hidden>
+        <div class="row between"><h3>📚 Bài đã chấm</h3><span class="muted small">Lưu trong trình duyệt này</span></div>
+        <ul class="gr-hist" id="gr-hist"></ul>
+      </div>
+
+      <div id="grade-loading" class="card loading" hidden>
+        <div class="spinner big" aria-hidden="true"></div>
+        <h2>AI đang chấm bài…</h2>
+        <p class="stage" id="gr-stage">Đang chuẩn bị…</p>
+        <p class="muted">Đối chiếu số liệu với đề, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn, sửa lỗi và viết bài mẫu. Thường mất 1–2 phút.</p>
+        <p class="elapsed" id="gr-elapsed">0 giây</p>
+        <button type="button" class="btn" id="gr-stop">Dừng</button>
+      </div>
+
+      <div id="grade-result" class="split" hidden>
+        <aside class="task-pane" id="pane-grade" aria-label="Đề bài và bài gốc">
+          <div class="tp-head">
+            <div class="tp-tabs" role="tablist" aria-label="Khung đề">
+              <button type="button" class="tp-tab on" role="tab" aria-selected="true" data-ptab="task">🖼️ Đề bài</button>
+              <button type="button" class="tp-tab" role="tab" aria-selected="false" data-ptab="orig">📄 Bài gốc của em</button>
+            </div>
+            <div class="tp-tools" data-zoom-tools>
+              <button type="button" class="tp-btn" data-zoom="out" aria-label="Thu nhỏ ảnh">−</button>
+              <button type="button" class="tp-btn tp-zoom" data-zoom="fit" title="Bấm để xem trọn ảnh">Vừa khung</button>
+              <button type="button" class="tp-btn" data-zoom="in" aria-label="Phóng to ảnh">+</button>
+              <button type="button" class="tp-btn" id="gr-img-full" aria-label="Xem ảnh toàn màn hình" title="Xem ảnh toàn màn hình">⤢</button>
+              <button type="button" class="tp-btn tp-strip" data-strip aria-label="Đổi kích thước khung đề">▾</button>
+            </div>
+          </div>
+          <div class="tp-body">
+            <div class="tp-panel tp-task" data-panel="task">
+              <div class="tp-img fit" id="gr-img-box"><img id="gr-img-src" alt="Ảnh đề bài"></div>
+              <div class="tp-text"><p class="ref-text" id="gr-prompt-view"></p>
+                <details class="ref-visual" id="gr-data" hidden><summary>📊 Số liệu của đề</summary><ul class="data-list" id="gr-data-list"></ul></details>
+              </div>
+            </div>
+            <div class="tp-panel gr-orig" data-panel="orig" hidden><div id="gr-orig"></div></div>
+          </div>
+        </aside>
+        <div class="split-handle" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi độ rộng khung đề" tabindex="0"></div>
+        <div class="split-main">
+          <div class="card lr-bar">
+            <div class="row between">
+              <div><span class="kicker">Phiếu chấm</span><p class="muted small" id="gr-meta"></p></div>
+              <div class="row">
+                <button type="button" class="btn sm primary" id="gr-copy">📋 Sao chép phiếu chấm</button>
+                <button type="button" class="btn sm" id="gr-copy-fixed">📋 Chỉ bài đã sửa</button>
+                <button type="button" class="btn sm ghost" id="gr-new">＋ Chấm bài khác</button>
+              </div>
+            </div>
+          </div>
+          <div class="card" id="gr-body"></div>
         </div>
       </div>
     </section>
@@ -2153,6 +2307,84 @@ Reply with ONLY one JSON object:
     return r;
   }
 
+  /* ---------- Chấm bài học sinh (dán cả bài) ---------- */
+  const CRIT = ['ta', 'cc', 'lr', 'gra'];
+  // Bài → đoạn → câu, đánh số [đoạn.câu] để AI chỉ đúng chỗ
+  function splitEssay(essay) {
+    return String(essay || '').split(/\n+/).map(p => p.trim()).filter(Boolean)
+      .map(p => p.split(/(?<=[.!?])\s+(?=[A-Z0-9“"'(])/).map(s => s.trim()).filter(Boolean));
+  }
+  function buildGradePrompt({ text, visual, essay }) {
+    const paras = splitEssay(essay);
+    const words = (String(essay).match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+    return `You are a senior IELTS Writing Task 1 examiner and the teaching assistant of Ms. Gigi, a Vietnamese teacher whose students write with her outline. Grade the student's essay strictly with the public IELTS Writing Task 1 band descriptors, then give feedback for the student in simple Vietnamese.
+
+${outlineNotes(OUTLINE_CANDIDATES.auto)}
+
+${taskBlock(text, visual)}
+Student's essay (${words} words; [paragraph.sentence] numbering added for reference):
+${paras.map((ss, p) => ss.map((x, k) => `[${p + 1}.${k + 1}] ${x}`).join('\n')).join('\n\n')}
+
+Do this:
+1. Write the "data" sheet from the TASK first (every figure / feature with its unit), then check every fact in the essay against it. A wrong or invented figure, unit, year, place or trend is an error of type "data".
+2. Band each criterion in 0.5 steps (0-9) like a real examiner:
+   - ta (Task Achievement): clear overview of the main trends / differences / stages? key features selected and supported with ACCURATE data? comparisons? Under 150 words, no overview, inaccurate or missing key data, or copying the prompt lower it.
+   - cc (Coherence & Cohesion): paragraphing, logical progression, referencing, linking (not mechanical).
+   - lr (Lexical Resource): range, precision, collocation, spelling, repetition.
+   - gra (Grammatical Range & Accuracy): range of structures and how many sentences are error-free.
+   For every criterion give 1-3 "good_vi" points and 1-3 "fix_vi" points, concrete and about THIS essay.
+3. Ms. Gigi's outline: decide which of her outlines fits the task, then judge each paragraph of the essay: its role (intro / overview / body1 / body2 / other), whether it follows her outline (Introduction = 1 sentence paraphrasing the prompt; Overview starts with "Overall," and has no figures; Body 1 / Body 2 content as her outline says), which of her frame numbers it uses, and what is missing or wrong (Vietnamese).
+4. List EVERY language or data error: "s" is the sentence id like "2.1", "wrong" is copied exactly from that sentence, "fix" is the correction, "why_vi" explains the rule simply.
+5. "corrected": the student's essay with ONLY the necessary fixes — keep the student's words, ideas and paragraphs (separate paragraphs with \\n\\n). Fix every data error too.
+6. "model": a Band 8 version written with Ms. Gigi's frames for the outline you chose (4 paragraphs separated by \\n\\n, 170-200 words, accurate data), keeping the student's correct ideas.
+7. "summary_vi": 2-3 encouraging but honest sentences for the student; "priorities_vi": the 3 most important things to improve next time.
+
+Reply with ONLY one JSON object:
+{
+  "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
+  "outline": "trend" | "compare" | "maps" | "floorplan" | "process_man" | "process_nat",
+  "data": [ "one fact per line from the task" ],
+  "bands": { "ta": 6, "cc": 6.5, "lr": 6, "gra": 5.5 },
+  "criteria": { "ta": { "good_vi": [], "fix_vi": [] }, "cc": { "good_vi": [], "fix_vi": [] }, "lr": { "good_vi": [], "fix_vi": [] }, "gra": { "good_vi": [], "fix_vi": [] } },
+  "paragraphs": [ { "p": 1, "role": "intro", "ok": true, "frames": [1], "note_vi": "" } ],
+  "errors": [ { "s": "2.1", "type": "grammar" | "spelling" | "punctuation" | "vocabulary" | "data" | "rule" | "frame" | "coherence", "wrong": "", "fix": "", "why_vi": "" } ],
+  "corrected": "",
+  "model": "",
+  "summary_vi": "",
+  "priorities_vi": []
+}`;
+  }
+  const half = x => Math.min(9, Math.max(0, Math.round((+x || 0) * 2) / 2));
+  function normGrade(r, essay) {
+    if (!r || !r.bands) throw new Error('AI chưa chấm xong bài. Bấm chấm lại.');
+    const arr = x => (Array.isArray(x) ? x : []);
+    const bands = {}, criteria = {};
+    for (const c of CRIT) {
+      bands[c] = half(r.bands[c]);
+      const cr = (r.criteria && r.criteria[c]) || {};
+      criteria[c] = { good_vi: arr(cr.good_vi).map(String).filter(Boolean), fix_vi: arr(cr.fix_vi).map(String).filter(Boolean) };
+    }
+    // Band Task 1 = trung bình 4 tiêu chí, làm tròn tới 0.5 gần nhất (.25 → .5, .75 → lên)
+    const overall = Math.round(CRIT.reduce((n, c) => n + bands[c], 0) / 4 * 2) / 2;
+    const paras = splitEssay(essay);
+    return {
+      task_type: String(r.task_type || ''), outline: G.outlineFor(r.task_type, r.outline),
+      data: arr(r.data).map(x => String(x).trim()).filter(Boolean),
+      bands, overall, criteria,
+      paragraphs: arr(r.paragraphs).filter(x => x && x.p).map(x => ({ p: +x.p, role: String(x.role || 'other'), ok: x.ok !== false, frames: arr(x.frames).map(n => +n).filter(n => n > 0), note_vi: String(x.note_vi || '') })),
+      errors: arr(r.errors).filter(e => e && (e.wrong || e.fix)).map(e => {
+        const [p, k] = String(e.s || '').split('.').map(n => +n - 1);
+        return { s: String(e.s || ''), sentence: (paras[p] && paras[p][k]) || '', type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong: String(e.wrong || ''), fix: String(e.fix || ''), why_vi: String(e.why_vi || '') };
+      }),
+      corrected: String(r.corrected || '').trim() || String(essay).trim(),
+      model: String(r.model || '').trim(),
+      summary_vi: String(r.summary_vi || ''), priorities_vi: arr(r.priorities_vi).map(String).filter(Boolean).slice(0, 3),
+    };
+  }
+  async function gradeEssay({ text, visual, essay, signal }) {
+    return normGrade(await ask(buildGradePrompt({ text, visual, essay }), null, signal, 'medium'), essay);
+  }
+
   /* ---------- Bài giảng & bài tập làm quen biểu đồ ---------- */
   const EX_TYPES = {
     mcq: 'Đọc biểu đồ — trắc nghiệm về số liệu (cao nhất/thấp nhất, xu hướng, so sánh)',
@@ -2246,7 +2478,7 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -2278,11 +2510,14 @@ window.LESSON = (function () {
   let saveT = null;
   function save() {
     clearTimeout(saveT);
-    saveT = setTimeout(() => {
-      try { localStorage.setItem(STORE, JSON.stringify(L)); }
-      catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, L, { image: null }))); } catch (e2) { /* bỏ qua */ } }
-    }, 200);
+    saveT = setTimeout(writeNow, 200);
   }
+  function writeNow() {
+    saveT = null;
+    try { localStorage.setItem(STORE, JSON.stringify(L)); }
+    catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, L, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+  }
+  addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
 
   /* Trộn có hạt giống: cùng một bài thì thứ tự luôn giống nhau (trên màn hình và trên phiếu) */
   function seeded(str) {
@@ -2820,6 +3055,385 @@ window.LESSON = (function () {
 })();
 </script>
   <script>
+/* 📝 Chấm bài: giáo viên dán đề + bài của học sinh → AI chấm 4 tiêu chí IELTS, đối chiếu số liệu với đề,
+ * xem từng đoạn có đúng dàn ý Ms. Gigi không, chỉ ra từng lỗi và sửa trên chính bài của em, kèm bài mẫu
+ * nâng cấp theo dàn ý. Sao chép phiếu chấm (bảng màu) gửi học sinh; lưu lịch sử bài đã chấm. */
+window.GRADE = (function () {
+  const G = window.GIGI, C = window.CONTENT;
+  const STORE = 'e-app.grade.v1';
+  const CRIT = [
+    ['ta', 'Task Achievement', 'Hoàn thành yêu cầu đề'],
+    ['cc', 'Coherence & Cohesion', 'Mạch lạc & liên kết'],
+    ['lr', 'Lexical Resource', 'Từ vựng'],
+    ['gra', 'Grammatical Range & Accuracy', 'Ngữ pháp'],
+  ];
+  const ROLE = { intro: 'Introduction', overview: 'Overview', body1: 'Body 1', body2: 'Body 2', other: 'Đoạn khác' };
+  const ROLE_STEP = { intro: 0, overview: 1, body1: 2, body2: 3 };
+  const ETYPE = { grammar: 'Ngữ pháp', spelling: 'Chính tả', punctuation: 'Dấu câu', vocabulary: 'Từ vựng', data: 'Số liệu', rule: 'Quy tắc Ms. Gigi', frame: 'Khung câu', coherence: 'Liên kết' };
+  const MAX_HISTORY = 40;
+  let H = null, $, esc, toast;
+
+  /* ================= State ================= */
+  function blank() {
+    return { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false, history: [] };
+  }
+  let R = load();
+  function load() {
+    try { const raw = localStorage.getItem(STORE); if (raw) return Object.assign(blank(), JSON.parse(raw)); } catch (e) { /* bỏ qua */ }
+    return blank();
+  }
+  let saveT = null;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(writeNow, 200);
+  }
+  function writeNow() {
+    saveT = null;
+    try { localStorage.setItem(STORE, JSON.stringify(R)); }
+    catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, R, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+  }
+  addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
+  const wc = s => (String(s || '').match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+  const paras = s => String(s || '').split(/\n+/).map(p => p.trim()).filter(Boolean);
+  const level = b => (b >= 7 ? 'hi' : b >= 6 ? 'mid' : 'lo');
+  const LEVEL_VI = { hi: 'Tốt', mid: 'Khá', lo: 'Cần cố gắng' };
+  const LEVEL_INK = { hi: ['#e3f4e8', '#136c3a'], mid: ['#fbf1d9', '#93600a'], lo: ['#fdf0ee', '#b42318'] };
+  const fmtBand = b => (Number.isInteger(b) ? b.toFixed(1) : String(b));
+  const fmtDate = iso => { try { return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { return ''; } };
+
+  /* ================= Views ================= */
+  let busy = false;
+  function render() {
+    $('#grade-setup').hidden = busy || !!R.result;
+    $('#grade-history').hidden = busy || !!R.result || !R.history.length;
+    $('#grade-loading').hidden = !busy;
+    $('#grade-result').hidden = busy || !R.result;
+    if (!busy) { if (R.result) renderResult(); else renderSetup(); }
+    if (!$('#view-grade').hidden) H.layout();
+  }
+  function renderSetup() {
+    $('#gr-prompt').value = R.prompt;
+    $('#gr-essay').value = R.essay;
+    $('#gr-name').value = R.name;
+    updateWc();
+    renderImage();
+    $('#gr-use-write').hidden = !H.writingTask();
+    $('#gr-hist').innerHTML = R.history.map((h, k) => `<li>
+      <button type="button" class="gr-hist-open" data-hist="${k}"><span class="gr-hist-band ${level(h.result.overall)}">${fmtBand(h.result.overall)}</span>
+        <span class="gr-hist-main"><b>${esc(h.name || 'Học sinh')}</b> <span class="muted small">· ${fmtDate(h.date)}</span><span class="gr-hist-ex">${esc(h.essay.slice(0, 110))}…</span></span></button>
+      <button type="button" class="btn sm ghost" data-hist-del="${k}" aria-label="Xoá bài đã chấm của ${esc(h.name || 'học sinh')}">✕</button></li>`).join('');
+  }
+  function updateWc() {
+    const n = wc($('#gr-essay').value);
+    $('#gr-wc').textContent = `${n} từ${n && n < 150 ? ' · dưới 150' : ''}`;
+    $('#gr-wc').classList.toggle('warn', !!n && n < 150);
+  }
+  function renderImage() {
+    const img = $('#gr-img');
+    if (R.image) { img.src = R.image.dataUrl; img.hidden = false; $('#gr-drop-empty').hidden = true; $('#gr-img-clear').hidden = false; }
+    else { img.removeAttribute('src'); img.hidden = true; $('#gr-drop-empty').hidden = false; $('#gr-img-clear').hidden = true; }
+  }
+  function takeImage(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    const rd = new FileReader();
+    rd.onload = () => H.downscale(rd.result, file.type).then(img => { R.image = img; R.visual = null; save(); renderImage(); toast('Đã nhận ảnh đề bài.'); });
+    rd.readAsDataURL(file);
+  }
+  const setupVisible = () => !$('#view-grade').hidden && !$('#grade-setup').hidden;
+
+  /* ================= Chấm bằng AI ================= */
+  let ctl = null, tick = null;
+  async function grade() {
+    R.prompt = $('#gr-prompt').value.trim(); R.essay = $('#gr-essay').value.trim(); R.name = $('#gr-name').value.trim();
+    const note = $('#gr-note'); note.classList.remove('err'); note.textContent = '';
+    const err = m => { note.textContent = m; note.classList.add('err'); };
+    if (!R.prompt && !R.image) { err('Hãy dán đề bài (ảnh hoặc chữ) để AI đối chiếu số liệu.'); return; }
+    if (wc(R.essay) < 20) { err('Hãy dán bài viết của học sinh (ít nhất vài câu).'); $('#gr-essay').focus(); return; }
+    save();
+    const avail = await H.available();
+    if (avail.via === 'key' && !H.getKey()) { H.openKey(); return; }
+    busy = true; render();
+    const t0 = Date.now();
+    const stage = txt => { $('#gr-stage').textContent = txt; };
+    $('#gr-elapsed').textContent = '0 giây';
+    tick = setInterval(() => { $('#gr-elapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' giây'; }, 1000);
+    ctl = new AbortController();
+    try {
+      // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại
+      if (R.image && !R.visual) {
+        try {
+          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
+          const r = await AI.readImage({ image: R.image, signal: ctl.signal });
+          R.visual = r.visual;
+          if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
+        } catch (e) {
+          if (e.code === 'cancelled') throw e;
+          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
+          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
+          try { R.visual = await AI.ocr(R.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
+          catch (oe) { if (!R.prompt) throw new Error('Không đọc được ảnh đề (' + oe.message + '). Hãy dán chữ của đề rồi chấm lại.'); }
+        }
+      }
+      stage(`Bước ${R.image ? 2 : 1}/${R.image ? 2 : 1} · AI đối chiếu số liệu, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn và sửa lỗi…`);
+      R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, essay: R.essay, signal: ctl.signal });
+      R.date = new Date().toISOString(); R.isDemo = false;
+      R.history.unshift({ date: R.date, name: R.name, prompt: R.prompt, visual: R.visual, essay: R.essay, result: R.result });
+      R.history = R.history.slice(0, MAX_HISTORY);
+      save();
+      toast(`Đã chấm xong: band ước tính ${fmtBand(R.result.overall)}.`, 3500);
+    } catch (e) {
+      if (e.code !== 'cancelled') err('⚠️ ' + (e.message || 'AI chưa chấm được bài. Thử lại.') + (e.code ? ` (mã: ${e.code})` : ''));
+    } finally {
+      clearInterval(tick); ctl = null; busy = false; render(); window.scrollTo({ top: 0 });
+    }
+  }
+
+  /* ================= Phiếu chấm trên màn hình ================= */
+  function facts() {
+    const ps = paras(R.essay), words = wc(R.essay);
+    return { words, paraCount: ps.length, overview: ps.some(p => /^\s*overall\b/i.test(p)) };
+  }
+  // Lỗi theo quy tắc của cô (kiểm tra ngay trong trình duyệt) cho từng đoạn theo vai trò AI xác định
+  function lintFor(p) {
+    const text = paras(R.essay)[p.p - 1] || '';
+    return p.role in ROLE_STEP ? G.lint(text, R.result.outline, ROLE_STEP[p.role]) : [];
+  }
+  function renderResult() {
+    const r = R.result, o = G.OUTLINES[r.outline], f = facts();
+    H.setPaneImage($('#pane-grade'), R.image);
+    $('#gr-prompt-view').textContent = R.prompt;
+    $('#gr-data').hidden = !r.data.length;
+    $('#gr-data-list').innerHTML = r.data.map(x => `<li>${esc(x)}</li>`).join('');
+    $('#gr-orig').innerHTML = paras(R.essay).map((p, i) => `<p class="gr-orig-p"><span class="gr-pno">Đoạn ${i + 1}</span>${esc(p)}</p>`).join('');
+    $('#gr-meta').textContent = `${R.name || 'Học sinh'} · ${fmtDate(R.date)} · Dàn ý Ms. Gigi: ${o.short}${R.isDemo ? ' · bài chấm mẫu (đề minh hoạ)' : ''}`;
+    const lv = level(r.overall);
+    const tiles = `<div class="gr-score">
+      <div class="gr-overall ${lv}"><span class="gr-ov-lbl">Band ước tính</span><span class="gr-ov-band">${fmtBand(r.overall)}</span><span class="gr-ov-lv">${LEVEL_VI[lv]}</span></div>
+      <div class="gr-crit-tiles">${CRIT.map(([k, en, vi]) => `<div class="gr-tile ${level(r.bands[k])}"><span class="gr-tile-band">${fmtBand(r.bands[k])}</span><span class="gr-tile-name"><b>${k.toUpperCase()}</b> · ${vi}</span></div>`).join('')}</div>
+    </div>
+    <p class="gr-facts"><span class="${f.words < 150 ? 'bad' : 'ok'}">${f.words < 150 ? '⚠️' : '✓'} ${f.words} từ${f.words < 150 ? ' (cần ≥ 150)' : ''}</span>
+      <span class="${f.overview ? 'ok' : 'bad'}">${f.overview ? '✓ Có Overview' : '⚠️ Chưa có Overview “Overall,”'}</span>
+      <span class="${f.paraCount === 4 ? 'ok' : 'bad'}">${f.paraCount === 4 ? '✓' : '⚠️'} ${f.paraCount} đoạn</span>
+      <span class="${r.errors.some(e => e.type === 'data') ? 'bad' : 'ok'}">${r.errors.some(e => e.type === 'data') ? `⚠️ ${r.errors.filter(e => e.type === 'data').length} lỗi số liệu` : '✓ Số liệu khớp đề'}</span></p>
+    <p class="muted small">Band là ước tính theo tiêu chí IELTS Task 1 (trung bình 4 tiêu chí), dùng để luyện tập — không thay cho điểm thi chính thức.</p>`;
+    const summary = `<section class="gr-sec"><h3>💬 Nhận xét chung</h3><p>${esc(r.summary_vi)}</p>
+      ${r.priorities_vi.length ? `<div class="gr-prio"><b>🎯 3 việc cần làm ở bài sau</b><ol>${r.priorities_vi.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}</section>`;
+    const crit = `<section class="gr-sec"><h3>📊 Nhận xét theo 4 tiêu chí</h3><div class="gr-crit">${CRIT.map(([k, en, vi]) => `<div class="gr-crit-card">
+      <div class="gr-crit-head"><span class="gr-band-pill ${level(r.bands[k])}">${fmtBand(r.bands[k])}</span><div><b>${vi}</b><span class="muted small"> · ${en}</span></div></div>
+      ${r.criteria[k].good_vi.length ? `<ul class="gr-good">${r.criteria[k].good_vi.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${r.criteria[k].fix_vi.length ? `<ul class="gr-fix">${r.criteria[k].fix_vi.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`).join('')}</div></section>`;
+    const outline = `<section class="gr-sec"><h3>📐 Từng đoạn theo dàn ý Ms. Gigi · ${esc(o.name)}</h3>
+      <div class="gr-outline">${r.paragraphs.map(p => {
+        const lint = lintFor(p);
+        return `<div class="gr-op ${p.ok && !lint.length ? 'ok' : 'warn'}"><div class="gr-op-head"><span class="gr-pno">Đoạn ${p.p}</span><b>${ROLE[p.role] || ROLE.other}</b>
+          <span class="gr-op-verdict">${p.ok && !lint.length ? '✓ Đúng dàn ý' : '⚠️ Cần sửa theo dàn ý'}</span>${p.frames.map(n => `<span class="fno">K${n}</span>`).join('')}</div>
+          ${p.note_vi ? `<p>${esc(p.note_vi)}</p>` : ''}${lint.map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`;
+      }).join('')}</div></section>`;
+    const errs = `<section class="gr-sec"><h3>🔍 Lỗi trong bài (${r.errors.length})</h3>${r.errors.length ? `<ol class="gr-errs">${r.errors.map(e => `<li>
+        <span class="etag e-${e.type}">${ETYPE[e.type]}</span>${e.s ? ` <span class="gr-sref">câu ${esc(e.s)}</span>` : ''}
+        ${e.wrong ? `<del>${esc(e.wrong)}</del>` : ''}${e.fix ? ` → <ins>${esc(e.fix)}</ins>` : ''}${e.why_vi ? `<span class="why">${esc(e.why_vi)}</span>` : ''}</li>`).join('')}</ol>` : '<p class="muted">Không tìm thấy lỗi — bài rất tốt!</p>'}</section>`;
+    const fixed = `<section class="gr-sec"><h3>✏️ Bài của em đã sửa lỗi</h3><p class="muted small">Giữ nguyên câu chữ của em, chỉ sửa chỗ sai: <del>gạch đỏ</del> là bỏ, <ins>tô xanh</ins> là sửa.</p>
+      <div class="gr-essay">${diffParas(R.essay, r.corrected).map(h => `<p>${h}</p>`).join('')}</div></section>`;
+    const model = r.model ? `<section class="gr-sec"><h3>🌟 Bài mẫu nâng cấp theo dàn ý của cô</h3><p class="muted small">Viết lại theo khung câu Ms. Gigi, số liệu đúng đề, giữ các ý đúng của em.</p>
+      <div class="gr-essay model">${paras(r.model).map(p => `<p>${esc(p)}</p>`).join('')}</div></section>` : '';
+    $('#gr-body').innerHTML = tiles + summary + crit + outline + errs + fixed + model;
+  }
+  // So sánh từng đoạn (nếu số đoạn khớp), không thì so sánh cả bài
+  function diffParas(a, b) {
+    const A = paras(a), B = paras(b);
+    if (A.length === B.length) return A.map((p, i) => H.diffHtml(p, B[i]));
+    return [H.diffHtml(A.join(' '), B.join(' '))];
+  }
+
+  /* ================= Sao chép phiếu chấm ================= */
+  function sheetPlain() {
+    const r = R.result, o = G.OUTLINES[r.outline], f = facts();
+    const line = '━━━━━━━━━━━━━━━━━━━━';
+    const out = ['📝 PHIẾU CHẤM IELTS WRITING TASK 1 · MS. NHI GIGI', `Học sinh: ${R.name || '—'} · Ngày: ${fmtDate(R.date)}`, `Dàn ý: ${o.name} · ${f.words} từ`];
+    if (R.prompt) out.push('', '📌 ĐỀ BÀI', R.prompt);
+    out.push('', line, `🏅 BAND ƯỚC TÍNH: ${fmtBand(r.overall)}`, line,
+      CRIT.map(([k, en, vi]) => `${k.toUpperCase()} (${vi}): ${fmtBand(r.bands[k])}`).join(' · '));
+    out.push('', '💬 NHẬN XÉT CHUNG', r.summary_vi);
+    if (r.priorities_vi.length) out.push('🎯 Cần làm ở bài sau:', ...r.priorities_vi.map((x, i) => `  ${i + 1}. ${x}`));
+    out.push('', line, '📊 THEO 4 TIÊU CHÍ', line);
+    CRIT.forEach(([k, en, vi]) => {
+      out.push('', `${vi} (${en}) — ${fmtBand(r.bands[k])}`);
+      r.criteria[k].good_vi.forEach(x => out.push(`  ✓ ${x}`));
+      r.criteria[k].fix_vi.forEach(x => out.push(`  ✗ ${x}`));
+    });
+    out.push('', line, '📐 TỪNG ĐOẠN THEO DÀN Ý MS. GIGI', line);
+    r.paragraphs.forEach(p => out.push(`Đoạn ${p.p} · ${ROLE[p.role] || ROLE.other}: ${p.ok ? '✓' : '⚠️'} ${p.note_vi}${p.frames.length ? ' (khung ' + p.frames.map(n => 'K' + n).join(', ') + ')' : ''}`));
+    out.push('', line, `🔍 LỖI TRONG BÀI (${r.errors.length})`, line);
+    r.errors.forEach((e, i) => out.push(`${i + 1}. [${ETYPE[e.type]}${e.s ? ' · câu ' + e.s : ''}] ${e.wrong ? e.wrong + ' → ' : ''}${e.fix}${e.why_vi ? ' — ' + e.why_vi : ''}`));
+    out.push('', line, '✏️ BÀI CỦA EM ĐÃ SỬA LỖI', line, ...paras(r.corrected).flatMap(p => ['', p]));
+    if (r.model) out.push('', line, '🌟 BÀI MẪU NÂNG CẤP THEO DÀN Ý CỦA CÔ', line, ...paras(r.model).flatMap(p => ['', p]));
+    return out.join('\n');
+  }
+  const DEL = 'color:#b42318;background:#fde3df;text-decoration:line-through';
+  const INS = 'color:#136c3a;background:#d5efdd;font-weight:bold;text-decoration:none';
+  const inlineDiff = h => h.replace(/<del>/g, `<span style="${DEL}">`).replace(/<\/del>/g, '</span>').replace(/<ins>/g, `<span style="${INS}">`).replace(/<\/ins>/g, '</span>');
+  function sheetHtml() {
+    const r = R.result, o = G.OUTLINES[r.outline], f = facts();
+    const B = '1px solid #d5dfd0';
+    const td = (x, st, at) => `<td style="border:${B};padding:7px 9px;vertical-align:top;${st || ''}"${at || ''}>${x}</td>`;
+    const hd = 'background:#2f6f45;color:#ffffff;border:1px solid #2f6f45;padding:7px 9px;text-align:left';
+    const table = rows => `<table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+    const h2 = t => `<h2 style="font-size:17px;margin:22px 0 8px;color:#2f6f45;border-bottom:3px solid #2f6f45;padding-bottom:4px">${t}</h2>`;
+    const essayStyle = "font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.7";
+    const bullets = list => list.map(x => '• ' + esc(x)).join('<br>');
+    const tile = (b, label) => { const [bg, ink] = LEVEL_INK[level(b)]; return td(`<div style="font-size:26px;font-weight:bold;color:${ink}">${fmtBand(b)}</div><div style="font-size:12px;color:${ink}">${label}</div>`, `background:${bg};text-align:center`); };
+    let h = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px">`;
+    h += table(`<tr><td style="background:#2f6f45;color:#ffffff;padding:14px 16px"><div style="font-size:21px;font-weight:bold">📝 Phiếu chấm IELTS Writing Task 1</div><div style="font-size:14px;margin-top:2px">Ms. Nhi Gigi · chấm theo 4 tiêu chí IELTS và dàn ý của cô</div></td></tr>`);
+    const info = [['Học sinh', esc(R.name || '—')], ['Ngày chấm', fmtDate(R.date)], ['Dàn ý', esc(o.name)], ['Số từ', `${f.words} từ${f.words < 150 ? ' <span style="color:#b42318">(cần tối thiểu 150 từ)</span>' : ''}`]];
+    if (R.prompt) info.push(['Đề bài', `<i>${esc(R.prompt)}</i>`]);
+    h += table(info.map(([k, v]) => `<tr>${td('<b>' + k + '</b>', 'background:#e0eee2;width:110px;white-space:nowrap')}${td(v)}</tr>`).join(''));
+    h += h2('🏅 Kết quả');
+    h += table(`<tr>${tile(r.overall, 'BAND ƯỚC TÍNH')}${CRIT.map(([k, en, vi]) => tile(r.bands[k], `${k.toUpperCase()} · ${vi}`)).join('')}</tr>`);
+    h += `<p style="margin:0 0 6px"><b>💬 Nhận xét chung:</b> ${esc(r.summary_vi)}</p>`;
+    if (r.priorities_vi.length) h += `<div style="background:#fbf1d9;border-radius:6px;padding:8px 12px;margin:0 0 10px"><b style="color:#93600a">🎯 3 việc cần làm ở bài sau</b><ol style="margin:4px 0 0;padding-left:22px">${r.priorities_vi.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div>`;
+    h += h2('📊 Nhận xét theo 4 tiêu chí');
+    h += table(`<tr><th style="${hd};width:26%">Tiêu chí</th><th style="${hd};width:60px">Band</th><th style="${hd}">✓ Làm tốt</th><th style="${hd}">✗ Cần sửa</th></tr>` + CRIT.map(([k, en, vi], i) => {
+      const [bg, ink] = LEVEL_INK[level(r.bands[k])], z = i % 2 ? '#ffffff' : '#f3f8f0';
+      return `<tr>${td(`<b>${vi}</b><br><span style="color:#5b6957;font-size:12px">${en}</span>`, `background:${z}`)}${td(`<b style="color:${ink}">${fmtBand(r.bands[k])}</b>`, `background:${bg};text-align:center`)}${td(bullets(r.criteria[k].good_vi), `background:${z}`)}${td(bullets(r.criteria[k].fix_vi), `background:${z}`)}</tr>`;
+    }).join(''));
+    h += h2(`📐 Từng đoạn theo dàn ý Ms. Gigi · ${esc(o.name)}`);
+    h += table(`<tr><th style="${hd};width:70px">Đoạn</th><th style="${hd};width:100px">Vai trò</th><th style="${hd};width:120px">Dàn ý</th><th style="${hd}">Nhận xét</th></tr>` + r.paragraphs.map(p => {
+      const ok = p.ok && !lintFor(p).length;
+      return `<tr>${td(`<b>${p.p}</b>`)}${td(ROLE[p.role] || ROLE.other)}${td(`${ok ? '✓ Đúng' : '⚠️ Cần sửa'}${p.frames.length ? '<br><span style="font-size:12px">' + p.frames.map(n => 'K' + n).join(', ') + '</span>' : ''}`, ok ? 'background:#e3f4e8;color:#136c3a' : 'background:#fbf1d9;color:#93600a')}${td(esc(p.note_vi) + lintFor(p).map(m => `<br><span style="color:#93600a">⚠️ ${esc(m)}</span>`).join(''))}</tr>`;
+    }).join(''));
+    h += h2(`🔍 Lỗi trong bài (${r.errors.length})`);
+    if (r.errors.length) h += table(`<tr><th style="${hd};width:28px">#</th><th style="${hd};width:110px">Loại · câu</th><th style="${hd}">Lỗi → sửa</th><th style="${hd}">Giải thích</th></tr>` + r.errors.map((e, i) => {
+      const z = i % 2 ? '#ffffff' : '#fafbf9';
+      return `<tr>${td(`<b>${i + 1}</b>`, `background:${z}`)}${td(`${ETYPE[e.type]}${e.s ? `<br><span style="color:#5b6957;font-size:12px">câu ${esc(e.s)}</span>` : ''}`, `background:${z}${e.type === 'data' ? ';color:#b42318;font-weight:bold' : ''}`)}${td(`${e.wrong ? `<span style="${DEL}">${esc(e.wrong)}</span> → ` : ''}<span style="${INS}">${esc(e.fix)}</span>`, `background:${z}`)}${td(esc(e.why_vi), `background:${z};color:#3d4a3a`)}</tr>`;
+    }).join(''));
+    h += h2('✏️ Bài của em đã sửa lỗi');
+    h += `<p style="margin:0 0 6px;color:#5b6957">Giữ nguyên câu chữ của em, chỉ sửa chỗ sai: <span style="${DEL}">gạch đỏ</span> là bỏ, <span style="${INS}">tô xanh</span> là sửa.</p>`;
+    h += `<div style="${essayStyle};background:#f7faf5;border:1px solid #d5dfd0;border-radius:6px;padding:10px 14px">${diffParas(R.essay, r.corrected).map(x => `<p style="margin:0 0 10px">${inlineDiff(x)}</p>`).join('')}</div>`;
+    if (r.model) {
+      h += h2('🌟 Bài mẫu nâng cấp theo dàn ý của cô');
+      h += `<div style="${essayStyle};background:#eaf1fb;border:1px solid #c9daf2;border-radius:6px;padding:10px 14px">${paras(r.model).map(p => `<p style="margin:0 0 10px">${esc(p)}</p>`).join('')}</div>`;
+    }
+    return h + '<p style="color:#8a958a;font-size:12px;margin:10px 0 0">Band là ước tính để luyện tập, không thay cho điểm thi chính thức. Soạn bằng Ms. Nhi Gigi.</p></div>';
+  }
+  function fixedCopy() {
+    const r = R.result;
+    const plain = `✏️ BÀI ĐÃ SỬA LỖI${R.name ? ' · ' + R.name : ''}\n\n` + paras(r.corrected).join('\n\n');
+    const html = `<div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.7;color:#1d281b"><p style="font-family:Arial,sans-serif"><b>✏️ Bài đã sửa lỗi${R.name ? ' · ' + esc(R.name) : ''}</b> — <span style="${DEL}">gạch đỏ</span> là bỏ, <span style="${INS}">tô xanh</span> là sửa.</p>${diffParas(R.essay, r.corrected).map(x => `<p>${inlineDiff(x)}</p>`).join('')}</div>`;
+    return { plain, html };
+  }
+
+  /* ================= Bài chấm mẫu (không cần AI) ================= */
+  function demo() {
+    const d = C.demo;
+    const model = [d.steps[0].sentences[0].options[1].text, d.steps[1].sentences.map(s => s.options[0].text).join(' ')]
+      .concat(d.steps.slice(2).map(st => st.sentences.map(s => s.options[0].text).join(' '))).join('\n\n');
+    const essay = [
+      'The maps show the change of Stokeford village from 1930 to 2010.',
+      'Overall, the village has many changes, the farmland was replaced by houses and a retirement home was built.',
+      'In 1930, there was a row of houses along the main road and a school in the center. The post office was located next the school. In the south, there was farmland which accounted for 50% of the village.',
+      'By 2010, the farmland was demolished and replace by a residential area with a new road. The school was expanded to the east and the post office was converted into a shop. A retirement home was built in the north. The main road remain unchanged.',
+    ].join('\n');
+    const corrected = [
+      'The maps show the changes in the village of Stokeford between 1930 and 2010.',
+      'Overall, the village underwent significant development, with the farmland replaced by houses and a retirement home built.',
+      'In 1930, there was a row of houses along the main road and a school in the center. The post office was located next to the school. In the south, there was farmland which covered a large area.',
+      'By 2010, the farmland was redeveloped and replaced by a residential area with a new road. The school was expanded to the west and the post office was converted into a shop. A retirement home was built in the north. The main road remained unchanged.',
+    ].join('\n\n');
+    const E = (s, type, wrong, fix, why_vi) => ({ s, type, wrong, fix, why_vi });
+    const result = AI.normGrade({
+      task_type: 'maps', outline: 'maps', data: d.data,
+      bands: { ta: 5.5, cc: 6, lr: 6, gra: 5.5 },
+      criteria: {
+        ta: { good_vi: ['Có đủ 4 đoạn và có Overview bắt đầu bằng “Overall,”.', 'Nêu được các thay đổi chính: đất nông nghiệp thành khu dân cư, có viện dưỡng lão mới, bưu điện thành cửa hàng.'],
+          fix_vi: ['Bài chỉ khoảng 110 từ — Task 1 cần ít nhất 150 từ: viết đủ khung K1–K4 ở Body 1 và K1–K5 ở Body 2.', 'Sai số liệu: trường mở rộng về phía TÂY, không phải phía đông; đề không có số “50%”.', 'Overview nên nhắc cả điểm giữ nguyên (đường chính, dãy nhà).'] },
+        cc: { good_vi: ['Chia đoạn rõ ràng: Introduction → Overview → Body 1 → Body 2.'],
+          fix_vi: ['Thiếu câu mở đoạn theo khung của cô ở Body 1 và Body 2.', 'Thêm từ nối Additionally, / Moreover, giữa các câu Body 2.'] },
+        lr: { good_vi: ['Dùng đúng từ vựng thay đổi trong bảng của cô: was converted into, was expanded, remained unchanged.'],
+          fix_vi: ['“demolished” chỉ dùng cho công trình, không dùng cho đất nông nghiệp → was redeveloped.', 'Lặp “there was” nhiều lần — thay bằng was located / lay / was situated.'] },
+        gra: { good_vi: ['Biết dùng câu bị động và mệnh đề quan hệ which.'],
+          fix_vi: ['Lỗi nối hai mệnh đề chỉ bằng dấu phẩy ở Overview.', 'Sai thì: has / remain → quá khứ; thiếu V3: replace → replaced.'] },
+      },
+      paragraphs: [
+        { p: 1, role: 'intro', ok: true, frames: [2], note_vi: 'Đúng 1 câu paraphrase theo khung K2, nhưng cần “the changes in … between 1930 and 2010”.' },
+        { p: 2, role: 'overview', ok: false, frames: [], note_vi: 'Có “Overall,” và không có số liệu, nhưng chưa theo khung K1 của cô (“…underwent significant development, with …”) và thiếu điểm giữ nguyên.' },
+        { p: 3, role: 'body1', ok: false, frames: [2, 3], note_vi: 'Chỉ tả bản đồ 1930 là đúng. Thiếu câu mở đoạn K1 (“In 1930, the layout of the village included several key features.”); câu cuối bịa số liệu 50%.' },
+        { p: 4, role: 'body2', ok: true, frames: [2, 3, 4], note_vi: 'Có các thay đổi chính. Thiếu câu mở đoạn K1 và câu kết quả K5 (“These modifications resulted in …”); sai hướng mở rộng của trường.' },
+      ],
+      errors: [
+        E('1.1', 'vocabulary', 'the change of Stokeford village', 'the changes in the village of Stokeford', 'Có nhiều thay đổi → số nhiều; “changes in + nơi chốn”.'),
+        E('1.1', 'rule', 'from 1930 to 2010', 'between 1930 and 2010', 'Khung Introduction của cô dùng “between … and …”.'),
+        E('2.1', 'grammar', 'has many changes', 'underwent significant development', 'Bản đồ 1930–2010 là quá khứ → thì quá khứ; dùng cụm trong khung Overview của cô.'),
+        E('2.1', 'punctuation', 'the farmland was replaced by houses and a retirement home was built', 'with the farmland replaced by houses and a retirement home built', 'Hai mệnh đề nối chỉ bằng dấu phẩy là lỗi — dùng “with + N + V3”.'),
+        E('3.2', 'grammar', 'next the school', 'next to the school', '“next to” luôn có “to”.'),
+        E('3.3', 'data', 'which accounted for 50% of the village', 'which covered a large area', 'Đề không có số liệu % — không thêm số; “accounted for” chỉ dùng với % của tổng.'),
+        E('4.1', 'vocabulary', 'was demolished', 'was redeveloped', '“demolish” (phá dỡ) dùng cho công trình, không dùng cho đất.'),
+        E('4.1', 'grammar', 'replace by', 'replaced by', 'Bị động: was + V3 → “(was) replaced”.'),
+        E('4.2', 'data', 'to the east', 'to the west', 'Trên bản đồ 2010, trường mở rộng về phía tây.'),
+        E('4.4', 'grammar', 'remain unchanged', 'remained unchanged', 'Bản đồ quá khứ → động từ chia quá khứ.'),
+      ],
+      corrected, model,
+      summary_vi: 'Em nắm được bố cục 4 đoạn và các thay đổi chính của làng — đây là nền tảng tốt. Bài còn ngắn, có 2 lỗi số liệu và vài lỗi thì/ngữ pháp nên band ước tính khoảng 6.0. Viết đủ khung câu của cô ở từng đoạn là em sẽ lên 6.5–7.0.',
+      priorities_vi: ['Viết đủ 150+ từ: dùng đủ khung K1–K4 ở Body 1 và K1–K5 ở Body 2.', 'Đối chiếu từng số liệu, hướng (đông/tây) với bản đồ trước khi viết; không thêm số không có trong đề.', 'Bản đồ quá khứ → chia động từ quá khứ; bị động luôn là was/were + V3.'],
+    }, essay);
+    const history = R.history;
+    R = Object.assign(blank(), { image: C.demoImage, prompt: d.prompt_text, essay, name: 'Học sinh mẫu', result, date: new Date().toISOString(), isDemo: true, history });
+    save(); render(); window.scrollTo({ top: 0 });
+    toast('Đang xem bài chấm mẫu (đề minh hoạ, không cần AI).', 3000);
+  }
+
+  /* ================= Events ================= */
+  function onClick(t) {
+    if (t.dataset.hist != null) {
+      const h = R.history[+t.dataset.hist];
+      if (h) { Object.assign(R, { image: null, visual: h.visual || null, prompt: h.prompt, essay: h.essay, name: h.name, result: h.result, date: h.date, isDemo: false }); save(); render(); window.scrollTo({ top: 0 }); }
+      return true;
+    }
+    if (t.dataset.histDel != null) { R.history.splice(+t.dataset.histDel, 1); save(); render(); return true; }
+    switch (t.id) {
+      case 'gr-drop': $('#gr-file').click(); return true;
+      case 'gr-img-clear': R.image = null; R.visual = null; save(); renderImage(); return true;
+      case 'gr-use-write': {
+        const w = H.writingTask();
+        if (!w) { toast('Chưa có đề nào ở mục Luyện viết bài.'); return true; }
+        R.image = w.image; R.visual = w.visual; R.prompt = w.prompt; save(); renderSetup();
+        toast('Đã lấy đề đang luyện viết.');
+        return true;
+      }
+      case 'gr-go': grade(); return true;
+      case 'gr-demo': demo(); return true;
+      case 'gr-stop': if (ctl) ctl.abort(); return true;
+      case 'gr-new': // chấm học sinh khác cùng đề: giữ đề, xoá bài
+        Object.assign(R, { essay: '', name: '', result: null, date: '', isDemo: false });
+        if (R.image && R.image.dataUrl === C.demoImage.dataUrl) Object.assign(R, { image: null, prompt: '', visual: null });
+        save(); render(); window.scrollTo({ top: 0 }); $('#gr-essay').focus();
+        return true;
+      case 'gr-copy': H.copyRich(sheetPlain(), sheetHtml(), 'Đã sao chép phiếu chấm (bảng màu) — dán vào Word, Google Docs, Gmail hoặc Zalo gửi học sinh.'); return true;
+      case 'gr-copy-fixed': { const c = fixedCopy(); H.copyRich(c.plain, c.html, 'Đã sao chép bài đã sửa lỗi.'); return true; }
+      case 'gr-img-full': if (R.image) { $('#dlg-img-src').src = R.image.dataUrl; $('#dlg-img').showModal(); } return true;
+    }
+    return false;
+  }
+  function bind() {
+    $('#gr-file').addEventListener('change', e => { takeImage(e.target.files[0]); e.target.value = ''; });
+    const dz = $('#gr-drop');
+    dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#gr-file').click(); } });
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); takeImage(e.dataTransfer.files[0]); });
+    // Đề đổi → phải đọc lại ảnh / đối chiếu lại; nháp được lưu khi gõ
+    $('#gr-prompt').addEventListener('input', e => { R.prompt = e.target.value; save(); });
+    $('#gr-essay').addEventListener('input', e => { R.essay = e.target.value; updateWc(); save(); });
+    $('#gr-name').addEventListener('input', e => { R.name = e.target.value; save(); });
+    $('#gr-essay').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); grade(); } });
+  }
+  function init(helpers) {
+    H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
+    bind();
+  }
+  return { init, render, onClick, takeImage, setupVisible };
+})();
+</script>
+  <script>
 (function () {
   const C = window.CONTENT, G = window.GIGI, STRUCTS = window.STRUCTS;
   const $ = s => document.querySelector(s);
@@ -2881,11 +3495,13 @@ window.LESSON = (function () {
   /* ================= Views ================= */
   function show(view) {
     S.view = view; save();
-    for (const v of ['setup', 'loading', 'wizard', 'review', 'lesson']) $('#view-' + v).hidden = v !== view;
+    for (const v of ['setup', 'loading', 'wizard', 'review', 'lesson', 'grade']) $('#view-' + v).hidden = v !== view;
     $('#split-write').hidden = !WRITE_SPLIT.includes(view);
-    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', (b.dataset.mode === 'lesson') === (view === 'lesson')));
-    $('#btn-new').hidden = view === 'lesson';
+    const mode = view === 'lesson' || view === 'grade' ? view : 'write';
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    $('#btn-new').hidden = mode !== 'write';
     if (view === 'lesson') LESSON.render();
+    if (view === 'grade') GRADE.render();
     if (view === 'setup') renderSetup();
     if (view === 'wizard') renderStep();
     if (view === 'review') { renderReview(); renderPane(); }
@@ -2895,7 +3511,7 @@ window.LESSON = (function () {
   const WRITE_SPLIT = ['wizard', 'review'];
   // Trang rộng hơn khi có khung đề cố định (viết bài, bài giảng đã soạn)
   function syncLayout() {
-    document.body.classList.toggle('wide', WRITE_SPLIT.includes(S.view) || (S.view === 'lesson' && !$('#lesson-result').hidden));
+    document.body.classList.toggle('wide', WRITE_SPLIT.includes(S.view) || (S.view === 'lesson' && !$('#lesson-result').hidden) || (S.view === 'grade' && !$('#grade-result').hidden));
   }
 
   /* ---------- Khung đề cố định: ảnh đề luôn trên màn hình, gợi ý / bài giảng cuộn bên cạnh ---------- */
@@ -3756,8 +4372,9 @@ window.LESSON = (function () {
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
     if (paneClick(t)) return;
-    if (t.dataset.mode) { show(t.dataset.mode === 'lesson' ? 'lesson' : (S.analysis ? 'wizard' : 'setup')); return; }
+    if (t.dataset.mode) { show(t.dataset.mode === 'write' ? (S.analysis ? 'wizard' : 'setup') : t.dataset.mode); return; }
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
+    if (S.view === 'grade' && GRADE.onClick(t, e)) return;
     if (t.dataset.libtab) { libTab = t.dataset.libtab; renderVocab(); $('#dlg-vocab .dlg-body').scrollTop = 0; return; }
     if (t.dataset.edit != null) { e.preventDefault(); S.step = +t.dataset.edit; show('wizard'); return; }
     // ----- Gợi ý từng câu -----
@@ -3851,6 +4468,7 @@ window.LESSON = (function () {
     const img = items.find(i => i.type.startsWith('image/'));
     if (!img) return;
     if (S.view === 'lesson' && LESSON.setupVisible()) { e.preventDefault(); LESSON.takeImage(img.getAsFile()); return; }
+    if (S.view === 'grade' && GRADE.setupVisible()) { e.preventDefault(); GRADE.takeImage(img.getAsFile()); return; }
     if (S.view !== 'setup') return;
     e.preventDefault(); takeFile(img.getAsFile());
   });
@@ -3862,9 +4480,12 @@ window.LESSON = (function () {
   /* ================= Start ================= */
   bindPane();
   LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
+  const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
+  GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
-  show(S.view === 'loading' ? 'setup' : (S.view !== 'setup' && S.view !== 'lesson' && !S.analysis ? 'setup' : S.view));
+  show(S.view === 'loading' ? 'setup' : (WRITE_SPLIT.includes(S.view) && !S.analysis ? 'setup' : S.view));
   AI.available().then(a => { AVAIL = a; if (a.via === 'claude') $('#btn-key').hidden = true; if (S.view === 'setup') renderSetup(); });
 })();
 </script>
