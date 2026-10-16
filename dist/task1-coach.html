@@ -129,6 +129,8 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .data-list { margin: 6px 0 0; padding-left: 18px; color: var(--text); display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
 .data-note:empty { display: none; }
 .tp-redo { margin-top: 8px; }
+.tp-hint { font-size: 12px; color: var(--muted); }
+.task-pane.drag { outline: 3px dashed var(--accent); outline-offset: -6px; }
 .data-note { margin-top: 6px; color: var(--warn); }
 .elapsed { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spin .8s linear infinite; }
@@ -626,6 +628,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           </label>
           <button type="button" class="btn primary lg" id="btn-analyze">🤖 AI đọc đề &amp; tạo gợi ý</button>
           <button type="button" class="btn ghost" id="btn-demo">Xem bài mẫu</button>
+          <button type="button" class="btn ghost" id="btn-back-write" hidden>↩ Quay lại bài đang viết</button>
         </div>
         <p class="note" id="setup-note"></p>
       </div>
@@ -808,6 +811,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
         <div class="actions">
           <button type="button" class="btn primary lg" id="ls-go">🎓 Tạo bài giảng &amp; bài tập</button>
           <button type="button" class="btn ghost" id="ls-demo">Xem bài giảng mẫu</button>
+          <button type="button" class="btn ghost" id="ls-back" hidden>↩ Quay lại bài giảng vừa rồi</button>
         </div>
         <p class="note" id="ls-note"></p>
       </div>
@@ -836,7 +840,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           <div class="tp-body">
             <div class="tp-panel tp-task">
               <div class="tp-img fit" id="lr-img-box"><img id="lr-img-src" alt="Biểu đồ của bài"></div>
-              <div class="tp-text"><p class="ref-text" id="lr-prompt"></p>
+              <div class="tp-text"><p class="tp-hint">💡 Dán (Ctrl+V) hoặc kéo ảnh biểu đồ khác vào đây để soạn bài mới.</p><p class="ref-text" id="lr-prompt"></p>
                 <details class="ref-visual" id="lr-data" hidden><summary>📊 Số liệu của biểu đồ</summary><ul class="data-list" id="lr-data-list"></ul></details>
               </div>
             </div>
@@ -934,7 +938,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
           <div class="tp-body">
             <div class="tp-panel tp-task" data-panel="task">
               <div class="tp-img fit" id="gr-img-box"><img id="gr-img-src" alt="Ảnh đề bài"></div>
-              <div class="tp-text"><p class="ref-text" id="gr-prompt-view"></p>
+              <div class="tp-text"><p class="tp-hint">💡 Dán (Ctrl+V) hoặc kéo ảnh đề khác vào đây để chấm đề mới.</p><p class="ref-text" id="gr-prompt-view"></p>
                 <details class="ref-visual" id="gr-data" hidden><summary>📊 Số liệu của đề</summary><ul class="data-list" id="gr-data-list"></ul></details>
               </div>
             </div>
@@ -2590,6 +2594,7 @@ window.LESSON = (function () {
     $('#ls-count').value = String(L.count);
     document.querySelectorAll('[name=ls-ex]').forEach(c => { c.checked = L.types.includes(c.value); });
     renderImage();
+    $('#ls-back').hidden = !prev;
   }
   function renderImage() {
     const img = $('#ls-img');
@@ -2603,6 +2608,19 @@ window.LESSON = (function () {
     r.readAsDataURL(file);
   }
   const setupVisible = () => !$('#view-lesson').hidden && !$('#lesson-setup').hidden;
+  // Bài giảng vừa soạn (để quay lại sau khi bắt đầu biểu đồ khác)
+  let prev = null;
+  function startNew() {
+    if (L.data) prev = L;
+    L = Object.assign(blank(), { band: L.band, types: L.types, count: L.count, type: L.type });
+    ans = {}; save(); render();
+  }
+  // Dán / kéo ảnh lúc nào cũng được: đang xem bài giảng thì mở bài mới với ảnh đó
+  function pasteImage(file) {
+    if (busy) { toast('AI đang soạn bài giảng — đợi xong rồi dán ảnh mới nhé.'); return; }
+    if (!setupVisible()) { startNew(); window.scrollTo({ top: 0 }); }
+    takeImage(file);
+  }
 
   /* ================= Tạo bài giảng bằng AI ================= */
   let ctl = null, tick = null;
@@ -3038,10 +3056,8 @@ window.LESSON = (function () {
       case 'ls-go': generate(); return true;
       case 'ls-demo': loadDemo(); return true;
       case 'ls-stop': if (ctl) ctl.abort(); return true;
-      case 'lr-new': {
-        const keep = { band: L.band, types: L.types, count: L.count, type: L.type };
-        L = Object.assign(blank(), keep); ans = {}; save(); render(); window.scrollTo({ top: 0 }); return true;
-      }
+      case 'lr-new': startNew(); window.scrollTo({ top: 0 }); return true;
+      case 'ls-back': if (prev) { L = prev; prev = null; ans = {}; save(); render(); window.scrollTo({ top: 0 }); } return true;
       case 'lr-copy-lesson': { const c = lessonCopy(); H.copyRich(c.plain, c.html, 'Đã sao chép bài giảng.'); return true; }
       case 'lr-copy-sheet': { const c = worksheetCopy(false); H.copyRich(c.plain, c.html, 'Đã sao chép phiếu bài tập (không có đáp án) — gửi học sinh.'); return true; }
       case 'lr-copy-key': { const c = worksheetCopy(true); H.copyRich(c.plain, c.html, 'Đã sao chép đáp án.'); return true; }
@@ -3088,7 +3104,7 @@ window.LESSON = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible };
 })();
 </script>
   <script>
@@ -3177,6 +3193,15 @@ window.GRADE = (function () {
     rd.readAsDataURL(file);
   }
   const setupVisible = () => !$('#view-grade').hidden && !$('#grade-setup').hidden;
+  // Đang xem phiếu chấm mà dán / kéo ảnh đề khác → chấm đề mới (phiếu cũ đã nằm trong “Bài đã chấm”)
+  function pasteImage(file) {
+    if (busy) { toast('AI đang chấm bài — đợi xong rồi dán ảnh mới nhé.'); return; }
+    if (!setupVisible()) {
+      Object.assign(R, { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false });
+      save(); render(); window.scrollTo({ top: 0 });
+    }
+    takeImage(file);
+  }
 
   /* ================= Chấm bằng AI ================= */
   let ctl = null, tick = null;
@@ -3467,7 +3492,7 @@ window.GRADE = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible };
 })();
 </script>
   <script>
@@ -3645,6 +3670,7 @@ window.GRADE = (function () {
 
   /* ---------- Setup ---------- */
   function renderSetup() {
+    $('#btn-back-write').hidden = !prevWrite;
     document.querySelectorAll('input[name=type]').forEach(r => { r.checked = r.value === S.type; });
     $('#prompt').value = S.prompt;
     $('#band').value = S.band;
@@ -4442,6 +4468,7 @@ window.GRADE = (function () {
       case 'btn-analyze': analyze(); return;
       case 'btn-reanalyze': if (S.prompt || S.image) { $('#prompt').value = S.prompt; analyze(); } return;
       case 'btn-demo': loadDemo(); return;
+      case 'btn-back-write': if (prevWrite) { S = prevWrite; prevWrite = null; save(); show(S.analysis ? 'wizard' : 'setup'); } return;
       case 'btn-stop': if (ctl) ctl.abort(); return;
       case 'btn-prev': go(-1); return;
       case 'btn-next': go(1); return;
@@ -4455,6 +4482,7 @@ window.GRADE = (function () {
       case 'btn-new': case 'btn-new-2': {
         if (S.view === 'loading') return;
         const keep = { band: S.band, type: S.type, blur: S.blur };
+        if (S.analysis && !S.isDemo) prevWrite = S;
         S = Object.assign(blank(), keep); clearSlotState(); save(); show('setup'); $('#prompt').focus(); return;
       }
       case 'btn-copy-pp': case 'btn-copy-pp2': {
@@ -4507,14 +4535,30 @@ window.GRADE = (function () {
   $('#slots').addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.classList.contains('own-in')) { e.preventDefault(); gradeOwn(+e.target.dataset.slot); }
   });
+  // Ảnh dán (Ctrl+V) hoặc kéo vào khung đề: nhận ở mọi màn hình của mục đang mở
+  let prevWrite = null;   // bài đang viết trước khi dán đề mới (để quay lại)
+  function routeImage(file) {
+    if (!file || !/^image\//.test(file.type)) return false;
+    if (S.view === 'lesson') { LESSON.pasteImage(file); return true; }
+    if (S.view === 'grade') { GRADE.pasteImage(file); return true; }
+    if (S.view === 'loading') { toast('AI đang đọc đề — đợi xong rồi dán ảnh mới nhé.'); return true; }
+    if (S.view !== 'setup') {
+      if (S.analysis && !S.isDemo) prevWrite = S;
+      S = Object.assign(blank(), { band: S.band, type: S.type, blur: S.blur });
+      clearSlotState(); save(); show('setup');
+    }
+    takeFile(file);
+    return true;
+  }
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];
     const img = items.find(i => i.type.startsWith('image/'));
-    if (!img) return;
-    if (S.view === 'lesson' && LESSON.setupVisible()) { e.preventDefault(); LESSON.takeImage(img.getAsFile()); return; }
-    if (S.view === 'grade' && GRADE.setupVisible()) { e.preventDefault(); GRADE.takeImage(img.getAsFile()); return; }
-    if (S.view !== 'setup') return;
-    e.preventDefault(); takeFile(img.getAsFile());
+    if (img && routeImage(img.getAsFile())) e.preventDefault();
+  });
+  document.querySelectorAll('.task-pane').forEach(pane => {
+    pane.addEventListener('dragover', e => { e.preventDefault(); pane.classList.add('drag'); });
+    pane.addEventListener('dragleave', () => pane.classList.remove('drag'));
+    pane.addEventListener('drop', e => { e.preventDefault(); pane.classList.remove('drag'); routeImage(e.dataTransfer.files[0]); });
   });
   const dz = $('#dropzone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });

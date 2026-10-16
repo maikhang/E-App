@@ -83,6 +83,15 @@ window.GRADE = (function () {
     rd.readAsDataURL(file);
   }
   const setupVisible = () => !$('#view-grade').hidden && !$('#grade-setup').hidden;
+  // Đang xem phiếu chấm mà dán / kéo ảnh đề khác → chấm đề mới (phiếu cũ đã nằm trong “Bài đã chấm”)
+  function pasteImage(file) {
+    if (busy) { toast('AI đang chấm bài — đợi xong rồi dán ảnh mới nhé.'); return; }
+    if (!setupVisible()) {
+      Object.assign(R, { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false });
+      save(); render(); window.scrollTo({ top: 0 });
+    }
+    takeImage(file);
+  }
 
   /* ================= Chấm bằng AI ================= */
   let ctl = null, tick = null;
@@ -373,5 +382,5 @@ window.GRADE = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible };
 })();

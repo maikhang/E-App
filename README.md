@@ -9,6 +9,9 @@ Khi viết bài và khi xem bài giảng/bài tập, **ảnh đề nằm cố đ
 - Khung đề khi viết bài có 3 thẻ: Đề bài · Paraphrase · Bài viết.
 - Màn hình hẹp (điện thoại, máy tính bảng dọc): khung đề thành dải dính trên cùng; nút ▾ đổi cỡ vừa → lớn → thu gọn.
 
+## Dán ảnh đề mới lúc nào cũng được
+Ở cả 3 mục, dán (Ctrl+V) hoặc kéo ảnh vào khung đề bên trái bất cứ lúc nào: đang xem bài giảng / phiếu chấm / bài đang viết thì app mở bài mới với ảnh đó. Nút “↩ Quay lại bài giảng vừa rồi” / “↩ Quay lại bài đang viết” để trở lại bài trước (bài đã chấm luôn nằm trong “📚 Bài đã chấm”).
+
 ## Luồng sử dụng
 1. **Đề bài** – chọn dạng (Maps / Process / Charts & Tables / Tự nhận dạng), dán đề hoặc ảnh đề (Ctrl+V, kéo thả, chọn ảnh), chọn trình độ (Band 6.0 / 7.0+ / 8.0+).
 2. **AI đọc đề** – trích xuất chủ thể, số liệu, mốc thời gian.

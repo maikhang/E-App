@@ -69,6 +69,7 @@ window.LESSON = (function () {
     $('#ls-count').value = String(L.count);
     document.querySelectorAll('[name=ls-ex]').forEach(c => { c.checked = L.types.includes(c.value); });
     renderImage();
+    $('#ls-back').hidden = !prev;
   }
   function renderImage() {
     const img = $('#ls-img');
@@ -82,6 +83,19 @@ window.LESSON = (function () {
     r.readAsDataURL(file);
   }
   const setupVisible = () => !$('#view-lesson').hidden && !$('#lesson-setup').hidden;
+  // Bài giảng vừa soạn (để quay lại sau khi bắt đầu biểu đồ khác)
+  let prev = null;
+  function startNew() {
+    if (L.data) prev = L;
+    L = Object.assign(blank(), { band: L.band, types: L.types, count: L.count, type: L.type });
+    ans = {}; save(); render();
+  }
+  // Dán / kéo ảnh lúc nào cũng được: đang xem bài giảng thì mở bài mới với ảnh đó
+  function pasteImage(file) {
+    if (busy) { toast('AI đang soạn bài giảng — đợi xong rồi dán ảnh mới nhé.'); return; }
+    if (!setupVisible()) { startNew(); window.scrollTo({ top: 0 }); }
+    takeImage(file);
+  }
 
   /* ================= Tạo bài giảng bằng AI ================= */
   let ctl = null, tick = null;
@@ -517,10 +531,8 @@ window.LESSON = (function () {
       case 'ls-go': generate(); return true;
       case 'ls-demo': loadDemo(); return true;
       case 'ls-stop': if (ctl) ctl.abort(); return true;
-      case 'lr-new': {
-        const keep = { band: L.band, types: L.types, count: L.count, type: L.type };
-        L = Object.assign(blank(), keep); ans = {}; save(); render(); window.scrollTo({ top: 0 }); return true;
-      }
+      case 'lr-new': startNew(); window.scrollTo({ top: 0 }); return true;
+      case 'ls-back': if (prev) { L = prev; prev = null; ans = {}; save(); render(); window.scrollTo({ top: 0 }); } return true;
       case 'lr-copy-lesson': { const c = lessonCopy(); H.copyRich(c.plain, c.html, 'Đã sao chép bài giảng.'); return true; }
       case 'lr-copy-sheet': { const c = worksheetCopy(false); H.copyRich(c.plain, c.html, 'Đã sao chép phiếu bài tập (không có đáp án) — gửi học sinh.'); return true; }
       case 'lr-copy-key': { const c = worksheetCopy(true); H.copyRich(c.plain, c.html, 'Đã sao chép đáp án.'); return true; }
@@ -567,5 +579,5 @@ window.LESSON = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible };
 })();

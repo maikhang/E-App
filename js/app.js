@@ -172,6 +172,7 @@
 
   /* ---------- Setup ---------- */
   function renderSetup() {
+    $('#btn-back-write').hidden = !prevWrite;
     document.querySelectorAll('input[name=type]').forEach(r => { r.checked = r.value === S.type; });
     $('#prompt').value = S.prompt;
     $('#band').value = S.band;
@@ -969,6 +970,7 @@
       case 'btn-analyze': analyze(); return;
       case 'btn-reanalyze': if (S.prompt || S.image) { $('#prompt').value = S.prompt; analyze(); } return;
       case 'btn-demo': loadDemo(); return;
+      case 'btn-back-write': if (prevWrite) { S = prevWrite; prevWrite = null; save(); show(S.analysis ? 'wizard' : 'setup'); } return;
       case 'btn-stop': if (ctl) ctl.abort(); return;
       case 'btn-prev': go(-1); return;
       case 'btn-next': go(1); return;
@@ -982,6 +984,7 @@
       case 'btn-new': case 'btn-new-2': {
         if (S.view === 'loading') return;
         const keep = { band: S.band, type: S.type, blur: S.blur };
+        if (S.analysis && !S.isDemo) prevWrite = S;
         S = Object.assign(blank(), keep); clearSlotState(); save(); show('setup'); $('#prompt').focus(); return;
       }
       case 'btn-copy-pp': case 'btn-copy-pp2': {
@@ -1034,14 +1037,30 @@
   $('#slots').addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.classList.contains('own-in')) { e.preventDefault(); gradeOwn(+e.target.dataset.slot); }
   });
+  // Ảnh dán (Ctrl+V) hoặc kéo vào khung đề: nhận ở mọi màn hình của mục đang mở
+  let prevWrite = null;   // bài đang viết trước khi dán đề mới (để quay lại)
+  function routeImage(file) {
+    if (!file || !/^image\//.test(file.type)) return false;
+    if (S.view === 'lesson') { LESSON.pasteImage(file); return true; }
+    if (S.view === 'grade') { GRADE.pasteImage(file); return true; }
+    if (S.view === 'loading') { toast('AI đang đọc đề — đợi xong rồi dán ảnh mới nhé.'); return true; }
+    if (S.view !== 'setup') {
+      if (S.analysis && !S.isDemo) prevWrite = S;
+      S = Object.assign(blank(), { band: S.band, type: S.type, blur: S.blur });
+      clearSlotState(); save(); show('setup');
+    }
+    takeFile(file);
+    return true;
+  }
   document.addEventListener('paste', e => {
     const items = e.clipboardData && e.clipboardData.items ? [...e.clipboardData.items] : [];
     const img = items.find(i => i.type.startsWith('image/'));
-    if (!img) return;
-    if (S.view === 'lesson' && LESSON.setupVisible()) { e.preventDefault(); LESSON.takeImage(img.getAsFile()); return; }
-    if (S.view === 'grade' && GRADE.setupVisible()) { e.preventDefault(); GRADE.takeImage(img.getAsFile()); return; }
-    if (S.view !== 'setup') return;
-    e.preventDefault(); takeFile(img.getAsFile());
+    if (img && routeImage(img.getAsFile())) e.preventDefault();
+  });
+  document.querySelectorAll('.task-pane').forEach(pane => {
+    pane.addEventListener('dragover', e => { e.preventDefault(); pane.classList.add('drag'); });
+    pane.addEventListener('dragleave', () => pane.classList.remove('drag'));
+    pane.addEventListener('drop', e => { e.preventDefault(); pane.classList.remove('drag'); routeImage(e.dataTransfer.files[0]); });
   });
   const dz = $('#dropzone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });

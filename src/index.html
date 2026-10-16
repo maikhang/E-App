@@ -75,6 +75,7 @@
           </label>
           <button type="button" class="btn primary lg" id="btn-analyze">🤖 AI đọc đề &amp; tạo gợi ý</button>
           <button type="button" class="btn ghost" id="btn-demo">Xem bài mẫu</button>
+          <button type="button" class="btn ghost" id="btn-back-write" hidden>↩ Quay lại bài đang viết</button>
         </div>
         <p class="note" id="setup-note"></p>
       </div>
@@ -257,6 +258,7 @@
         <div class="actions">
           <button type="button" class="btn primary lg" id="ls-go">🎓 Tạo bài giảng &amp; bài tập</button>
           <button type="button" class="btn ghost" id="ls-demo">Xem bài giảng mẫu</button>
+          <button type="button" class="btn ghost" id="ls-back" hidden>↩ Quay lại bài giảng vừa rồi</button>
         </div>
         <p class="note" id="ls-note"></p>
       </div>
@@ -285,7 +287,7 @@
           <div class="tp-body">
             <div class="tp-panel tp-task">
               <div class="tp-img fit" id="lr-img-box"><img id="lr-img-src" alt="Biểu đồ của bài"></div>
-              <div class="tp-text"><p class="ref-text" id="lr-prompt"></p>
+              <div class="tp-text"><p class="tp-hint">💡 Dán (Ctrl+V) hoặc kéo ảnh biểu đồ khác vào đây để soạn bài mới.</p><p class="ref-text" id="lr-prompt"></p>
                 <details class="ref-visual" id="lr-data" hidden><summary>📊 Số liệu của biểu đồ</summary><ul class="data-list" id="lr-data-list"></ul></details>
               </div>
             </div>
@@ -383,7 +385,7 @@
           <div class="tp-body">
             <div class="tp-panel tp-task" data-panel="task">
               <div class="tp-img fit" id="gr-img-box"><img id="gr-img-src" alt="Ảnh đề bài"></div>
-              <div class="tp-text"><p class="ref-text" id="gr-prompt-view"></p>
+              <div class="tp-text"><p class="tp-hint">💡 Dán (Ctrl+V) hoặc kéo ảnh đề khác vào đây để chấm đề mới.</p><p class="ref-text" id="gr-prompt-view"></p>
                 <details class="ref-visual" id="gr-data" hidden><summary>📊 Số liệu của đề</summary><ul class="data-list" id="gr-data-list"></ul></details>
               </div>
             </div>
