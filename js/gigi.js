@@ -20,7 +20,7 @@ window.GIGI = (function () {
         frames: [
           'Overall, it is obvious that while [S] + [V], the opposite was true for [cái còn lại].',
           'In addition, [...] was the most popular [...] at the end of the period.',
-          '(Nếu cùng xu hướng) All [...] show a similar trend in percentage changes.',
+          '(Nếu cùng xu hướng) All [...] showed a similar [upward/downward] trend over the period.',
         ],
       },
       body1: {
@@ -70,8 +70,8 @@ From 2010 to 2025, the proportion of people driving cars continued to drop signi
       body1: {
         rule: 'Đi từ số TO đến số NHỎ: quán quân → á quân → số trung bình. (2 biểu đồ: Body 1 = biểu đồ 1.)',
         frames: [
-          'Looking at the [chart] more closely, [category A] accounted for [..]%, making it the dominant category.',
-          'This was followed by [category B] at [..]%, which was (nearly double / slightly lower / roughly the same as) [category C].',
+          'Looking at the [chart] more closely, [category A] accounted for [..]% (số tuyệt đối: recorded / stood at [..]), making it the dominant category.',
+          'This was followed by [category B] at [..]%, which was (nearly double that of / slightly lower than / roughly the same as) [category C].',
           'Meanwhile, [category D] represented [..]%, showing a noticeable difference compared with [another category].',
         ],
       },
@@ -79,7 +79,7 @@ From 2010 to 2025, the proportion of people driving cars continued to drop signi
         rule: 'Các số nhỏ còn lại + điểm nổi bật để so sánh. (2 biểu đồ: Body 2 = biểu đồ 2, đối chiếu ngược với biểu đồ 1, tả "thằng đột biến" và "thằng đặc biệt".)',
         frames: [
           'By contrast, the smallest proportion was seen in [category E], at only [..]%.',
-          'Similarly, [category F] also had a relatively modest figure, standing at [..]%.',
+          'Similarly, [category F] had a relatively modest figure, standing at [..]%.',
           'It is also worth noting that [G] and [H] were identical, at [..]% each.',
           'Another striking feature is that [the combined share of A and B exceeded half the total / one category was more than three times as large as another].',
           '(2 biểu đồ) Turning to the [chart 2], the highest proportion/number was seen in [E], at [..]%. By contrast, [F] had the lowest figure, standing at [..]%.',
@@ -129,7 +129,7 @@ Looking at the second chart, a striking 34% of teachers reported a recent increa
       body2: {
         rule: 'Miêu tả thay đổi và vị trí trên bản đồ 2 (chỉ 3-4 thay đổi chính).',
         frames: [
-          'Mở đoạn: By [thời điểm 2], the area experienced significant changes, with [new constructions/removals].',
+          'Mở đoạn: By [thời điểm 2], the area had experienced significant changes, with [new constructions/removals]. (Bản đồ hiện tại: By the present day, the area has experienced …)',
           'Thay đổi và vị trí: [Công trình 1] was [demolished / replaced by / converted into] [công trình mới], which was located in [the north].',
           'Thay đổi khác: [Công trình 2] was [expanded/relocated] to [the south], while [Công trình 3] remained unchanged in [the center].',
           'Vị trí bổ sung: A new [Công trình 4] was constructed in [the top-left corner], [next to/opposite] [Công trình 5].',
@@ -144,12 +144,13 @@ Looking at the second chart, a striking 34% of teachers reported a recent increa
         'Đồng nghĩa: xây mới erected // constructed / built · phá bỏ demolished // knocked down · mở rộng enlarged // expanded · thay thế replaced by // made way for · chuyển chỗ relocated to · hiện đại hoá modernized // renovated.',
         'Lỗi hay gặp: liệt kê quá nhiều chi tiết · dùng hiện tại đơn (phải dùng quá khứ) · lặp từ · quên so sánh hai thời điểm.',
         'Thời gian: In 1990 / In the first map · By 2020 / In the second map / In the final map · Over the 30 years / Over the two decades · From … to …',
+        'Thì sau “By + năm”: năm trong quá khứ → quá khứ hoàn thành (By 2010, the area had experienced significant changes); bản đồ hiện tại → hiện tại hoàn thành (By the present day, the area has experienced …). Các câu thay đổi sau đó dùng quá khứ đơn bị động (was built, was converted into).',
         'Mẹo: Thời gian + Vật thể + Hành động + Vị trí (In 1995, a cafe was located next to the library).',
       ],
       sample: `The maps illustrate the development of the village of Ryemouth between 1995 and present.
 Overall, the area underwent significant development, with the addition of new recreational facilities and the removal of the fishing port, while some residential areas remained unchanged.
 In 1995, the layout of the village included several key features. A housing area was located in the north-west, close to a main road and a small cluster of houses. A shop lay to the south of the housing area, while a forest park was situated in the center of the map. Additionally, a hotel stood next to the forest park, and a fish market stood next to a fishing port with a pier by the sea in the south.
-By present, the area experienced significant changes, with several new constructions and removals. The fish market and the fishing port in the south were demolished and replaced by new apartments, which were located along the coast. The shop was converted into a restaurant, while the hotel remained unchanged in the center-right. A new golf course was constructed in the north-east, and the forest park was replaced by tennis courts. Furthermore, a new car park was constructed next to the hotel.`,
+By the present day, the area has experienced significant changes, with several new constructions and removals. The fish market and the fishing port in the south were demolished and replaced by new apartments, which were located along the coast. The shop was converted into a restaurant, while the hotel remained unchanged in the center-right. A new golf course was constructed in the north-east, and the forest park was replaced by tennis courts. Furthermore, a new car park was constructed next to the hotel.`,
     },
 
     floorplan: {
@@ -204,7 +205,7 @@ By present, the area experienced significant changes, with several new construct
       },
       body1: {
         rule: 'Các bước đầu, dùng bị động thì hiện tại.',
-        frames: ['At the first stage in the process, [bước 1]. After that, [bước 2]. Following this, [bước 3].'],
+        frames: ['In the first stage of the process, [bước 1]. After that, [bước 2]. Following this, [bước 3].'],
       },
       body2: {
         rule: 'Các bước còn lại đến thành phẩm.',
@@ -221,7 +222,7 @@ By present, the area experienced significant changes, with several new construct
       ],
       sample: `The diagram illustrates the process of how olive oil is produced.
 Overall, this process comprises several main stages, beginning with harvesting the olives and ending with storing the oil in a tank.
-At the first stage in the process, olives are harvested from trees and put into a collection vat. After that, they are moved to be de-leafed and washed. Following this, the olives are crushed in an olive mill to create olive paste. Next, the paste is put into a malaxer at a temperature of under 27°C.
+In the first stage of the process, olives are harvested from trees and put into a collection vat. After that, they are moved to be de-leafed and washed. Following this, the olives are crushed in an olive mill to create olive paste. Next, the paste is put into a malaxer at a temperature of under 27°C.
 Subsequently, the mixture is pressed in a centrifugal press. From this stage, pomace is separated and transported to refining factories for further processing. Meanwhile, the remaining virgin oils are directed into two parallel stages: separation and decantation. Through these processes, waste water, solids, and other residues are removed. Finally, the cleaned oil is collected and stored in a storage tank.`,
     },
 
@@ -451,6 +452,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     if (outline === 'maps' && step === 2 && /\b(was|were) (built|constructed|demolished|replaced|converted|expanded|removed|relocated)\b/i.test(t)) out.push('Body 1 (Maps) chỉ mô tả bản đồ đầu tiên, không đề cập thay đổi.');
     if (/^process/.test(outline) && /\b(was|were)\b/i.test(t) && step > 1) out.push('Process dùng bị động thì hiện tại (is/are + V3), tránh was/were.');
     if (outline === 'maps' && /\b(in|at) the (\w+ )?side\b/i.test(t)) out.push('Có “side” → dùng ON (on the northern side).');
+    if (outline === 'maps' && /\bBy (?:1[89]|20)\d{2},\s*[^.,]*?\b(?<!had )(experienced|underwent|saw|changed|developed)\b/i.test(t)) out.push('Sau “By + năm” dùng quá khứ hoàn thành: By 2010, the area had experienced / had undergone …');
     if (outline === 'maps' && /\b(on|at) the (\w+ )?part\b/i.test(t)) out.push('Có “part” → dùng IN (in the eastern part).');
     if (/\bthe given (chart|graph|diagram|map|table)\b/i.test(t)) out.push('Tránh “the given chart” — gọi đúng tên chủ thể của đề.');
     return out;

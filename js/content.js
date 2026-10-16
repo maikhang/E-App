@@ -191,12 +191,12 @@ window.CONTENT = (function () {
       {
         title: 'Body 2: những thay đổi đến năm 2010 (bản đồ 2)',
         guide_vi: 'Chỉ chọn 3-4 thay đổi chính, mỗi câu một thay đổi kèm vị trí.',
-        vocab: [{ phrase: 'experienced significant changes', meaning_vi: 'trải qua thay đổi lớn' }, { phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi chức năng thành' }, { phrase: 'was expanded to the west', meaning_vi: 'được mở rộng về phía tây' }, { phrase: 'was constructed in', meaning_vi: 'được xây ở' }],
+        vocab: [{ phrase: 'had experienced significant changes', meaning_vi: 'đã trải qua thay đổi lớn (By + năm → quá khứ hoàn thành)' }, { phrase: 'was transformed into', meaning_vi: 'được chuyển đổi thành' }, { phrase: 'was converted into', meaning_vi: 'được chuyển đổi chức năng thành' }, { phrase: 'was expanded to the west', meaning_vi: 'được mở rộng về phía tây' }, { phrase: 'was constructed in', meaning_vi: 'được xây ở' }],
         sentences: [
           { f: [1], status: 'fit', focus_vi: 'Câu mở đoạn: năm 2010, nhiều công trình mới.', options: [
-            O(1, 'By 2010, the village experienced significant changes, with several new constructions.'),
-            O(1, 'By 2010, the area experienced significant changes, with new housing and facilities.'),
-            O(1, 'By 2010, Stokeford experienced significant changes, with several new constructions and conversions.'),
+            O(1, 'By 2010, the village had experienced significant changes, with several new constructions.'),
+            O(1, 'By 2010, the area had experienced significant changes, with new housing and facilities.'),
+            O(1, 'By 2010, Stokeford had experienced significant changes, with several new constructions and conversions.'),
           ] },
           { f: [2], status: 'fit', focus_vi: 'Đất nông nghiệp → khu dân cư.', options: [
             O(2, 'The farmland in the south was transformed into a residential area, which was located on both sides of a new road.'),
