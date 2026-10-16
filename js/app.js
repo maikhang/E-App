@@ -566,15 +566,41 @@
     return `<ul class="pp">${list.map(x => `<li><b>${esc(x.word)}</b>${x.meaning_vi ? ` <span class="vi">(${esc(x.meaning_vi)})</span>` : ''}
       <span class="arrow">→</span> ${x.alternatives.map(a => `<span class="alt">${esc(a.phrase)}${a.meaning_vi ? ` <span class="vi">(${esc(a.meaning_vi)})</span>` : ''}${a.note_vi ? ` <span class="note">— ${esc(a.note_vi)}</span>` : ''}</span>`).join('<span class="sep">; </span>')}</li>`).join('')}</ul>`;
   }
+  /* Paraphrase chủ thể của đề (theo quy tắc chủ thể của cô) */
+  function subjectsHtml(list) {
+    if (!list || !list.length) return '';
+    return `<div class="subj">${list.map(x => `<div class="subj-item">
+      <p class="subj-from"><b>${esc(x.subject)}</b>${x.meaning_vi ? ` <span class="vi">(${esc(x.meaning_vi)})</span>` : ''}</p>
+      <ol class="subj-ways">${x.ways.map(w => `<li><span class="subj-text">${esc(w.text)}</span>${w.where_vi ? ` <span class="subj-where">${esc(w.where_vi)}</span>` : ''}${w.how_vi ? `<span class="subj-how">${esc(w.how_vi)}</span>` : ''}</li>`).join('')}</ol>
+      ${x.avoid.map(v => `<p class="subj-avoid">❌ <s>${esc(v.text)}</s>${v.why_vi ? ` — ${esc(v.why_vi)}` : ''}</p>`).join('')}</div>`).join('')}</div>`;
+  }
+  function subjectsPlain(list) {
+    return (list || []).flatMap(x => [`• ${x.subject}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
+      ...x.ways.map((w, i) => `   ${i + 1}) ${w.text}${w.where_vi ? ' [' + w.where_vi + ']' : ''}${w.how_vi ? ' – ' + w.how_vi : ''}`),
+      ...x.avoid.map(v => `   ❌ ${v.text}${v.why_vi ? ' – ' + v.why_vi : ''}`)]);
+  }
+  // Bảng màu cho bản sao chép (Word / Docs / Gmail)
+  function subjectsTable(list) {
+    if (!list || !list.length) return '';
+    const B = '1px solid #d5dfd0', hd = 'background:#6a4fc7;color:#ffffff;border:1px solid #6a4fc7;padding:7px 9px;text-align:left';
+    const td = (x, st, at) => `<td style="border:${B};padding:7px 9px;vertical-align:top;${st || ''}"${at || ''}>${x}</td>`;
+    let rows = `<tr><th style="${hd};width:30%">Chủ thể trong đề</th><th style="${hd}">Cách viết khác (dùng ở đâu · cách đổi)</th><th style="${hd};width:24%">❌ Tránh viết</th></tr>`;
+    list.forEach((x, n) => {
+      const bg = n % 2 ? '#ffffff' : '#f3f0fb';
+      rows += `<tr>${td(`<b>${esc(x.subject)}</b>${x.meaning_vi ? `<br><span style="color:#5b6957;font-size:12px">${esc(x.meaning_vi)}</span>` : ''}`, `background:${bg}`)}${td(x.ways.map((w, i) => `${i + 1}) <b style="color:#5a3fb5">${esc(w.text)}</b>${w.where_vi ? ` <span style="font-size:12px;color:#2f6f45">[${esc(w.where_vi)}]</span>` : ''}${w.how_vi ? `<br><span style="font-size:12px;color:#5b6957">${esc(w.how_vi)}</span>` : ''}`).join('<br>'), `background:${bg}`)}${td(x.avoid.map(v => `<span style="color:#b42318;text-decoration:line-through">${esc(v.text)}</span>${v.why_vi ? `<br><span style="font-size:12px;color:#5b6957">${esc(v.why_vi)}</span>` : ''}`).join('<br>') || '—', `background:${bg}`)}</tr>`;
+    });
+    return `<table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+  }
   function paraphraseText(a) {
-    const list = (a && a.paraphrase) || [];
+    const list = (a && a.paraphrase) || [], subj = (a && a.subject_pp) || [];
     const head = `TỪ PARAPHRASE CHO ĐỀ${a && a.subject ? ': ' + a.subject : ''}`;
-    return head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
+    return (subj.length ? ['🧑‍🏫 PARAPHRASE CHỦ THỂ', ...subjectsPlain(subj), ''].join('\n') + '\n' : '') + head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
       x.alternatives.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '') + (v.note_vi ? ' – ' + v.note_vi : '')).join('; ')).join('\n');
   }
   function renderParaphrase() {
-    const a = S.analysis || {};
-    for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = paraphraseHtml(a.paraphrase); }
+    const a = S.analysis || {}, subj = a.subject_pp || [];
+    const html = (subj.length ? `<h4 class="pp-h">🧑‍🏫 Paraphrase chủ thể</h4><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${subjectsHtml(subj)}<h4 class="pp-h">🔁 Từ khác trong đề</h4>` : '') + paraphraseHtml(a.paraphrase);
+    for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = html; }
   }
   async function copyText(txt, okMsg, fallbackEl) {
     try { await navigator.clipboard.writeText(txt); toast(okMsg); }
@@ -613,6 +639,7 @@
         vocab: (a.steps && a.steps[k] && a.steps[k].vocab) || [],
       })),
       paraphrase: a.paraphrase || [],
+      subjects: a.subject_pp || [],
       structs: (ensureStructs() || { items: [] }).items,
     };
   }
@@ -644,8 +671,9 @@
       if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
     });
     out.push(...structsPlain(d.structs, 3));
+    if (d.paraphrase.length || d.subjects.length) out.push('', line, `🔁 ${d.structs.length ? 4 : 3}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
+    if (d.subjects.length) out.push('🧑‍🏫 Paraphrase chủ thể:', ...subjectsPlain(d.subjects), '', '🔁 Từ khác trong đề:');
     if (d.paraphrase.length) {
-      out.push('', line, `🔁 ${d.structs.length ? 4 : 3}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
       d.paraphrase.forEach(x => out.push(`• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
         ...x.alternatives.map(v => `   → ${v.phrase}${v.meaning_vi ? ' (' + v.meaning_vi + ')' : ''}${v.note_vi ? ' – ' + v.note_vi : ''}`)));
     }
@@ -704,8 +732,10 @@
     });
 
     h += structsHtml(d.structs, 3);
+    if (d.paraphrase.length || d.subjects.length) h += h2(`🔁 ${d.structs.length ? 4 : 3}. Từ paraphrase (từ trong đề → cách viết khác)`);
+    if (d.subjects.length) h += `<p style="margin:0 0 6px"><b style="color:#5a3fb5">🧑‍🏫 Paraphrase chủ thể</b> <span style="color:#5b6957">— lần 1 (Intro / Overview) dùng cách sát đề nhất, Body mới đổi; không để chủ thể “trọc lốc”.</span></p>${subjectsTable(d.subjects)}`;
     if (d.paraphrase.length) {
-      h += h2(`🔁 ${d.structs.length ? 4 : 3}. Từ paraphrase (từ trong đề → cách viết khác)`);
+      if (d.subjects.length) h += '<p style="margin:0 0 6px"><b style="color:#2f6f45">🔁 Từ khác trong đề</b></p>';
       const hd = 'background:#2f6f45;color:#ffffff;border-color:#2f6f45';
       let rows = `<tr>${th('Từ trong đề', hd)}${th('Nghĩa', hd)}${th('Cách viết khác', hd)}${th('Nghĩa', hd)}${th('Lưu ý', hd)}</tr>`;
       d.paraphrase.forEach((x, n) => {
@@ -876,7 +906,9 @@
   let libTab = null;
   function renderVocab() {
     const cur = S.analysis ? outlineOf(S.analysis) : null;
-    const tabs = [['general', 'Quy tắc chung']].concat(Object.keys(G.OUTLINES).map(id => [id, G.OUTLINES[id].short])).concat([['mapsvocab', 'Từ vựng Maps']]);
+    const tabs = [['general', 'Quy tắc chung'], ['subjects', 'Paraphrase chủ thể']].concat(Object.keys(G.OUTLINES).map(id => [id, G.OUTLINES[id].short])).concat([['mapsvocab', 'Từ vựng Maps']]);
+    // Bảng cách paraphrase chủ thể (gigi.js → SUBJECT_PP)
+    const subjTable = list => `<div class="table-wrap"><table><thead><tr><th>Loại chủ thể</th><th>Trong đề</th><th>Cách viết khác</th><th>Lưu ý</th></tr></thead><tbody>${list.map(x => `<tr><td>${esc(x.kind)}</td><td>${esc(x.from)}</td><td>${x.to.map(esc).join('<br>')}</td><td>${esc(x.note)}</td></tr>`).join('')}</tbody></table></div>`;
     if (!libTab) libTab = cur || 'general';
     $('#vocab-tabs').innerHTML = tabs.map(([id, n]) => `<button type="button" class="tab ${id === libTab ? 'on' : ''}" data-libtab="${id}">${esc(n)}${id === cur ? ' •' : ''}</button>`).join('');
     const ul = arr => `<ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
@@ -889,6 +921,10 @@
         <div class="vsec"><h3>Mô tả tăng / giảm</h3>${ul(G.GENERAL.trendBasic)}</div>
         <div class="vsec"><h3>Pie / Bar: công thức S + V + O</h3>${ul(G.GENERAL.pieBar)}</div>
         <div class="vsec"><h3>Nâng cấp ghép câu (Band 7+)</h3>${ul(G.GENERAL.band7)}</div>`;
+    } else if (libTab === 'subjects') {
+      html = `<p class="muted">Quy tắc của cô: không để chủ thể “trọc lốc”; lần 1 (Introduction / Overview) dùng từ sát đề nhất, lần 2 (Body) mới đổi sang cách tương đương.</p>
+        <div class="vsec"><h3>Chung cho mọi dạng</h3>${subjTable(G.SUBJECT_PP.general)}</div>` +
+        Object.keys(G.OUTLINES).filter(id => G.SUBJECT_PP[id]).map(id => `<div class="vsec"><h3>${esc(G.OUTLINES[id].name)}</h3>${subjTable(G.SUBJECT_PP[id])}</div>`).join('');
     } else if (libTab === 'mapsvocab') {
       const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
       const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
@@ -903,6 +939,7 @@
       html = `<p class="muted">${esc(o.when)}</p>
         ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
         <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
+        ${G.SUBJECT_PP[libTab] ? `<div class="vsec"><h3>Paraphrase chủ thể cho dạng này</h3>${subjTable(G.SUBJECT_PP[libTab])}</div>` : ''}
         ${o.sample ? `<div class="vsec"><h3>Bài mẫu</h3><div class="paper">${o.sample.split('\n').map(p => `<div class="para-block"><p>${esc(p)}</p></div>`).join('')}</div></div>` : ''}`;
     }
     const own = S.analysis && !S.isDemo ? (S.analysis.steps || []).map((x, k) => x.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${x.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
@@ -989,7 +1026,7 @@
       }
       case 'btn-copy-pp': case 'btn-copy-pp2': {
         const a = S.analysis;
-        if (!a || !a.paraphrase || !a.paraphrase.length) { toast('Chưa có từ paraphrase để sao chép.'); return; }
+        if (!a || !((a.paraphrase || []).length || (a.subject_pp || []).length)) { toast('Chưa có từ paraphrase để sao chép.'); return; }
         copyText(paraphraseText(a), 'Đã sao chép từ paraphrase — dán gửi học sinh.', t.id === 'btn-copy-pp' ? $('#pp-side') : $('#pp-review'));
         return;
       }
@@ -1069,7 +1106,7 @@
 
   /* ================= Start ================= */
   bindPane();
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
   const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
   GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });

@@ -182,6 +182,7 @@ window.LESSON = (function () {
       <section class="l-sec"><h3>📐 Bước 2 · Áp dụng dàn ý Ms. Gigi: ${esc(o.name)}</h3>${plan}</section>
       ${x.vocab.length ? `<section class="l-sec"><h3>📌 Từ vựng cho biểu đồ này</h3><div class="table-wrap"><table><thead><tr><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
         ${x.vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi || '')}</td><td>${esc(v.example || '')}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
+      ${(d.subject_pp || []).length ? `<section class="l-sec"><h3>🧑‍🏫 Paraphrase chủ thể</h3><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.subjectsHtml(d.subject_pp)}</section>` : ''}
       ${d.paraphrase.length ? `<section class="l-sec"><h3>🔁 Từ paraphrase</h3>${H.paraphraseHtml(d.paraphrase)}</section>` : ''}
       ${x.mistakes_vi.length ? `<section class="l-sec"><h3>⚠️ Lỗi học sinh hay mắc</h3>${ul(x.mistakes_vi)}</section>` : ''}
       <div class="row end"><button type="button" class="btn primary" data-ltab="ex">✏️ Sang phần bài tập →</button></div>`;
@@ -309,6 +310,7 @@ window.LESSON = (function () {
       if (pl.model.length) p.push('Câu mẫu:', ...pl.model.map(m => `  ${m.f ? 'K' + m.f : '•'} → ${m.text}`));
     });
     if (x.vocab.length) p.push('', line, '📌 TỪ VỰNG', line, ...x.vocab.map(v => `• ${v.phrase} (${v.meaning_vi || ''})${v.example ? '\n   VD: ' + v.example : ''}`));
+    if ((d.subject_pp || []).length) p.push('', line, '🧑‍🏫 PARAPHRASE CHỦ THỂ', line, ...H.subjectsPlain(d.subject_pp));
     if (d.paraphrase.length) p.push('', line, '🔁 TỪ PARAPHRASE', line, ...d.paraphrase.map(w => `• ${w.word}${w.meaning_vi ? ' (' + w.meaning_vi + ')' : ''}\n` + w.alternatives.map(a => `   → ${a.phrase}${a.meaning_vi ? ' (' + a.meaning_vi + ')' : ''}${a.note_vi ? ' – ' + a.note_vi : ''}`).join('\n')));
     if (x.mistakes_vi.length) p.push('', '⚠️ LỖI HAY MẮC', ...x.mistakes_vi.map(t => '• ' + t));
     const plain = p.join('\n');
@@ -402,6 +404,13 @@ window.LESSON = (function () {
       subject: 'the percentage of commuters in Metro City travelling by car, bus and bicycle, 2000–2025',
       topic_vi: 'Tỷ lệ người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp (2000–2025).',
       prompt_text: 'The line graph below shows the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+      subject_pp: [
+        { subject: 'the percentage of commuters who travelled to work by car, bus and bicycle', meaning_vi: 'tỷ lệ người đi làm bằng ô tô, xe buýt và xe đạp', ways: [{ text: 'the proportion of commuters using cars, buses and bicycles', where_vi: 'Introduction', how_vi: 'percentage → proportion; mệnh đề who → V-ing (Chiêu 2)' }, { text: 'how people in Metro City travelled to work', where_vi: 'Introduction', how_vi: 'Noun → câu hỏi how (Chiêu 1)' }], avoid: [] },
+        { subject: 'Car (đường trong chú thích)', meaning_vi: 'ô tô', ways: [{ text: 'the percentage of car commuters', where_vi: 'Overview / Body 1', how_vi: 'Sát đề, đủ danh từ chủ thể' }, { text: 'the figure for car use', where_vi: 'Body', how_vi: 'percentage of → figure for' }, { text: 'car travel', where_vi: 'Body (lần sau)', how_vi: 'Danh từ ghép' }], avoid: [{ text: 'Car decreased', why_vi: 'Trọc lốc — ô tô không giảm, tỷ lệ người đi ô tô mới giảm' }] },
+        { subject: 'Bus', meaning_vi: 'xe buýt', ways: [{ text: 'the proportion of bus commuters', where_vi: 'Body', how_vi: 'Đủ danh từ chủ thể' }, { text: 'bus use', where_vi: 'Body (lần sau)', how_vi: 'Danh từ ghép' }, { text: 'the latter', where_vi: 'Body', how_vi: 'Thay thế khi vừa nhắc car và bus' }], avoid: [{ text: 'Bus rose', why_vi: 'Trọc lốc' }] },
+        { subject: 'Bicycle', meaning_vi: 'xe đạp', ways: [{ text: 'the percentage of cyclists', where_vi: 'Body', how_vi: 'bicycle commuters → cyclists' }, { text: 'the figure for cycling', where_vi: 'Body (lần sau)', how_vi: 'Danh động từ' }], avoid: [{ text: 'Bicycle increased', why_vi: 'Trọc lốc' }] },
+        { subject: 'between 2000 and 2025', meaning_vi: 'từ 2000 đến 2025', ways: [{ text: 'from 2000 to 2025', where_vi: 'Introduction', how_vi: 'between … and → from … to' }, { text: 'over the 25-year period', where_vi: 'Introduction / Overview', how_vi: 'Đổi thành khoảng thời gian' }, { text: 'by the end of the period', where_vi: 'Body 2', how_vi: 'Chỉ mốc cuối' }], avoid: [] },
+      ],
       data: ['Car – 2000: 60%, 2005: 58%, 2010: 55%, 2015: 48%, 2020: 40%, 2025: 35%', 'Bus – 2000: 25%, 2005: 27%, 2010: 30%, 2015: 33%, 2020: 36%, 2025: 39%', 'Bicycle – 2000: 5%, 2005: 7%, 2010: 10%, 2015: 13%, 2020: 17%, 2025: 20%', 'Bus overtook car between 2020 and 2025'],
       lesson: {
         objectives_vi: ['Đọc hiểu biểu đồ đường: trục, đơn vị, mốc thời gian và 3 đường số liệu.', 'Nhận ra 2 xu hướng ngược nhau và điểm hai đường cắt nhau.', 'Viết từng câu theo khung Line graph của Ms. Gigi.'],

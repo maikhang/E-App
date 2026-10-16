@@ -114,6 +114,13 @@ window.CONTENT = (function () {
     ],
     key_features: ['The village became more residential: farmland replaced by housing', 'New facilities: a retirement home; the school expanded', 'The main road and the row of houses remained unchanged'],
     verified: { fixed: 0, missing_vi: '' },
+    subject_pp: [
+      { subject: 'the village of Stokeford', meaning_vi: 'làng Stokeford', ways: [{ text: 'the village of Stokeford', where_vi: 'Introduction', how_vi: 'Lần 1 giữ đúng tên trong đề' }, { text: 'Stokeford', where_vi: 'Overview / Body', how_vi: 'Dùng tên riêng cho gọn' }, { text: 'the settlement', where_vi: 'Body', how_vi: 'Từ đồng nghĩa của village' }], avoid: [{ text: 'The city', why_vi: 'Sai nghĩa — đề là làng (village)' }] },
+      { subject: 'the farmland in the south', meaning_vi: 'đất nông nghiệp phía nam', ways: [{ text: 'the farmland in the south', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the agricultural land in the southern part', where_vi: 'Body 2', how_vi: 'farmland → agricultural land; south → southern part (part → in)' }, { text: 'the southern fields', where_vi: 'Body 2', how_vi: 'Gọn, dùng tính từ chỉ hướng' }], avoid: [{ text: 'The south was transformed', why_vi: 'Trọc lốc — thiếu danh từ chủ thể (farmland)' }] },
+      { subject: 'the houses along the main road', meaning_vi: 'dãy nhà dọc đường chính', ways: [{ text: 'a row of houses along the main road', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the housing alongside the main road', where_vi: 'Body 2', how_vi: 'houses → housing; along → alongside' }, { text: 'the residential buildings', where_vi: 'Body 2', how_vi: 'Từ đồng nghĩa' }], avoid: [] },
+      { subject: 'the school', meaning_vi: 'trường học', ways: [{ text: 'the school', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the educational facility', where_vi: 'Body 2', how_vi: 'Từ đồng nghĩa trang trọng' }, { text: 'the school building', where_vi: 'Body 2', how_vi: 'Thêm danh từ chỉ công trình' }], avoid: [] },
+      { subject: 'the changes between 1930 and 2010', meaning_vi: 'những thay đổi từ 1930 đến 2010', ways: [{ text: 'the changes in Stokeford between 1930 and 2010', where_vi: 'Introduction', how_vi: 'Đổi in 1930 and 2010 → between … and …' }, { text: 'the development of the village over the 80-year period', where_vi: 'Introduction / Overview', how_vi: 'changes → development; mốc năm → over the 80-year period' }], avoid: [] },
+    ],
     steps: [
       {
         title: 'Introduction: sự phát triển của làng Stokeford, 1930 → 2010',

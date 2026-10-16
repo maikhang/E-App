@@ -314,6 +314,58 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   }
 
   /* Đoạn dàn ý đưa cho AI (tiếng Việt + khung tiếng Anh) */
+  /* Cách paraphrase CHỦ THỂ theo từng dạng (bám quy tắc của cô: không “trọc lốc”, lần 1 sát đề, lần 2 mới đổi).
+   * Mỗi dòng: loại chủ thể · từ trong đề → cách viết khác · lưu ý. */
+  const SUBJECT_PP = {
+    general: [
+      { kind: 'Danh từ chỉ số lượng', from: 'the number of + N (đếm được)', to: ['the figure for + N', 'N + numbers (visitor numbers)', 'the quantity of + N'], note: 'number of ↔ figure for dùng được hầu hết các câu; amount of chỉ dùng cho danh từ không đếm được.' },
+      { kind: 'Danh từ chỉ tỷ lệ', from: 'the percentage of + N', to: ['the proportion of + N', 'the share of + N', 'the rate of + N'], note: 'Chỉ đổi giữa các từ chỉ tỷ lệ — không đổi % thành number.' },
+      { kind: 'Chiêu 1 · Noun → Verb', from: 'the consumption of water', to: ['water consumption', 'how much water was consumed', 'the amount of water consumed'], note: 'Dùng ở Introduction để tránh chép đề.' },
+      { kind: 'Chiêu 2 · Mệnh đề quan hệ', from: 'people who travelled by car', to: ['people travelling by car', 'car commuters', 'those who drove to work'], note: 'Rút gọn which/who → V-ing / V3, hoặc gộp thành danh từ ghép.' },
+      { kind: 'Chiêu 3 · Tính từ quốc gia', from: 'the population of Japan', to: ['Japanese population', "Japan's population"], note: 'the energy consumption in France → French energy consumption.' },
+      { kind: 'Thay thế khi nhắc lại', from: '(chủ thể vừa nói)', to: ['this figure', 'the former / the latter', 'the respective figures', 'the corresponding figure for + N'], note: 'Tránh lặp danh từ — tăng điểm Coherence.' },
+      { kind: '❌ Trọc lốc', from: 'Car increased · Japan rose · Visitors grew', to: ['The percentage of car commuters increased', "Japan's population rose", 'The number of visitors grew'], note: 'Luôn giữ nguyên danh từ chủ thể gốc (production, sales, consumption, number of…).' },
+    ],
+    trend: [
+      { kind: 'Chủ thể chính (Introduction)', from: 'the number / percentage of + N + from … to …', to: ['the figure / proportion for + N between … and …', 'how many / what proportion of + N + V-ed over the period'], note: 'Introduction: đổi cả danh từ chỉ số lượng lẫn cụm thời gian.' },
+      { kind: 'Từng đường / từng cột', from: 'Car (tên đường trong chú thích)', to: ['the percentage of car commuters', 'the figure for car use', 'car travel'], note: 'Tên đường trong chú thích KHÔNG được đứng một mình làm chủ ngữ.' },
+      { kind: 'Chủ ngữ là thời gian', from: 'Car use fell sharply between 2010 and 2020', to: ['The period between 2010 and 2020 saw a sharp fall in car use', 'The next decade witnessed a sharp fall in car use'], note: 'saw / witnessed / experienced: chủ ngữ là Period/Year/Decade, không phải Percentage/Number.' },
+      { kind: 'Cụm thời gian', from: 'from 2000 to 2025', to: ['between 2000 and 2025', 'over the 25-year period', 'over a period of 25 years'], note: 'Lần sau trong Body: in the following decade, by the end of the period.' },
+    ],
+    compare: [
+      { kind: 'Chủ thể chính (Introduction)', from: 'the percentage of people who chose X', to: ['the proportion of respondents selecting X', 'how popular X was among people', 'X was chosen by …% of people (bị động)'], note: 'Khảo sát: people → respondents / participants / those surveyed.' },
+      { kind: 'Pie chart', from: 'the proportion of X', to: ["X's share", 'the percentage made up by X', 'X accounted for / made up …%'], note: 'accounted for / made up chỉ dùng với % của tổng.' },
+      { kind: 'Table / Bar nhiều nước', from: 'spending on X in Japan', to: ['Japanese spending on X', "Japan's expenditure on X", 'the amount of money spent on X in Japan'], note: 'Kinh tế: spending ↔ expenditure ↔ money spent (chỉ khi đơn vị là tiền).' },
+      { kind: 'Nhóm tuổi / nhóm người', from: 'people aged 15-24', to: ['the 15–24 age group', 'those in the 15–24 bracket', 'young people aged 15 to 24'], note: 'Không dùng “witness” với Age group.' },
+    ],
+    maps: [
+      { kind: 'Nơi chốn chính', from: 'the village of Stokeford', to: ['Stokeford', 'the settlement', 'the area'], note: 'Lần 1 dùng đúng tên trong đề; town → the town centre / the urban area; island → the island.' },
+      { kind: 'Công trình', from: 'houses · shops · park · school', to: ['housing / residential buildings', 'retail outlets / commercial facilities', 'green space / recreational area', 'the educational facility'], note: 'farmland → agricultural land; car park → parking area; road → route / street.' },
+      { kind: 'Thay đổi làm chủ ngữ', from: 'A school was built', to: ['The construction of a school', 'A new school was added', 'The area saw the addition of a school'], note: 'Danh từ hoá: the construction / addition / removal / redevelopment of + N.' },
+      { kind: 'Hai mốc thời gian', from: 'in 1930 and 2010', to: ['between 1930 and 2010', 'over the 80-year period', 'by 2010 (bản đồ sau)'], note: 'Bản đồ “now / present” → present perfect.' },
+    ],
+    floorplan: [
+      { kind: 'Toà nhà / tầng', from: 'the ground floor of the museum', to: ["the museum's ground floor", 'the ground-floor layout of the museum'], note: 'Lần 1 dùng đúng tên trong đề.' },
+      { kind: 'Phòng / khu vực', from: 'rooms · reception · café', to: ['spaces / areas', 'the reception area / front desk', 'the dining / refreshment area'], note: 'Giữ đúng chức năng phòng — không đổi café thành restaurant.' },
+      { kind: 'Thay đổi làm chủ ngữ', from: 'The office was converted into a classroom', to: ['The conversion of the office into a classroom', 'The office was transformed into a classroom'], note: 'Tương tự Maps: converted into / replaced by / relocated to.' },
+    ],
+    process_man: [
+      { kind: 'Quy trình chính', from: 'the process of making X', to: ['how X is produced / manufactured', 'the production of X', 'X manufacturing'], note: 'Introduction: đổi cả động từ (make → produce / manufacture).' },
+      { kind: 'Nguyên liệu / sản phẩm', from: 'raw materials · the product', to: ['the ingredients / the materials', 'the finished product / the end product'], note: 'Câu Body: nguyên liệu làm chủ ngữ + bị động hiện tại (the clay is shaped…).' },
+      { kind: 'Giai đoạn', from: 'stage', to: ['step', 'phase', 'the next stage of the process'], note: 'Overview: “the process consists of X stages, beginning with … and ending with …”.' },
+    ],
+    process_nat: [
+      { kind: 'Vòng đời / chu trình', from: 'the life cycle of the frog', to: ['the stages in the life of a frog', 'how a frog develops', 'the development of the frog'], note: 'Không dùng bị động cho sinh vật tự lớn lên (the egg hatches).' },
+      { kind: 'Sinh vật / chủ thể', from: 'the frog', to: ['the amphibian', 'this creature', 'the adult frog / the young frog'], note: 'Chỉ dùng từ đúng loài: frog → amphibian, butterfly → insect.' },
+      { kind: 'Chu trình tự nhiên', from: 'the water cycle', to: ['how water circulates', 'the continuous movement of water', 'the cycle'], note: 'Overview: “a cyclical process with X main stages”.' },
+    ],
+  };
+  function subjectBlock(ids) {
+    const line = x => `- ${x.kind}: ${x.from} → ${x.to.join(' / ')} (${x.note})`;
+    return 'HOW TO PARAPHRASE SUBJECTS (Ms. Gigi):\n' + SUBJECT_PP.general.map(line).join('\n') + '\n' +
+      ids.filter(id => SUBJECT_PP[id]).map(id => `For "${id}":\n` + SUBJECT_PP[id].map(line).join('\n')).join('\n');
+  }
+
   function promptBlock(ids) {
     const parts = ids.map(id => {
       const o = OUTLINES[id];
@@ -368,5 +420,5 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return [...new Set(out)].sort((a, b) => b.length - a.length);
   }
 
-  return { OUTLINES, GENERAL, STEP_KEYS, outlineFor, promptBlock, generalBlock, lint, fixedPhrases };
+  return { OUTLINES, GENERAL, SUBJECT_PP, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
 })();

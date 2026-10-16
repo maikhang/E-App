@@ -190,6 +190,16 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .pp .alt { font-weight: 500; }
 .pp .note { color: var(--warn); font-size: 12px; }
 .pp-card .pp { max-height: 420px; overflow: auto; }
+.pp-h { font-size: 14px; margin: 12px 0 4px; color: var(--accent); }
+.pp-h:first-child { margin-top: 0; }
+.subj { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; }
+.subj-item { border: 1px solid #ddd5f3; border-left: 4px solid #6a4fc7; background: #f8f6fd; border-radius: 0 10px 10px 0; padding: 8px 10px; font-size: 14px; }
+.subj-from .vi { color: var(--muted); font-size: 13px; }
+.subj-ways { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+.subj-text { font-weight: 600; color: #4b3596; }
+.subj-where { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0 7px; margin-left: 2px; white-space: nowrap; }
+.subj-how { display: block; font-size: 12px; color: var(--muted); }
+.subj-avoid { font-size: 13px; color: var(--err); margin-top: 4px; }
 .slot-ph { color: var(--accent); font-style: italic; }
 .warn-line { display: block; color: var(--warn); font-size: 13px; }
 .para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }

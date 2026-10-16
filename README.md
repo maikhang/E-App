@@ -52,6 +52,10 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - AI tự phân tích kỹ hơn khi mở trang (mỗi phiên bản bài một lần) và thêm **bài luyện tập** cho từng cấu trúc (viết lại câu, có đáp án).
 - Có trong “Sao chép bài học hoàn chỉnh” (mục 3, bảng màu + luyện tập + đáp án) và nút riêng “📋 Sao chép cấu trúc câu”.
 
+## 🧑‍🏫 Paraphrase chủ thể (mọi dạng)
+- Kiến thức cố định trong `js/gigi.js` → `SUBJECT_PP`: cách đổi chủ thể chung (number of ↔ figure for, percentage ↔ proportion/share, 3 chiêu đổi cấu trúc, the former/the latter, ❌ trọc lốc) và riêng cho 6 dạng (Line/Bar xu hướng, Bar/Pie/Table so sánh, Maps, Floor plan, Process nhân tạo, Process tự nhiên). Xem ở “📚 Dàn ý Ms. Gigi” → thẻ “Paraphrase chủ thể” và trong thẻ từng dạng. AI dùng bảng này khi viết gợi ý, chấm câu, chấm bài, soạn bài giảng.
+- Với mỗi đề, AI soạn bảng “Paraphrase chủ thể” của chính đề đó: chủ thể chính + từng nhóm / địa điểm / giai đoạn, 2–4 cách viết khác (dùng ở Intro / Overview hay Body, đổi thế nào) và cách viết sai cần tránh. Hiện ở thẻ “🔁 Paraphrase” của khung đề, trang bài hoàn chỉnh, bài giảng; có trong các bản sao chép.
+
 ## Dàn ý Ms. Gigi
 `js/gigi.js` chứa toàn bộ dàn ý từ tài liệu *IELTS WRITING Ms. Gigi*: 6 dạng (Line/Bar xu hướng, Bar/Pie/Table so sánh, Maps, Floor plan, Process nhân tạo, Process tự nhiên) với khung câu Introduction/Overview/Body 1/Body 2, quy tắc, từ vựng và bài mẫu, cùng các quy tắc chung (chủ thể, quy tắc “trọc lốc”, từ đồng nghĩa, so sánh 3 mức độ, nâng cấp Band 7+).
 - AI chọn đúng dàn ý cho đề, lập kế hoạch từng câu theo khung (giữ nguyên chữ cố định của khung, chỉ điền phần [..] bằng nội dung của đề); khung không hợp đề thì đổi và giải thích lý do.
