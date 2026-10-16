@@ -200,6 +200,20 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .subj-where { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0 7px; margin-left: 2px; white-space: nowrap; }
 .subj-how { display: block; font-size: 12px; color: var(--muted); }
 .subj-avoid { font-size: 13px; color: var(--err); margin-top: 4px; }
+.subj-tech { font-size: 11px; font-weight: 700; color: #5a3fb5; background: #ece7fb; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.subj-tips { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.subj-tip { background: #f3f0fb; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.subj-tip b { color: #5a3fb5; }
+.subj-tip p { margin-top: 2px; }
+.subj-tip ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.okv { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 8px; margin-bottom: 2px; white-space: nowrap; }
+.okv.ok { background: #e3f4e8; color: #136c3a; }
+.okv.warn { background: var(--warn-soft); color: var(--warn); }
+.okv.bad { background: var(--err-soft); color: var(--err); }
+.bad-ex { color: var(--err); }
+.good-ex { color: #136c3a; }
+#vocab-content td:first-child { white-space: normal; min-width: 130px; }
+.rule-line { font-size: 14px; background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; }
 .slot-ph { color: var(--accent); font-style: italic; }
 .warn-line { display: block; color: var(--warn); font-size: 13px; }
 .para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }

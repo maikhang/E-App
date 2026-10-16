@@ -314,18 +314,60 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   }
 
   /* Đoạn dàn ý đưa cho AI (tiếng Việt + khung tiếng Anh) */
+  /* Hướng dẫn paraphrase CHỦ THỂ chung cho mọi dạng (ví dụ xuyên suốt: đề về commuting / commuters).
+   * drop: bỏ “the percentage of” được không · family: đổi từ loại · techniques: các cách viết lại (id dùng để AI gắn nhãn)
+   * · mistakes: lỗi hay gặp. Bám quy tắc của cô: chỉ được bỏ từ chỉ tỷ lệ, chủ thể gốc giữ nguyên vẹn. */
+  const SUBJECT_GUIDE = {
+    drop: {
+      rule: 'Quy tắc của cô: ĐƯỢC bỏ từ chỉ tỷ lệ (the percentage of / the proportion of), nhưng chủ thể gốc phải giữ nguyên vẹn (car commuters, car sales, energy consumption…).',
+      cases: [
+        { ok: 'must', when: 'Động từ đã mang nghĩa “chiếm %”: account for / make up / constitute / represent', wrong: 'The percentage of car commuters accounted for 60%.', right: 'Car commuters accounted for 60% of all commuters.', why: 'Giữ “the percentage of” là lặp nghĩa (percentage + accounted for %).' },
+        { ok: 'yes', when: 'Đưa số liệu lên đầu câu: [số]% of + N', wrong: 'The percentage of commuters who travelled by car was 60%.', right: '60% of commuters travelled by car.', why: 'Số % đã nói rõ đây là tỷ lệ.' },
+        { ok: 'yes', when: 'Ngay sau có số % và chủ thể còn nguyên', wrong: 'The proportion of car commuters stood at 60% in 2000.', right: 'Car commuters made up 60% of the total in 2000.', why: 'Chỉ bỏ từ chỉ tỷ lệ, “car commuters” vẫn giữ nguyên.' },
+        { ok: 'keep', when: 'Động từ xu hướng (rose / fell…) mà không có số % đi kèm', wrong: 'Car commuters fell steadily over the period.', right: 'The percentage of car commuters fell steadily over the period.', why: 'Bỏ đi thì nghe như SỐ NGƯỜI giảm, không còn rõ là TỶ LỆ giảm.' },
+        { ok: 'no', when: 'Bỏ luôn cả danh từ chủ thể (trọc lốc)', wrong: 'Car fell to 36%.', right: 'The percentage of car commuters fell to 36%.', why: '“Car” không giảm — tỷ lệ người đi ô tô mới giảm.' },
+        { ok: 'no', when: '“the number of” với người / vật đếm được', wrong: 'Visitors increased.', right: 'Visitor numbers / The number of visitors increased.', why: 'Không bỏ “number”: đổi thành “N + numbers” hoặc “the figure for + N”.' },
+      ],
+    },
+    family: [
+      { act: 'commuting', person: 'commuters', verb: 'commute (to work)', compound: 'car commuting · car commuters · car use · car travel', note: 'Đề đo % NGƯỜI đi làm → dùng commuters (the percentage of commuters…). “the percentage of commuting by car” ❌ → “the percentage of commuters travelling by car” ✅.' },
+      { act: 'consumption', person: 'consumers', verb: 'consume · use', compound: 'water consumption · water use', note: 'Đề đo LƯỢNG (lít, tấn) → giữ consumption/use; đổi sang consumers là lệch nghĩa.' },
+      { act: 'production · output', person: 'producers · manufacturers', verb: 'produce · manufacture', compound: 'coffee production · coffee output · the amount of coffee produced', note: 'Đo lượng → production/output; producers chỉ khi đề đếm số nhà sản xuất.' },
+      { act: 'tourism · visits', person: 'tourists · visitors', verb: 'visit · travel to', compound: 'tourist arrivals · visitor numbers', note: 'Đếm người → visitors/tourists; tiền → tourism revenue.' },
+      { act: 'unemployment · employment', person: 'the unemployed · employees · workers', verb: 'employ · work', compound: 'the unemployment rate · the employment rate', note: 'Giữ rate/level: “People unemployed rose” ❌ → “The rate of unemployment rose” ✅.' },
+      { act: 'spending · expenditure', person: 'consumers · households', verb: 'spend (on)', compound: 'household spending · expenditure on food · money spent on food', note: 'Chỉ khi đơn vị là tiền. Spending ≠ Sales.' },
+      { act: 'sales · purchases', person: 'buyers · customers', verb: 'sell · buy', compound: 'car sales · the number of cars sold · car purchases', note: 'Sales (phía bán) ≠ purchases (phía mua). “Cars increased” ❌ → “Car sales increased” ✅.' },
+      { act: 'immigration · migration', person: 'immigrants · migrants', verb: 'immigrate · move to', compound: 'immigrant numbers · the number of people moving to …', note: 'Đếm người → immigrants; xu hướng chung → immigration.' },
+      { act: 'enrolment · education', person: 'students · learners', verb: 'enrol · study', compound: 'student numbers · enrolment figures', note: 'Đếm người học → students; tỷ lệ nhập học → the enrolment rate.' },
+    ],
+    techniques: [
+      { id: 'ratio', name: 'Đổi từ chỉ tỷ lệ / số lượng', from: 'the percentage of car commuters', to: 'the proportion of car commuters · the share of car commuters · the figure for car commuters', where: 'Body (lần 2)', note: 'percentage ↔ proportion ↔ share ↔ figure for; number of ↔ figure for ↔ N numbers. Không đổi % thành number.' },
+      { id: 'reduce', name: 'Rút gọn mệnh đề (Chiêu 2)', from: 'people who commuted by car', to: 'people commuting by car', where: 'Introduction', note: 'who/which + V → V-ing; who/which + be + V3 → V3.' },
+      { id: 'form', name: 'Đổi từ loại', from: 'the percentage of people commuting by car', to: 'the percentage of car commuters', where: 'Intro / Body', note: 'Hoạt động (commuting) ↔ người (commuters) ↔ động từ (commute). Chỉ đổi khi vẫn đo đúng thứ đề đo.' },
+      { id: 'compound', name: 'Danh từ ghép', from: 'commuters who travelled by car · the use of cars', to: 'car commuters · car use · car travel', where: 'Body', note: 'Gọn, tự nhiên; tránh ghép quá 3 danh từ.' },
+      { id: 'verb', name: 'Noun → Verb (Chiêu 1)', from: 'the percentage of car commuters', to: 'what proportion of people commuted by car · how people travelled to work', where: 'Introduction', note: 'The consumption of water → how much water was consumed.' },
+      { id: 'nation', name: 'Tính từ quốc gia (Chiêu 3)', from: 'the energy consumption in France', to: 'French energy consumption', where: 'Intro / Body', note: 'The population of Japan → Japanese population / Japan’s population.' },
+      { id: 'drop', name: 'Bỏ “the percentage of” (giữ chủ thể)', from: 'The percentage of car commuters accounted for 60%.', to: 'Car commuters accounted for 60% of all commuters.', where: 'Body', note: 'Xem bảng “Bỏ the percentage of được không?”.' },
+      { id: 'front', name: 'Đưa số liệu lên đầu', from: 'The percentage of commuters who drove was 60%.', to: '60% of commuters travelled by car. · Around three in five commuters drove to work.', where: 'Body', note: 'Số liệu làm chủ ngữ: [số]% of + N / a quarter of + N.' },
+      { id: 'passive', name: 'Bị động', from: '60% of commuters used cars.', to: 'Cars were used by 60% of commuters.', where: 'Body', note: 'Hay dùng với chose / preferred / used.' },
+      { id: 'time', name: 'Thời gian làm chủ ngữ', from: 'The percentage of car commuters fell between 2010 and 2020.', to: 'The period between 2010 and 2020 saw a fall in the percentage of car commuters.', where: 'Body', note: 'saw / witnessed / experienced — chủ ngữ là Period/Year/Decade.' },
+      { id: 'refer', name: 'Thay thế khi nhắc lại', from: '(chủ thể vừa nói)', to: 'this figure · that of bus users · the former / the latter · the respective figures', where: 'Body', note: 'Tránh lặp danh từ — tăng điểm Coherence.' },
+      { id: 'synonym', name: 'Từ đồng nghĩa (không lệch nghĩa)', from: 'commuters', to: 'people travelling to work · car users (chỉ nhóm đi ô tô)', where: 'Body', note: 'Lần 1 dùng từ sát đề; chỉ đổi khi cùng nghĩa.' },
+    ],
+    mistakes: [
+      { wrong: 'Car increased.', right: 'The percentage of car commuters increased.', why: 'Trọc lốc — thiếu danh từ chủ thể.' },
+      { wrong: 'The percentage of car commuters accounted for 60%.', right: 'Car commuters accounted for 60% of all commuters.', why: 'Lặp nghĩa: percentage + accounted for %.' },
+      { wrong: 'The number of commuting rose.', right: 'The number of commuters rose.', why: 'number of + danh từ đếm được (người / vật), không đi với hoạt động.' },
+      { wrong: 'The amount of commuters fell.', right: 'The number of commuters fell.', why: 'amount of chỉ đi với danh từ không đếm được.' },
+      { wrong: 'Water consumers rose to 500 litres.', right: 'Water consumption rose to 500 litres.', why: 'Đổi từ loại làm lệch thứ được đo (lít là lượng nước, không phải số người).' },
+      { wrong: 'Visitors increased.', right: 'Visitor numbers increased. / The number of visitors increased.', why: 'Giữ nguyên chủ thể gốc (quy tắc của cô).' },
+    ],
+  };
+  const TECH = Object.fromEntries(SUBJECT_GUIDE.techniques.map(t => [t.id, t.name]));
+
   /* Cách paraphrase CHỦ THỂ theo từng dạng (bám quy tắc của cô: không “trọc lốc”, lần 1 sát đề, lần 2 mới đổi).
    * Mỗi dòng: loại chủ thể · từ trong đề → cách viết khác · lưu ý. */
   const SUBJECT_PP = {
-    general: [
-      { kind: 'Danh từ chỉ số lượng', from: 'the number of + N (đếm được)', to: ['the figure for + N', 'N + numbers (visitor numbers)', 'the quantity of + N'], note: 'number of ↔ figure for dùng được hầu hết các câu; amount of chỉ dùng cho danh từ không đếm được.' },
-      { kind: 'Danh từ chỉ tỷ lệ', from: 'the percentage of + N', to: ['the proportion of + N', 'the share of + N', 'the rate of + N'], note: 'Chỉ đổi giữa các từ chỉ tỷ lệ — không đổi % thành number.' },
-      { kind: 'Chiêu 1 · Noun → Verb', from: 'the consumption of water', to: ['water consumption', 'how much water was consumed', 'the amount of water consumed'], note: 'Dùng ở Introduction để tránh chép đề.' },
-      { kind: 'Chiêu 2 · Mệnh đề quan hệ', from: 'people who travelled by car', to: ['people travelling by car', 'car commuters', 'those who drove to work'], note: 'Rút gọn which/who → V-ing / V3, hoặc gộp thành danh từ ghép.' },
-      { kind: 'Chiêu 3 · Tính từ quốc gia', from: 'the population of Japan', to: ['Japanese population', "Japan's population"], note: 'the energy consumption in France → French energy consumption.' },
-      { kind: 'Thay thế khi nhắc lại', from: '(chủ thể vừa nói)', to: ['this figure', 'the former / the latter', 'the respective figures', 'the corresponding figure for + N'], note: 'Tránh lặp danh từ — tăng điểm Coherence.' },
-      { kind: '❌ Trọc lốc', from: 'Car increased · Japan rose · Visitors grew', to: ['The percentage of car commuters increased', "Japan's population rose", 'The number of visitors grew'], note: 'Luôn giữ nguyên danh từ chủ thể gốc (production, sales, consumption, number of…).' },
-    ],
     trend: [
       { kind: 'Chủ thể chính (Introduction)', from: 'the number / percentage of + N + from … to …', to: ['the figure / proportion for + N between … and …', 'how many / what proportion of + N + V-ed over the period'], note: 'Introduction: đổi cả danh từ chỉ số lượng lẫn cụm thời gian.' },
       { kind: 'Từng đường / từng cột', from: 'Car (tên đường trong chú thích)', to: ['the percentage of car commuters', 'the figure for car use', 'car travel'], note: 'Tên đường trong chú thích KHÔNG được đứng một mình làm chủ ngữ.' },
@@ -361,9 +403,18 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     ],
   };
   function subjectBlock(ids) {
+    const G2 = SUBJECT_GUIDE;
     const line = x => `- ${x.kind}: ${x.from} → ${x.to.join(' / ')} (${x.note})`;
-    return 'HOW TO PARAPHRASE SUBJECTS (Ms. Gigi):\n' + SUBJECT_PP.general.map(line).join('\n') + '\n' +
-      ids.filter(id => SUBJECT_PP[id]).map(id => `For "${id}":\n` + SUBJECT_PP[id].map(line).join('\n')).join('\n');
+    return ['HOW TO PARAPHRASE SUBJECTS (Ms. Gigi):',
+      'Dropping "the percentage of / the proportion of": ' + G2.drop.rule,
+      ...G2.drop.cases.map(c => `- [${c.ok}] ${c.when}: "${c.wrong}" → "${c.right}" (${c.why})`),
+      'Word families (activity / person / verb / compound) — change the form only if the task still measures the same thing:',
+      ...G2.family.map(f => `- ${f.act} / ${f.person} / ${f.verb} / ${f.compound} (${f.note})`),
+      'Techniques (use these ids in "tech"):',
+      ...G2.techniques.map(t => `- ${t.id} = ${t.name}: "${t.from}" → "${t.to}" [${t.where}] (${t.note})`),
+      'Typical mistakes:', ...G2.mistakes.map(m => `- "${m.wrong}" → "${m.right}" (${m.why})`),
+      ...ids.filter(id => SUBJECT_PP[id]).map(id => `For "${id}":\n` + SUBJECT_PP[id].map(line).join('\n')),
+    ].join('\n');
   }
 
   function promptBlock(ids) {
@@ -420,5 +471,5 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return [...new Set(out)].sort((a, b) => b.length - a.length);
   }
 
-  return { OUTLINES, GENERAL, SUBJECT_PP, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
+  return { OUTLINES, GENERAL, SUBJECT_PP, SUBJECT_GUIDE, TECH, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
 })();

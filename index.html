@@ -213,6 +213,20 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .subj-where { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0 7px; margin-left: 2px; white-space: nowrap; }
 .subj-how { display: block; font-size: 12px; color: var(--muted); }
 .subj-avoid { font-size: 13px; color: var(--err); margin-top: 4px; }
+.subj-tech { font-size: 11px; font-weight: 700; color: #5a3fb5; background: #ece7fb; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.subj-tips { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.subj-tip { background: #f3f0fb; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.subj-tip b { color: #5a3fb5; }
+.subj-tip p { margin-top: 2px; }
+.subj-tip ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.okv { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 8px; margin-bottom: 2px; white-space: nowrap; }
+.okv.ok { background: #e3f4e8; color: #136c3a; }
+.okv.warn { background: var(--warn-soft); color: var(--warn); }
+.okv.bad { background: var(--err-soft); color: var(--err); }
+.bad-ex { color: var(--err); }
+.good-ex { color: #136c3a; }
+#vocab-content td:first-child { white-space: normal; min-width: 130px; }
+.rule-line { font-size: 14px; background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; }
 .slot-ph { color: var(--accent); font-style: italic; }
 .warn-line { display: block; color: var(--warn); font-size: 13px; }
 .para-block .warn-line { font-family: var(--font-ui); margin-top: 4px; }
@@ -1129,12 +1143,19 @@ window.CONTENT = (function () {
     ],
     key_features: ['The village became more residential: farmland replaced by housing', 'New facilities: a retirement home; the school expanded', 'The main road and the row of houses remained unchanged'],
     verified: { fixed: 0, missing_vi: '' },
+    subject_tips: {
+      drop_vi: 'Đề bản đồ không có số liệu % nên không có “the percentage of”. Chủ thể là địa điểm / công trình: lần 1 gọi đúng tên trong đề (the village of Stokeford, the farmland), lần sau mới đổi (Stokeford, the settlement, the agricultural land). Không bỏ danh từ: “The south was transformed” ❌ → “The farmland in the south was transformed” ✅.',
+      forms: [
+        { word: 'houses', family: 'housing (nhà ở nói chung) · residential buildings · a residential area (khu dân cư)', note_vi: 'Body 1 tả dãy nhà cụ thể → a row of houses; Body 2 tả cả khu mới → a residential area / housing.' },
+        { word: 'development', family: 'develop (động từ) · was developed / was redeveloped (bị động) · underwent development', note_vi: 'Overview dùng danh từ (underwent significant development); Body dùng bị động (the farmland was redeveloped).' },
+      ],
+    },
     subject_pp: [
-      { subject: 'the village of Stokeford', meaning_vi: 'làng Stokeford', ways: [{ text: 'the village of Stokeford', where_vi: 'Introduction', how_vi: 'Lần 1 giữ đúng tên trong đề' }, { text: 'Stokeford', where_vi: 'Overview / Body', how_vi: 'Dùng tên riêng cho gọn' }, { text: 'the settlement', where_vi: 'Body', how_vi: 'Từ đồng nghĩa của village' }], avoid: [{ text: 'The city', why_vi: 'Sai nghĩa — đề là làng (village)' }] },
-      { subject: 'the farmland in the south', meaning_vi: 'đất nông nghiệp phía nam', ways: [{ text: 'the farmland in the south', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the agricultural land in the southern part', where_vi: 'Body 2', how_vi: 'farmland → agricultural land; south → southern part (part → in)' }, { text: 'the southern fields', where_vi: 'Body 2', how_vi: 'Gọn, dùng tính từ chỉ hướng' }], avoid: [{ text: 'The south was transformed', why_vi: 'Trọc lốc — thiếu danh từ chủ thể (farmland)' }] },
-      { subject: 'the houses along the main road', meaning_vi: 'dãy nhà dọc đường chính', ways: [{ text: 'a row of houses along the main road', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the housing alongside the main road', where_vi: 'Body 2', how_vi: 'houses → housing; along → alongside' }, { text: 'the residential buildings', where_vi: 'Body 2', how_vi: 'Từ đồng nghĩa' }], avoid: [] },
-      { subject: 'the school', meaning_vi: 'trường học', ways: [{ text: 'the school', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the educational facility', where_vi: 'Body 2', how_vi: 'Từ đồng nghĩa trang trọng' }, { text: 'the school building', where_vi: 'Body 2', how_vi: 'Thêm danh từ chỉ công trình' }], avoid: [] },
-      { subject: 'the changes between 1930 and 2010', meaning_vi: 'những thay đổi từ 1930 đến 2010', ways: [{ text: 'the changes in Stokeford between 1930 and 2010', where_vi: 'Introduction', how_vi: 'Đổi in 1930 and 2010 → between … and …' }, { text: 'the development of the village over the 80-year period', where_vi: 'Introduction / Overview', how_vi: 'changes → development; mốc năm → over the 80-year period' }], avoid: [] },
+      { subject: 'the village of Stokeford', meaning_vi: 'làng Stokeford', ways: [{ text: 'the village of Stokeford', tech: 'synonym', where_vi: 'Introduction', how_vi: 'Lần 1 giữ đúng tên trong đề' }, { text: 'Stokeford', tech: 'refer', where_vi: 'Overview / Body', how_vi: 'Dùng tên riêng cho gọn' }, { text: 'the settlement', tech: 'synonym', where_vi: 'Body', how_vi: 'Từ đồng nghĩa của village' }], avoid: [{ text: 'The city', why_vi: 'Sai nghĩa — đề là làng (village)' }] },
+      { subject: 'the farmland in the south', meaning_vi: 'đất nông nghiệp phía nam', ways: [{ text: 'the farmland in the south', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the agricultural land in the southern part', tech: 'synonym', where_vi: 'Body 2', how_vi: 'farmland → agricultural land; south → southern part (part → in)' }, { text: 'the southern fields', tech: 'compound', where_vi: 'Body 2', how_vi: 'Gọn, dùng tính từ chỉ hướng' }], avoid: [{ text: 'The south was transformed', why_vi: 'Trọc lốc — thiếu danh từ chủ thể (farmland)' }] },
+      { subject: 'the houses along the main road', meaning_vi: 'dãy nhà dọc đường chính', ways: [{ text: 'a row of houses along the main road', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the housing alongside the main road', tech: 'form', where_vi: 'Body 2', how_vi: 'houses (từng ngôi nhà) → housing (nhà ở nói chung)' }, { text: 'the residential buildings', tech: 'synonym', where_vi: 'Body 2', how_vi: 'Từ đồng nghĩa' }], avoid: [] },
+      { subject: 'the school', meaning_vi: 'trường học', ways: [{ text: 'the school', where_vi: 'Body 1', how_vi: 'Sát đề' }, { text: 'the educational facility', tech: 'synonym', where_vi: 'Body 2', how_vi: 'Từ đồng nghĩa trang trọng' }, { text: 'the school building', tech: 'compound', where_vi: 'Body 2', how_vi: 'Thêm danh từ chỉ công trình' }], avoid: [] },
+      { subject: 'the changes between 1930 and 2010', meaning_vi: 'những thay đổi từ 1930 đến 2010', ways: [{ text: 'the changes in Stokeford between 1930 and 2010', tech: 'synonym', where_vi: 'Introduction', how_vi: 'Đổi in 1930 and 2010 → between … and …' }, { text: 'the development of the village over the 80-year period', tech: 'form', where_vi: 'Introduction / Overview', how_vi: 'changes → development; mốc năm → over the 80-year period' }], avoid: [] },
     ],
     steps: [
       {
@@ -1605,18 +1626,60 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   }
 
   /* Đoạn dàn ý đưa cho AI (tiếng Việt + khung tiếng Anh) */
+  /* Hướng dẫn paraphrase CHỦ THỂ chung cho mọi dạng (ví dụ xuyên suốt: đề về commuting / commuters).
+   * drop: bỏ “the percentage of” được không · family: đổi từ loại · techniques: các cách viết lại (id dùng để AI gắn nhãn)
+   * · mistakes: lỗi hay gặp. Bám quy tắc của cô: chỉ được bỏ từ chỉ tỷ lệ, chủ thể gốc giữ nguyên vẹn. */
+  const SUBJECT_GUIDE = {
+    drop: {
+      rule: 'Quy tắc của cô: ĐƯỢC bỏ từ chỉ tỷ lệ (the percentage of / the proportion of), nhưng chủ thể gốc phải giữ nguyên vẹn (car commuters, car sales, energy consumption…).',
+      cases: [
+        { ok: 'must', when: 'Động từ đã mang nghĩa “chiếm %”: account for / make up / constitute / represent', wrong: 'The percentage of car commuters accounted for 60%.', right: 'Car commuters accounted for 60% of all commuters.', why: 'Giữ “the percentage of” là lặp nghĩa (percentage + accounted for %).' },
+        { ok: 'yes', when: 'Đưa số liệu lên đầu câu: [số]% of + N', wrong: 'The percentage of commuters who travelled by car was 60%.', right: '60% of commuters travelled by car.', why: 'Số % đã nói rõ đây là tỷ lệ.' },
+        { ok: 'yes', when: 'Ngay sau có số % và chủ thể còn nguyên', wrong: 'The proportion of car commuters stood at 60% in 2000.', right: 'Car commuters made up 60% of the total in 2000.', why: 'Chỉ bỏ từ chỉ tỷ lệ, “car commuters” vẫn giữ nguyên.' },
+        { ok: 'keep', when: 'Động từ xu hướng (rose / fell…) mà không có số % đi kèm', wrong: 'Car commuters fell steadily over the period.', right: 'The percentage of car commuters fell steadily over the period.', why: 'Bỏ đi thì nghe như SỐ NGƯỜI giảm, không còn rõ là TỶ LỆ giảm.' },
+        { ok: 'no', when: 'Bỏ luôn cả danh từ chủ thể (trọc lốc)', wrong: 'Car fell to 36%.', right: 'The percentage of car commuters fell to 36%.', why: '“Car” không giảm — tỷ lệ người đi ô tô mới giảm.' },
+        { ok: 'no', when: '“the number of” với người / vật đếm được', wrong: 'Visitors increased.', right: 'Visitor numbers / The number of visitors increased.', why: 'Không bỏ “number”: đổi thành “N + numbers” hoặc “the figure for + N”.' },
+      ],
+    },
+    family: [
+      { act: 'commuting', person: 'commuters', verb: 'commute (to work)', compound: 'car commuting · car commuters · car use · car travel', note: 'Đề đo % NGƯỜI đi làm → dùng commuters (the percentage of commuters…). “the percentage of commuting by car” ❌ → “the percentage of commuters travelling by car” ✅.' },
+      { act: 'consumption', person: 'consumers', verb: 'consume · use', compound: 'water consumption · water use', note: 'Đề đo LƯỢNG (lít, tấn) → giữ consumption/use; đổi sang consumers là lệch nghĩa.' },
+      { act: 'production · output', person: 'producers · manufacturers', verb: 'produce · manufacture', compound: 'coffee production · coffee output · the amount of coffee produced', note: 'Đo lượng → production/output; producers chỉ khi đề đếm số nhà sản xuất.' },
+      { act: 'tourism · visits', person: 'tourists · visitors', verb: 'visit · travel to', compound: 'tourist arrivals · visitor numbers', note: 'Đếm người → visitors/tourists; tiền → tourism revenue.' },
+      { act: 'unemployment · employment', person: 'the unemployed · employees · workers', verb: 'employ · work', compound: 'the unemployment rate · the employment rate', note: 'Giữ rate/level: “People unemployed rose” ❌ → “The rate of unemployment rose” ✅.' },
+      { act: 'spending · expenditure', person: 'consumers · households', verb: 'spend (on)', compound: 'household spending · expenditure on food · money spent on food', note: 'Chỉ khi đơn vị là tiền. Spending ≠ Sales.' },
+      { act: 'sales · purchases', person: 'buyers · customers', verb: 'sell · buy', compound: 'car sales · the number of cars sold · car purchases', note: 'Sales (phía bán) ≠ purchases (phía mua). “Cars increased” ❌ → “Car sales increased” ✅.' },
+      { act: 'immigration · migration', person: 'immigrants · migrants', verb: 'immigrate · move to', compound: 'immigrant numbers · the number of people moving to …', note: 'Đếm người → immigrants; xu hướng chung → immigration.' },
+      { act: 'enrolment · education', person: 'students · learners', verb: 'enrol · study', compound: 'student numbers · enrolment figures', note: 'Đếm người học → students; tỷ lệ nhập học → the enrolment rate.' },
+    ],
+    techniques: [
+      { id: 'ratio', name: 'Đổi từ chỉ tỷ lệ / số lượng', from: 'the percentage of car commuters', to: 'the proportion of car commuters · the share of car commuters · the figure for car commuters', where: 'Body (lần 2)', note: 'percentage ↔ proportion ↔ share ↔ figure for; number of ↔ figure for ↔ N numbers. Không đổi % thành number.' },
+      { id: 'reduce', name: 'Rút gọn mệnh đề (Chiêu 2)', from: 'people who commuted by car', to: 'people commuting by car', where: 'Introduction', note: 'who/which + V → V-ing; who/which + be + V3 → V3.' },
+      { id: 'form', name: 'Đổi từ loại', from: 'the percentage of people commuting by car', to: 'the percentage of car commuters', where: 'Intro / Body', note: 'Hoạt động (commuting) ↔ người (commuters) ↔ động từ (commute). Chỉ đổi khi vẫn đo đúng thứ đề đo.' },
+      { id: 'compound', name: 'Danh từ ghép', from: 'commuters who travelled by car · the use of cars', to: 'car commuters · car use · car travel', where: 'Body', note: 'Gọn, tự nhiên; tránh ghép quá 3 danh từ.' },
+      { id: 'verb', name: 'Noun → Verb (Chiêu 1)', from: 'the percentage of car commuters', to: 'what proportion of people commuted by car · how people travelled to work', where: 'Introduction', note: 'The consumption of water → how much water was consumed.' },
+      { id: 'nation', name: 'Tính từ quốc gia (Chiêu 3)', from: 'the energy consumption in France', to: 'French energy consumption', where: 'Intro / Body', note: 'The population of Japan → Japanese population / Japan’s population.' },
+      { id: 'drop', name: 'Bỏ “the percentage of” (giữ chủ thể)', from: 'The percentage of car commuters accounted for 60%.', to: 'Car commuters accounted for 60% of all commuters.', where: 'Body', note: 'Xem bảng “Bỏ the percentage of được không?”.' },
+      { id: 'front', name: 'Đưa số liệu lên đầu', from: 'The percentage of commuters who drove was 60%.', to: '60% of commuters travelled by car. · Around three in five commuters drove to work.', where: 'Body', note: 'Số liệu làm chủ ngữ: [số]% of + N / a quarter of + N.' },
+      { id: 'passive', name: 'Bị động', from: '60% of commuters used cars.', to: 'Cars were used by 60% of commuters.', where: 'Body', note: 'Hay dùng với chose / preferred / used.' },
+      { id: 'time', name: 'Thời gian làm chủ ngữ', from: 'The percentage of car commuters fell between 2010 and 2020.', to: 'The period between 2010 and 2020 saw a fall in the percentage of car commuters.', where: 'Body', note: 'saw / witnessed / experienced — chủ ngữ là Period/Year/Decade.' },
+      { id: 'refer', name: 'Thay thế khi nhắc lại', from: '(chủ thể vừa nói)', to: 'this figure · that of bus users · the former / the latter · the respective figures', where: 'Body', note: 'Tránh lặp danh từ — tăng điểm Coherence.' },
+      { id: 'synonym', name: 'Từ đồng nghĩa (không lệch nghĩa)', from: 'commuters', to: 'people travelling to work · car users (chỉ nhóm đi ô tô)', where: 'Body', note: 'Lần 1 dùng từ sát đề; chỉ đổi khi cùng nghĩa.' },
+    ],
+    mistakes: [
+      { wrong: 'Car increased.', right: 'The percentage of car commuters increased.', why: 'Trọc lốc — thiếu danh từ chủ thể.' },
+      { wrong: 'The percentage of car commuters accounted for 60%.', right: 'Car commuters accounted for 60% of all commuters.', why: 'Lặp nghĩa: percentage + accounted for %.' },
+      { wrong: 'The number of commuting rose.', right: 'The number of commuters rose.', why: 'number of + danh từ đếm được (người / vật), không đi với hoạt động.' },
+      { wrong: 'The amount of commuters fell.', right: 'The number of commuters fell.', why: 'amount of chỉ đi với danh từ không đếm được.' },
+      { wrong: 'Water consumers rose to 500 litres.', right: 'Water consumption rose to 500 litres.', why: 'Đổi từ loại làm lệch thứ được đo (lít là lượng nước, không phải số người).' },
+      { wrong: 'Visitors increased.', right: 'Visitor numbers increased. / The number of visitors increased.', why: 'Giữ nguyên chủ thể gốc (quy tắc của cô).' },
+    ],
+  };
+  const TECH = Object.fromEntries(SUBJECT_GUIDE.techniques.map(t => [t.id, t.name]));
+
   /* Cách paraphrase CHỦ THỂ theo từng dạng (bám quy tắc của cô: không “trọc lốc”, lần 1 sát đề, lần 2 mới đổi).
    * Mỗi dòng: loại chủ thể · từ trong đề → cách viết khác · lưu ý. */
   const SUBJECT_PP = {
-    general: [
-      { kind: 'Danh từ chỉ số lượng', from: 'the number of + N (đếm được)', to: ['the figure for + N', 'N + numbers (visitor numbers)', 'the quantity of + N'], note: 'number of ↔ figure for dùng được hầu hết các câu; amount of chỉ dùng cho danh từ không đếm được.' },
-      { kind: 'Danh từ chỉ tỷ lệ', from: 'the percentage of + N', to: ['the proportion of + N', 'the share of + N', 'the rate of + N'], note: 'Chỉ đổi giữa các từ chỉ tỷ lệ — không đổi % thành number.' },
-      { kind: 'Chiêu 1 · Noun → Verb', from: 'the consumption of water', to: ['water consumption', 'how much water was consumed', 'the amount of water consumed'], note: 'Dùng ở Introduction để tránh chép đề.' },
-      { kind: 'Chiêu 2 · Mệnh đề quan hệ', from: 'people who travelled by car', to: ['people travelling by car', 'car commuters', 'those who drove to work'], note: 'Rút gọn which/who → V-ing / V3, hoặc gộp thành danh từ ghép.' },
-      { kind: 'Chiêu 3 · Tính từ quốc gia', from: 'the population of Japan', to: ['Japanese population', "Japan's population"], note: 'the energy consumption in France → French energy consumption.' },
-      { kind: 'Thay thế khi nhắc lại', from: '(chủ thể vừa nói)', to: ['this figure', 'the former / the latter', 'the respective figures', 'the corresponding figure for + N'], note: 'Tránh lặp danh từ — tăng điểm Coherence.' },
-      { kind: '❌ Trọc lốc', from: 'Car increased · Japan rose · Visitors grew', to: ['The percentage of car commuters increased', "Japan's population rose", 'The number of visitors grew'], note: 'Luôn giữ nguyên danh từ chủ thể gốc (production, sales, consumption, number of…).' },
-    ],
     trend: [
       { kind: 'Chủ thể chính (Introduction)', from: 'the number / percentage of + N + from … to …', to: ['the figure / proportion for + N between … and …', 'how many / what proportion of + N + V-ed over the period'], note: 'Introduction: đổi cả danh từ chỉ số lượng lẫn cụm thời gian.' },
       { kind: 'Từng đường / từng cột', from: 'Car (tên đường trong chú thích)', to: ['the percentage of car commuters', 'the figure for car use', 'car travel'], note: 'Tên đường trong chú thích KHÔNG được đứng một mình làm chủ ngữ.' },
@@ -1652,9 +1715,18 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     ],
   };
   function subjectBlock(ids) {
+    const G2 = SUBJECT_GUIDE;
     const line = x => `- ${x.kind}: ${x.from} → ${x.to.join(' / ')} (${x.note})`;
-    return 'HOW TO PARAPHRASE SUBJECTS (Ms. Gigi):\n' + SUBJECT_PP.general.map(line).join('\n') + '\n' +
-      ids.filter(id => SUBJECT_PP[id]).map(id => `For "${id}":\n` + SUBJECT_PP[id].map(line).join('\n')).join('\n');
+    return ['HOW TO PARAPHRASE SUBJECTS (Ms. Gigi):',
+      'Dropping "the percentage of / the proportion of": ' + G2.drop.rule,
+      ...G2.drop.cases.map(c => `- [${c.ok}] ${c.when}: "${c.wrong}" → "${c.right}" (${c.why})`),
+      'Word families (activity / person / verb / compound) — change the form only if the task still measures the same thing:',
+      ...G2.family.map(f => `- ${f.act} / ${f.person} / ${f.verb} / ${f.compound} (${f.note})`),
+      'Techniques (use these ids in "tech"):',
+      ...G2.techniques.map(t => `- ${t.id} = ${t.name}: "${t.from}" → "${t.to}" [${t.where}] (${t.note})`),
+      'Typical mistakes:', ...G2.mistakes.map(m => `- "${m.wrong}" → "${m.right}" (${m.why})`),
+      ...ids.filter(id => SUBJECT_PP[id]).map(id => `For "${id}":\n` + SUBJECT_PP[id].map(line).join('\n')),
+    ].join('\n');
   }
 
   function promptBlock(ids) {
@@ -1711,7 +1783,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return [...new Set(out)].sort((a, b) => b.length - a.length);
   }
 
-  return { OUTLINES, GENERAL, SUBJECT_PP, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
+  return { OUTLINES, GENERAL, SUBJECT_PP, SUBJECT_GUIDE, TECH, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
 })();
 </script>
   <script>
@@ -1906,9 +1978,13 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   ],
   "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS task: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
     { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
-      "ways": [ { "text": "the proportion of car commuters", "how_vi": "percentage → proportion; mệnh đề who → danh từ ghép", "where_vi": "Introduction / Overview" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first
+      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
       "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
   ],
+  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
+    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
+    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
+  },
   "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
     { "word": "commuters", "meaning_vi": "người đi làm hằng ngày",
       "alternatives": [ { "phrase": "people travelling to work", "meaning_vi": "người di chuyển đi làm" }, { "phrase": "car users", "meaning_vi": "người dùng ô tô", "note_vi": "chỉ dùng khi nói riêng nhóm đi ô tô" } ] }
@@ -1936,7 +2012,7 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
    - Lexical Resource: precise words from her lists and the paraphrase list; do not repeat a key verb or noun within a paragraph when a correct synonym exists; accurate collocations (rose sharply, a significant increase in, accounted for the largest proportion of).
    - Grammatical Range & Accuracy: her frames already mix simple and complex sentences (while / whereas / which / with + noun / before + V-ing / respectively); keep articles, prepositions, agreement and tense error-free.
    - Length: with one option chosen for every sentence, the essay is 170-200 words.
-9. "subject_pp" follows "HOW TO PARAPHRASE SUBJECTS": keep the subject noun whole (no "trọc lốc" subjects), first way = closest to the prompt for the Introduction / Overview, later ways for the Body; only real synonyms of the same meaning; use the exact categories / places / stages of THIS task. The options you write must use these subject forms.
+9. "subject_pp" and "subject_tips" follow "HOW TO PARAPHRASE SUBJECTS": tag every way with its technique id; say clearly whether "the percentage of" can be dropped in THIS task (with its own sentences); keep the subject noun whole (no "trọc lốc" subjects), first way = closest to the prompt for the Introduction / Overview, later ways for the Body; only real synonyms of the same meaning; use the exact categories / places / stages of THIS task. The options you write must use these subject forms.
 10. Before replying, re-read every option against your data sheet and fix any wrong figure, unit, year, place, comparison or grammar slip.`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
@@ -2191,10 +2267,17 @@ Reply with ONLY one JSON object:
     return (Array.isArray(list) ? list : []).filter(x => x && x.subject).map(x => ({
       subject: String(x.subject), meaning_vi: String(x.meaning_vi || ''),
       ways: (Array.isArray(x.ways) ? x.ways : []).filter(w => w && w.text).slice(0, 5)
-        .map(w => ({ text: String(w.text), how_vi: String(w.how_vi || ''), where_vi: String(w.where_vi || '') })),
+        .map(w => ({ text: String(w.text), tech: G.TECH[w.tech] ? w.tech : '', how_vi: String(w.how_vi || ''), where_vi: String(w.where_vi || '') })),
       avoid: (Array.isArray(x.avoid) ? x.avoid : []).filter(w => w && w.text).slice(0, 3)
         .map(w => ({ text: String(w.text), why_vi: String(w.why_vi || '') })),
     })).filter(x => x.ways.length);
+  }
+  function normTips(t) {
+    if (!t || typeof t !== 'object') return null;
+    const forms = (Array.isArray(t.forms) ? t.forms : []).filter(f => f && f.word).slice(0, 4)
+      .map(f => ({ word: String(f.word), family: String(f.family || ''), note_vi: String(f.note_vi || '') }));
+    const drop_vi = String(t.drop_vi || '');
+    return drop_vi || forms.length ? { drop_vi, forms } : null;
   }
   function normParaphrase(list) {
     return (Array.isArray(list) ? list : []).filter(x => x && x.word).map(x => ({
@@ -2237,6 +2320,7 @@ Reply with ONLY one JSON object:
     if (r.steps.some(s => !s.sentences.length)) throw new Error('AI trả về gợi ý chưa đầy đủ. Bấm thử lại.');
     r.paraphrase = normParaphrase(r.paraphrase);
     r.subject_pp = normSubjects(r.subject_pp);
+    r.subject_tips = normTips(r.subject_tips);
     r.data = (Array.isArray(r.data) ? r.data : []).map(x => String(x).trim()).filter(Boolean);
     r.key_features = (Array.isArray(r.key_features) ? r.key_features : []).map(x => String(x).trim()).filter(Boolean);
     return r;
@@ -2548,9 +2632,13 @@ Reply with ONLY one JSON object:
   },
   "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS visual: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
     { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
-      "ways": [ { "text": "the proportion of car commuters", "how_vi": "percentage → proportion; mệnh đề who → danh từ ghép", "where_vi": "Introduction / Overview" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first
+      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
       "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
   ],
+  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
+    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
+    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
+  },
   "paraphrase": [ { "word": "...", "meaning_vi": "...", "alternatives": [ { "phrase": "...", "meaning_vi": "...", "note_vi": "" } ] } ],   // 8-12 key words of the prompt
   "exercises": [   // one object per requested type, in the order requested
     { "type": "mcq", "title_vi": "...", "instruction_vi": "...", "items": [ { "q": "question in English", "options": ["...", "...", "..."], "answer": 0, "explain_vi": "..." } ] },
@@ -2603,6 +2691,7 @@ ${LESSON_SHAPE}`;
     r.paraphrase = normParaphrase(r.paraphrase);
     r.data = arr(r.data).map(x => String(x).trim()).filter(Boolean);
     r.subject_pp = normSubjects(r.subject_pp);
+    r.subject_tips = normTips(r.subject_tips);
     r.exercises = r.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
       if (e.type === 'mcq') e.items = e.items.filter(it => Array.isArray(it.options) && it.options.length > 1).map(it => ({ ...it, answer: Math.min(Math.max(+it.answer || 0, 0), it.options.length - 1) }));
       if (e.type === 'gap') {
@@ -2622,7 +2711,7 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -2810,7 +2899,7 @@ window.LESSON = (function () {
       <section class="l-sec"><h3>📐 Bước 2 · Áp dụng dàn ý Ms. Gigi: ${esc(o.name)}</h3>${plan}</section>
       ${x.vocab.length ? `<section class="l-sec"><h3>📌 Từ vựng cho biểu đồ này</h3><div class="table-wrap"><table><thead><tr><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
         ${x.vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi || '')}</td><td>${esc(v.example || '')}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
-      ${(d.subject_pp || []).length ? `<section class="l-sec"><h3>🧑‍🏫 Paraphrase chủ thể</h3><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.subjectsHtml(d.subject_pp)}</section>` : ''}
+      ${(d.subject_pp || []).length ? `<section class="l-sec"><h3>🧑‍🏫 Paraphrase chủ thể</h3><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.tipsHtml(d.subject_tips)}${H.subjectsHtml(d.subject_pp)}</section>` : ''}
       ${d.paraphrase.length ? `<section class="l-sec"><h3>🔁 Từ paraphrase</h3>${H.paraphraseHtml(d.paraphrase)}</section>` : ''}
       ${x.mistakes_vi.length ? `<section class="l-sec"><h3>⚠️ Lỗi học sinh hay mắc</h3>${ul(x.mistakes_vi)}</section>` : ''}
       <div class="row end"><button type="button" class="btn primary" data-ltab="ex">✏️ Sang phần bài tập →</button></div>`;
@@ -2938,7 +3027,7 @@ window.LESSON = (function () {
       if (pl.model.length) p.push('Câu mẫu:', ...pl.model.map(m => `  ${m.f ? 'K' + m.f : '•'} → ${m.text}`));
     });
     if (x.vocab.length) p.push('', line, '📌 TỪ VỰNG', line, ...x.vocab.map(v => `• ${v.phrase} (${v.meaning_vi || ''})${v.example ? '\n   VD: ' + v.example : ''}`));
-    if ((d.subject_pp || []).length) p.push('', line, '🧑‍🏫 PARAPHRASE CHỦ THỂ', line, ...H.subjectsPlain(d.subject_pp));
+    if ((d.subject_pp || []).length) p.push('', line, '🧑‍🏫 PARAPHRASE CHỦ THỂ', line, ...H.tipsPlain(d.subject_tips), ...H.subjectsPlain(d.subject_pp));
     if (d.paraphrase.length) p.push('', line, '🔁 TỪ PARAPHRASE', line, ...d.paraphrase.map(w => `• ${w.word}${w.meaning_vi ? ' (' + w.meaning_vi + ')' : ''}\n` + w.alternatives.map(a => `   → ${a.phrase}${a.meaning_vi ? ' (' + a.meaning_vi + ')' : ''}${a.note_vi ? ' – ' + a.note_vi : ''}`).join('\n')));
     if (x.mistakes_vi.length) p.push('', '⚠️ LỖI HAY MẮC', ...x.mistakes_vi.map(t => '• ' + t));
     const plain = p.join('\n');
@@ -3032,12 +3121,19 @@ window.LESSON = (function () {
       subject: 'the percentage of commuters in Metro City travelling by car, bus and bicycle, 2000–2025',
       topic_vi: 'Tỷ lệ người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp (2000–2025).',
       prompt_text: 'The line graph below shows the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025. Summarise the information by selecting and reporting the main features, and make comparisons where relevant.',
+      subject_tips: {
+        drop_vi: 'Đề này là %, nên: (1) đi với accounted for / made up thì PHẢI bỏ “the percentage of”: “Car commuters accounted for 62% of all commuters”; (2) đưa số lên đầu cũng bỏ được: “62% of commuters travelled by car”; (3) đi với rose / fell mà không có số % thì GIỮ: “The percentage of car commuters fell steadily”, không viết “Car commuters fell steadily” (nghe như số người giảm). Tuyệt đối không viết “Car fell”.',
+        forms: [
+          { word: 'commuting (đi làm hằng ngày)', family: 'commuters (người đi làm) · commute (động từ) · car commuting / car use / car travel (danh từ ghép)', note_vi: 'Đề đo % NGƯỜI → “the percentage of commuters …” ✅; “the percentage of commuting by car” ❌. Khi nói hoạt động chung dùng “car commuting / car use”.' },
+          { word: 'bicycle', family: 'cyclists (người) · cycling (hoạt động) · cycle (động từ)', note_vi: '“the percentage of people who cycled to work” → “the percentage of cyclists”.' },
+        ],
+      },
       subject_pp: [
-        { subject: 'the percentage of commuters who travelled to work by car, bus and bicycle', meaning_vi: 'tỷ lệ người đi làm bằng ô tô, xe buýt và xe đạp', ways: [{ text: 'the proportion of commuters using cars, buses and bicycles', where_vi: 'Introduction', how_vi: 'percentage → proportion; mệnh đề who → V-ing (Chiêu 2)' }, { text: 'how people in Metro City travelled to work', where_vi: 'Introduction', how_vi: 'Noun → câu hỏi how (Chiêu 1)' }], avoid: [] },
-        { subject: 'Car (đường trong chú thích)', meaning_vi: 'ô tô', ways: [{ text: 'the percentage of car commuters', where_vi: 'Overview / Body 1', how_vi: 'Sát đề, đủ danh từ chủ thể' }, { text: 'the figure for car use', where_vi: 'Body', how_vi: 'percentage of → figure for' }, { text: 'car travel', where_vi: 'Body (lần sau)', how_vi: 'Danh từ ghép' }], avoid: [{ text: 'Car decreased', why_vi: 'Trọc lốc — ô tô không giảm, tỷ lệ người đi ô tô mới giảm' }] },
-        { subject: 'Bus', meaning_vi: 'xe buýt', ways: [{ text: 'the proportion of bus commuters', where_vi: 'Body', how_vi: 'Đủ danh từ chủ thể' }, { text: 'bus use', where_vi: 'Body (lần sau)', how_vi: 'Danh từ ghép' }, { text: 'the latter', where_vi: 'Body', how_vi: 'Thay thế khi vừa nhắc car và bus' }], avoid: [{ text: 'Bus rose', why_vi: 'Trọc lốc' }] },
-        { subject: 'Bicycle', meaning_vi: 'xe đạp', ways: [{ text: 'the percentage of cyclists', where_vi: 'Body', how_vi: 'bicycle commuters → cyclists' }, { text: 'the figure for cycling', where_vi: 'Body (lần sau)', how_vi: 'Danh động từ' }], avoid: [{ text: 'Bicycle increased', why_vi: 'Trọc lốc' }] },
-        { subject: 'between 2000 and 2025', meaning_vi: 'từ 2000 đến 2025', ways: [{ text: 'from 2000 to 2025', where_vi: 'Introduction', how_vi: 'between … and → from … to' }, { text: 'over the 25-year period', where_vi: 'Introduction / Overview', how_vi: 'Đổi thành khoảng thời gian' }, { text: 'by the end of the period', where_vi: 'Body 2', how_vi: 'Chỉ mốc cuối' }], avoid: [] },
+        { subject: 'the percentage of commuters who travelled to work by car, bus and bicycle', meaning_vi: 'tỷ lệ người đi làm bằng ô tô, xe buýt và xe đạp', ways: [{ text: 'the proportion of commuters using cars, buses and bicycles', tech: 'reduce', where_vi: 'Introduction', how_vi: 'percentage → proportion; who travelled by … → using … (Chiêu 2)' }, { text: 'how people in Metro City travelled to work', tech: 'verb', where_vi: 'Introduction', how_vi: 'Cụm danh từ → mệnh đề how (Chiêu 1)' }], avoid: [] },
+        { subject: 'Car (đường trong chú thích)', meaning_vi: 'ô tô', ways: [{ text: 'the percentage of car commuters', tech: 'form', where_vi: 'Overview / Body 1', how_vi: 'commuters who travelled by car → car commuters' }, { text: 'the figure for car use', tech: 'ratio', where_vi: 'Body', how_vi: 'percentage of → figure for; commuters → car use' }, { text: 'Car commuters accounted for 62% of all commuters', tech: 'drop', where_vi: 'Body 1', how_vi: 'Bỏ “the percentage of” vì đã có accounted for + %' }], avoid: [{ text: 'Car decreased', why_vi: 'Trọc lốc — ô tô không giảm, tỷ lệ người đi ô tô mới giảm' }] },
+        { subject: 'Bus', meaning_vi: 'xe buýt', ways: [{ text: 'the proportion of bus commuters', tech: 'ratio', where_vi: 'Body', how_vi: 'percentage → proportion' }, { text: 'bus use', tech: 'compound', where_vi: 'Body (lần sau)', how_vi: 'Danh từ ghép' }, { text: 'the latter', tech: 'refer', where_vi: 'Body', how_vi: 'Thay thế khi vừa nhắc car và bus' }], avoid: [{ text: 'Bus rose', why_vi: 'Trọc lốc' }] },
+        { subject: 'Bicycle', meaning_vi: 'xe đạp', ways: [{ text: 'the percentage of cyclists', tech: 'form', where_vi: 'Body', how_vi: 'people who cycled to work → cyclists' }, { text: 'the figure for cycling', tech: 'ratio', where_vi: 'Body (lần sau)', how_vi: 'percentage of cyclists → figure for cycling' }], avoid: [{ text: 'Bicycle increased', why_vi: 'Trọc lốc' }] },
+        { subject: 'between 2000 and 2025', meaning_vi: 'từ 2000 đến 2025', ways: [{ text: 'from 2000 to 2025', tech: 'synonym', where_vi: 'Introduction', how_vi: 'between … and → from … to' }, { text: 'over the 25-year period', tech: 'synonym', where_vi: 'Introduction / Overview', how_vi: 'Đổi thành khoảng thời gian' }, { text: 'The period between 2010 and 2025 saw a sharp fall in car commuting', tech: 'time', where_vi: 'Body 2', how_vi: 'Thời gian làm chủ ngữ + saw' }], avoid: [] },
       ],
       data: ['Car – 2000: 60%, 2005: 58%, 2010: 55%, 2015: 48%, 2020: 40%, 2025: 35%', 'Bus – 2000: 25%, 2005: 27%, 2010: 30%, 2015: 33%, 2020: 36%, 2025: 39%', 'Bicycle – 2000: 5%, 2005: 7%, 2010: 10%, 2015: 13%, 2020: 17%, 2025: 20%', 'Bus overtook car between 2020 and 2025'],
       lesson: {
@@ -4181,12 +4277,23 @@ window.GRADE = (function () {
     if (!list || !list.length) return '';
     return `<div class="subj">${list.map(x => `<div class="subj-item">
       <p class="subj-from"><b>${esc(x.subject)}</b>${x.meaning_vi ? ` <span class="vi">(${esc(x.meaning_vi)})</span>` : ''}</p>
-      <ol class="subj-ways">${x.ways.map(w => `<li><span class="subj-text">${esc(w.text)}</span>${w.where_vi ? ` <span class="subj-where">${esc(w.where_vi)}</span>` : ''}${w.how_vi ? `<span class="subj-how">${esc(w.how_vi)}</span>` : ''}</li>`).join('')}</ol>
+      <ol class="subj-ways">${x.ways.map(w => `<li><span class="subj-text">${esc(w.text)}</span>${w.tech ? ` <span class="subj-tech">${esc(G.TECH[w.tech])}</span>` : ''}${w.where_vi ? ` <span class="subj-where">${esc(w.where_vi)}</span>` : ''}${w.how_vi ? `<span class="subj-how">${esc(w.how_vi)}</span>` : ''}</li>`).join('')}</ol>
       ${x.avoid.map(v => `<p class="subj-avoid">❌ <s>${esc(v.text)}</s>${v.why_vi ? ` — ${esc(v.why_vi)}` : ''}</p>`).join('')}</div>`).join('')}</div>`;
+  }
+  // Trả lời riêng cho đề: bỏ “the percentage of” được không + đổi từ loại
+  function tipsHtml(t) {
+    if (!t) return '';
+    return `<div class="subj-tips">${t.drop_vi ? `<div class="subj-tip"><b>✂️ Bỏ “the percentage of / the number of” được không?</b><p>${esc(t.drop_vi)}</p></div>` : ''}
+      ${t.forms.length ? `<div class="subj-tip"><b>🔤 Đổi từ loại</b><ul>${t.forms.map(f => `<li><b>${esc(f.word)}</b> → ${esc(f.family)}${f.note_vi ? `<span class="subj-how">${esc(f.note_vi)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}</div>`;
+  }
+  function tipsPlain(t) {
+    if (!t) return [];
+    return [...(t.drop_vi ? ['✂️ Bỏ “the percentage of / the number of” được không?', '   ' + t.drop_vi] : []),
+      ...(t.forms.length ? ['🔤 Đổi từ loại:', ...t.forms.map(f => `   ${f.word} → ${f.family}${f.note_vi ? ' – ' + f.note_vi : ''}`)] : [])];
   }
   function subjectsPlain(list) {
     return (list || []).flatMap(x => [`• ${x.subject}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
-      ...x.ways.map((w, i) => `   ${i + 1}) ${w.text}${w.where_vi ? ' [' + w.where_vi + ']' : ''}${w.how_vi ? ' – ' + w.how_vi : ''}`),
+      ...x.ways.map((w, i) => `   ${i + 1}) ${w.text}${w.tech ? ' {' + G.TECH[w.tech] + '}' : ''}${w.where_vi ? ' [' + w.where_vi + ']' : ''}${w.how_vi ? ' – ' + w.how_vi : ''}`),
       ...x.avoid.map(v => `   ❌ ${v.text}${v.why_vi ? ' – ' + v.why_vi : ''}`)]);
   }
   // Bảng màu cho bản sao chép (Word / Docs / Gmail)
@@ -4197,19 +4304,25 @@ window.GRADE = (function () {
     let rows = `<tr><th style="${hd};width:30%">Chủ thể trong đề</th><th style="${hd}">Cách viết khác (dùng ở đâu · cách đổi)</th><th style="${hd};width:24%">❌ Tránh viết</th></tr>`;
     list.forEach((x, n) => {
       const bg = n % 2 ? '#ffffff' : '#f3f0fb';
-      rows += `<tr>${td(`<b>${esc(x.subject)}</b>${x.meaning_vi ? `<br><span style="color:#5b6957;font-size:12px">${esc(x.meaning_vi)}</span>` : ''}`, `background:${bg}`)}${td(x.ways.map((w, i) => `${i + 1}) <b style="color:#5a3fb5">${esc(w.text)}</b>${w.where_vi ? ` <span style="font-size:12px;color:#2f6f45">[${esc(w.where_vi)}]</span>` : ''}${w.how_vi ? `<br><span style="font-size:12px;color:#5b6957">${esc(w.how_vi)}</span>` : ''}`).join('<br>'), `background:${bg}`)}${td(x.avoid.map(v => `<span style="color:#b42318;text-decoration:line-through">${esc(v.text)}</span>${v.why_vi ? `<br><span style="font-size:12px;color:#5b6957">${esc(v.why_vi)}</span>` : ''}`).join('<br>') || '—', `background:${bg}`)}</tr>`;
+      rows += `<tr>${td(`<b>${esc(x.subject)}</b>${x.meaning_vi ? `<br><span style="color:#5b6957;font-size:12px">${esc(x.meaning_vi)}</span>` : ''}`, `background:${bg}`)}${td(x.ways.map((w, i) => `${i + 1}) <b style="color:#5a3fb5">${esc(w.text)}</b>${w.tech ? ` <span style="font-size:11px;background:#ece7fb;color:#5a3fb5;border-radius:8px;padding:0 6px">${esc(G.TECH[w.tech])}</span>` : ''}${w.where_vi ? ` <span style="font-size:12px;color:#2f6f45">[${esc(w.where_vi)}]</span>` : ''}${w.how_vi ? `<br><span style="font-size:12px;color:#5b6957">${esc(w.how_vi)}</span>` : ''}`).join('<br>'), `background:${bg}`)}${td(x.avoid.map(v => `<span style="color:#b42318;text-decoration:line-through">${esc(v.text)}</span>${v.why_vi ? `<br><span style="font-size:12px;color:#5b6957">${esc(v.why_vi)}</span>` : ''}`).join('<br>') || '—', `background:${bg}`)}</tr>`;
     });
     return `<table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+  }
+  function tipsTable(t) {
+    if (!t) return '';
+    const box = (title, body) => `<div style="background:#f3f0fb;border-left:4px solid #6a4fc7;border-radius:0 6px 6px 0;padding:8px 12px;margin:0 0 8px"><b style="color:#5a3fb5">${title}</b><br>${body}</div>`;
+    return (t.drop_vi ? box('✂️ Bỏ “the percentage of / the number of” được không?', esc(t.drop_vi)) : '') +
+      (t.forms.length ? box('🔤 Đổi từ loại', t.forms.map(f => `<b>${esc(f.word)}</b> → ${esc(f.family)}${f.note_vi ? ` <span style="color:#5b6957;font-size:12px">— ${esc(f.note_vi)}</span>` : ''}`).join('<br>')) : '');
   }
   function paraphraseText(a) {
     const list = (a && a.paraphrase) || [], subj = (a && a.subject_pp) || [];
     const head = `TỪ PARAPHRASE CHO ĐỀ${a && a.subject ? ': ' + a.subject : ''}`;
-    return (subj.length ? ['🧑‍🏫 PARAPHRASE CHỦ THỂ', ...subjectsPlain(subj), ''].join('\n') + '\n' : '') + head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
+    return (subj.length ? ['🧑‍🏫 PARAPHRASE CHỦ THỂ', ...tipsPlain(a.subject_tips), ...subjectsPlain(subj), ''].join('\n') + '\n' : '') + head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
       x.alternatives.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '') + (v.note_vi ? ' – ' + v.note_vi : '')).join('; ')).join('\n');
   }
   function renderParaphrase() {
     const a = S.analysis || {}, subj = a.subject_pp || [];
-    const html = (subj.length ? `<h4 class="pp-h">🧑‍🏫 Paraphrase chủ thể</h4><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${subjectsHtml(subj)}<h4 class="pp-h">🔁 Từ khác trong đề</h4>` : '') + paraphraseHtml(a.paraphrase);
+    const html = (subj.length ? `<h4 class="pp-h">🧑‍🏫 Paraphrase chủ thể</h4><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”. Xem đủ kỹ thuật ở 📚 Dàn ý Ms. Gigi → Paraphrase chủ thể.</p>${tipsHtml(a.subject_tips)}${subjectsHtml(subj)}<h4 class="pp-h">🔁 Từ khác trong đề</h4>` : '') + paraphraseHtml(a.paraphrase);
     for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = html; }
   }
   async function copyText(txt, okMsg, fallbackEl) {
@@ -4250,6 +4363,7 @@ window.GRADE = (function () {
       })),
       paraphrase: a.paraphrase || [],
       subjects: a.subject_pp || [],
+      tips: a.subject_tips || null,
       structs: (ensureStructs() || { items: [] }).items,
     };
   }
@@ -4282,7 +4396,7 @@ window.GRADE = (function () {
     });
     out.push(...structsPlain(d.structs, 3));
     if (d.paraphrase.length || d.subjects.length) out.push('', line, `🔁 ${d.structs.length ? 4 : 3}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
-    if (d.subjects.length) out.push('🧑‍🏫 Paraphrase chủ thể:', ...subjectsPlain(d.subjects), '', '🔁 Từ khác trong đề:');
+    if (d.subjects.length) out.push('🧑‍🏫 Paraphrase chủ thể:', ...tipsPlain(d.tips), ...subjectsPlain(d.subjects), '', '🔁 Từ khác trong đề:');
     if (d.paraphrase.length) {
       d.paraphrase.forEach(x => out.push(`• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
         ...x.alternatives.map(v => `   → ${v.phrase}${v.meaning_vi ? ' (' + v.meaning_vi + ')' : ''}${v.note_vi ? ' – ' + v.note_vi : ''}`)));
@@ -4343,7 +4457,7 @@ window.GRADE = (function () {
 
     h += structsHtml(d.structs, 3);
     if (d.paraphrase.length || d.subjects.length) h += h2(`🔁 ${d.structs.length ? 4 : 3}. Từ paraphrase (từ trong đề → cách viết khác)`);
-    if (d.subjects.length) h += `<p style="margin:0 0 6px"><b style="color:#5a3fb5">🧑‍🏫 Paraphrase chủ thể</b> <span style="color:#5b6957">— lần 1 (Intro / Overview) dùng cách sát đề nhất, Body mới đổi; không để chủ thể “trọc lốc”.</span></p>${subjectsTable(d.subjects)}`;
+    if (d.subjects.length) h += `<p style="margin:0 0 6px"><b style="color:#5a3fb5">🧑‍🏫 Paraphrase chủ thể</b> <span style="color:#5b6957">— lần 1 (Intro / Overview) dùng cách sát đề nhất, Body mới đổi; không để chủ thể “trọc lốc”.</span></p>${tipsTable(d.tips)}${subjectsTable(d.subjects)}`;
     if (d.paraphrase.length) {
       if (d.subjects.length) h += '<p style="margin:0 0 6px"><b style="color:#2f6f45">🔁 Từ khác trong đề</b></p>';
       const hd = 'background:#2f6f45;color:#ffffff;border-color:#2f6f45';
@@ -4532,9 +4646,18 @@ window.GRADE = (function () {
         <div class="vsec"><h3>Pie / Bar: công thức S + V + O</h3>${ul(G.GENERAL.pieBar)}</div>
         <div class="vsec"><h3>Nâng cấp ghép câu (Band 7+)</h3>${ul(G.GENERAL.band7)}</div>`;
     } else if (libTab === 'subjects') {
-      html = `<p class="muted">Quy tắc của cô: không để chủ thể “trọc lốc”; lần 1 (Introduction / Overview) dùng từ sát đề nhất, lần 2 (Body) mới đổi sang cách tương đương.</p>
-        <div class="vsec"><h3>Chung cho mọi dạng</h3>${subjTable(G.SUBJECT_PP.general)}</div>` +
-        Object.keys(G.OUTLINES).filter(id => G.SUBJECT_PP[id]).map(id => `<div class="vsec"><h3>${esc(G.OUTLINES[id].name)}</h3>${subjTable(G.SUBJECT_PP[id])}</div>`).join('');
+      const GD = G.SUBJECT_GUIDE;
+      const OKV = { must: ['✅ Nên bỏ', 'ok'], yes: ['✅ Bỏ được', 'ok'], keep: ['⚠️ Nên giữ', 'warn'], no: ['❌ Không bỏ', 'bad'] };
+      html = `<p class="muted">Ví dụ xuyên suốt: đề về <b>commuting / commuters</b> (người đi làm). Quy tắc của cô: không để chủ thể “trọc lốc”; lần 1 (Introduction / Overview) dùng từ sát đề nhất, lần 2 (Body) mới đổi.</p>
+        <div class="vsec"><h3>✂️ Bỏ “the percentage of / the proportion of” được không?</h3><p class="rule-line">${esc(GD.drop.rule)}</p>
+          <div class="table-wrap"><table><thead><tr><th>Trường hợp</th><th>Viết như này</th><th>Nên viết</th><th>Vì sao</th></tr></thead><tbody>${GD.drop.cases.map(c => `<tr><td><span class="okv ${OKV[c.ok][1]}">${OKV[c.ok][0]}</span><br>${esc(c.when)}</td><td><s class="bad-ex">${esc(c.wrong)}</s></td><td><b class="good-ex">${esc(c.right)}</b></td><td>${esc(c.why)}</td></tr>`).join('')}</tbody></table></div></div>
+        <div class="vsec"><h3>🔤 Đổi từ loại (họ từ của chủ thể)</h3><p class="rule-line">Chỉ đổi khi câu vẫn đo đúng thứ đề đo: đề đếm NGƯỜI → dùng danh từ chỉ người (commuters); đề đo LƯỢNG → giữ danh từ hoạt động (consumption).</p>
+          <div class="table-wrap"><table><thead><tr><th>Hoạt động</th><th>Người</th><th>Động từ</th><th>Danh từ ghép / cụm</th><th>Lưu ý</th></tr></thead><tbody>${GD.family.map(f => `<tr><td>${esc(f.act)}</td><td>${esc(f.person)}</td><td>${esc(f.verb)}</td><td>${esc(f.compound)}</td><td>${esc(f.note)}</td></tr>`).join('')}</tbody></table></div></div>
+        <div class="vsec"><h3>🛠️ ${GD.techniques.length} cách viết lại chủ thể</h3>
+          <div class="table-wrap"><table><thead><tr><th>Kỹ thuật</th><th>Trong đề / câu gốc</th><th>Viết lại</th><th>Dùng ở</th><th>Lưu ý</th></tr></thead><tbody>${GD.techniques.map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.from)}</td><td><b class="good-ex">${esc(t.to)}</b></td><td>${esc(t.where)}</td><td>${esc(t.note)}</td></tr>`).join('')}</tbody></table></div></div>
+        <div class="vsec"><h3>❌ Lỗi hay gặp</h3>
+          <div class="table-wrap"><table><thead><tr><th>Sai</th><th>Đúng</th><th>Vì sao</th></tr></thead><tbody>${GD.mistakes.map(m => `<tr><td><s class="bad-ex">${esc(m.wrong)}</s></td><td><b class="good-ex">${esc(m.right)}</b></td><td>${esc(m.why)}</td></tr>`).join('')}</tbody></table></div></div>` +
+        Object.keys(G.OUTLINES).filter(id => G.SUBJECT_PP[id]).map(id => `<div class="vsec"><h3>Riêng dạng ${esc(G.OUTLINES[id].name)}</h3>${subjTable(G.SUBJECT_PP[id])}</div>`).join('');
     } else if (libTab === 'mapsvocab') {
       const row = v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning)}</td><td>${esc(v.usage)} <i>“${esc(v.example)}”</i></td><td>${esc(v.note)}</td></tr>`;
       const table = list => `<div class="table-wrap"><table><thead><tr><th>Từ/Cụm từ</th><th>Ý nghĩa</th><th>Cách sử dụng</th><th>Ghi chú</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
@@ -4716,7 +4839,7 @@ window.GRADE = (function () {
 
   /* ================= Start ================= */
   bindPane();
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
   const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
   GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });

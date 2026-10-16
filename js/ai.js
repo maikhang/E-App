@@ -72,9 +72,13 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   ],
   "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS task: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
     { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
-      "ways": [ { "text": "the proportion of car commuters", "how_vi": "percentage → proportion; mệnh đề who → danh từ ghép", "where_vi": "Introduction / Overview" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first
+      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
       "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
   ],
+  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
+    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
+    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
+  },
   "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
     { "word": "commuters", "meaning_vi": "người đi làm hằng ngày",
       "alternatives": [ { "phrase": "people travelling to work", "meaning_vi": "người di chuyển đi làm" }, { "phrase": "car users", "meaning_vi": "người dùng ô tô", "note_vi": "chỉ dùng khi nói riêng nhóm đi ô tô" } ] }
@@ -102,7 +106,7 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
    - Lexical Resource: precise words from her lists and the paraphrase list; do not repeat a key verb or noun within a paragraph when a correct synonym exists; accurate collocations (rose sharply, a significant increase in, accounted for the largest proportion of).
    - Grammatical Range & Accuracy: her frames already mix simple and complex sentences (while / whereas / which / with + noun / before + V-ing / respectively); keep articles, prepositions, agreement and tense error-free.
    - Length: with one option chosen for every sentence, the essay is 170-200 words.
-9. "subject_pp" follows "HOW TO PARAPHRASE SUBJECTS": keep the subject noun whole (no "trọc lốc" subjects), first way = closest to the prompt for the Introduction / Overview, later ways for the Body; only real synonyms of the same meaning; use the exact categories / places / stages of THIS task. The options you write must use these subject forms.
+9. "subject_pp" and "subject_tips" follow "HOW TO PARAPHRASE SUBJECTS": tag every way with its technique id; say clearly whether "the percentage of" can be dropped in THIS task (with its own sentences); keep the subject noun whole (no "trọc lốc" subjects), first way = closest to the prompt for the Introduction / Overview, later ways for the Body; only real synonyms of the same meaning; use the exact categories / places / stages of THIS task. The options you write must use these subject forms.
 10. Before replying, re-read every option against your data sheet and fix any wrong figure, unit, year, place, comparison or grammar slip.`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
@@ -357,10 +361,17 @@ Reply with ONLY one JSON object:
     return (Array.isArray(list) ? list : []).filter(x => x && x.subject).map(x => ({
       subject: String(x.subject), meaning_vi: String(x.meaning_vi || ''),
       ways: (Array.isArray(x.ways) ? x.ways : []).filter(w => w && w.text).slice(0, 5)
-        .map(w => ({ text: String(w.text), how_vi: String(w.how_vi || ''), where_vi: String(w.where_vi || '') })),
+        .map(w => ({ text: String(w.text), tech: G.TECH[w.tech] ? w.tech : '', how_vi: String(w.how_vi || ''), where_vi: String(w.where_vi || '') })),
       avoid: (Array.isArray(x.avoid) ? x.avoid : []).filter(w => w && w.text).slice(0, 3)
         .map(w => ({ text: String(w.text), why_vi: String(w.why_vi || '') })),
     })).filter(x => x.ways.length);
+  }
+  function normTips(t) {
+    if (!t || typeof t !== 'object') return null;
+    const forms = (Array.isArray(t.forms) ? t.forms : []).filter(f => f && f.word).slice(0, 4)
+      .map(f => ({ word: String(f.word), family: String(f.family || ''), note_vi: String(f.note_vi || '') }));
+    const drop_vi = String(t.drop_vi || '');
+    return drop_vi || forms.length ? { drop_vi, forms } : null;
   }
   function normParaphrase(list) {
     return (Array.isArray(list) ? list : []).filter(x => x && x.word).map(x => ({
@@ -403,6 +414,7 @@ Reply with ONLY one JSON object:
     if (r.steps.some(s => !s.sentences.length)) throw new Error('AI trả về gợi ý chưa đầy đủ. Bấm thử lại.');
     r.paraphrase = normParaphrase(r.paraphrase);
     r.subject_pp = normSubjects(r.subject_pp);
+    r.subject_tips = normTips(r.subject_tips);
     r.data = (Array.isArray(r.data) ? r.data : []).map(x => String(x).trim()).filter(Boolean);
     r.key_features = (Array.isArray(r.key_features) ? r.key_features : []).map(x => String(x).trim()).filter(Boolean);
     return r;
@@ -714,9 +726,13 @@ Reply with ONLY one JSON object:
   },
   "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS visual: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
     { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
-      "ways": [ { "text": "the proportion of car commuters", "how_vi": "percentage → proportion; mệnh đề who → danh từ ghép", "where_vi": "Introduction / Overview" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first
+      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
       "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
   ],
+  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
+    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
+    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
+  },
   "paraphrase": [ { "word": "...", "meaning_vi": "...", "alternatives": [ { "phrase": "...", "meaning_vi": "...", "note_vi": "" } ] } ],   // 8-12 key words of the prompt
   "exercises": [   // one object per requested type, in the order requested
     { "type": "mcq", "title_vi": "...", "instruction_vi": "...", "items": [ { "q": "question in English", "options": ["...", "...", "..."], "answer": 0, "explain_vi": "..." } ] },
@@ -769,6 +785,7 @@ ${LESSON_SHAPE}`;
     r.paraphrase = normParaphrase(r.paraphrase);
     r.data = arr(r.data).map(x => String(x).trim()).filter(Boolean);
     r.subject_pp = normSubjects(r.subject_pp);
+    r.subject_tips = normTips(r.subject_tips);
     r.exercises = r.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
       if (e.type === 'mcq') e.items = e.items.filter(it => Array.isArray(it.options) && it.options.length > 1).map(it => ({ ...it, answer: Math.min(Math.max(+it.answer || 0, 0), it.options.length - 1) }));
       if (e.type === 'gap') {
@@ -788,5 +805,5 @@ ${LESSON_SHAPE}`;
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
