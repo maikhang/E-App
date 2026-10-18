@@ -521,7 +521,7 @@ Reply with ONLY one JSON object:
     if (legend.length) text += '\n\nSeries in the legend: ' + legend.join('; ');
     if (values.length) text += '\n\nDATA VALUES read from the image ("about" = estimated from the gridlines):\n' + valuesText(values);
     const missing = gaps.missing.map(n => n.replace(/\s*\(.*?\)\s*/g, ' ').trim()).concat(gaps.short.map(n => n + ' (thiếu điểm)'));
-    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, legend, missing: isChart ? missing : [], visual: { source: 'ai', text } };
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, legend, missing: isChart ? missing : [], visual: { source: 'ai', text, v: 2 } };
   }
 
   /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */

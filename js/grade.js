@@ -111,8 +111,10 @@ window.GRADE = (function () {
     tick = setInterval(() => { $('#gr-elapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' giây'; }, 1000);
     ctl = new AbortController();
     try {
-      // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại
-      if (R.image && !R.visual) {
+      // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại —
+      // trừ bản đọc từ phiên bản cũ (OCR chưa kiểm tra, chưa đối chiếu chú thích) vì có thể sót đường / cột
+      const fresh = v => v && (v.v >= 2 || v.checked);
+      if (R.image && !fresh(R.visual)) {
         const r = await H.readTask(R.image, ctl.signal, stage, 'Bước 1/2');
         R.visual = r.visual;
         if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;

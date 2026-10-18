@@ -2451,7 +2451,7 @@ Reply with ONLY one JSON object:
     if (legend.length) text += '\n\nSeries in the legend: ' + legend.join('; ');
     if (values.length) text += '\n\nDATA VALUES read from the image ("about" = estimated from the gridlines):\n' + valuesText(values);
     const missing = gaps.missing.map(n => n.replace(/\s*\(.*?\)\s*/g, ' ').trim()).concat(gaps.short.map(n => n + ' (thiếu điểm)'));
-    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, legend, missing: isChart ? missing : [], visual: { source: 'ai', text } };
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, legend, missing: isChart ? missing : [], visual: { source: 'ai', text, v: 2 } };
   }
 
   /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */
@@ -3553,8 +3553,10 @@ window.GRADE = (function () {
     tick = setInterval(() => { $('#gr-elapsed').textContent = Math.round((Date.now() - t0) / 1000) + ' giây'; }, 1000);
     ctl = new AbortController();
     try {
-      // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại
-      if (R.image && !R.visual) {
+      // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại —
+      // trừ bản đọc từ phiên bản cũ (OCR chưa kiểm tra, chưa đối chiếu chú thích) vì có thể sót đường / cột
+      const fresh = v => v && (v.v >= 2 || v.checked);
+      if (R.image && !fresh(R.visual)) {
         const r = await H.readTask(R.image, ctl.signal, stage, 'Bước 1/2');
         R.visual = r.visual;
         if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
