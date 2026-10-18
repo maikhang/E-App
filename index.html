@@ -135,6 +135,8 @@ textarea { resize: vertical; line-height: 1.6; font-size: 15px; }
 .data-list { margin: 6px 0 0; padding-left: 18px; color: var(--text); display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
 .data-note:empty { display: none; }
 .tp-redo { margin-top: 8px; }
+.ocr-ask { background: var(--warn-soft); border-radius: 10px; padding: 8px 12px; }
+#ocr-text { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; }
 .tp-hint { font-size: 12px; color: var(--muted); }
 .task-pane.drag { outline: 3px dashed var(--accent); outline-offset: -6px; }
 .data-note { margin-top: 6px; color: var(--warn); }
@@ -594,6 +596,9 @@ td:first-child { font-weight: 600; white-space: nowrap; }
   .para-preview { font-size: 16px; padding: 12px; }
   .lesson-preview { padding: 10px; }
 }
+#dlg-ocr .gap-only { display: none; }
+#dlg-ocr.ai-gap .gap-only { display: revert; }
+#dlg-ocr.ai-gap .ocr-only { display: none; }
 </style>
 </head>
 <body>
@@ -1015,6 +1020,23 @@ td:first-child { font-weight: 600; white-space: nowrap; }
         <button class="btn primary" id="api-save" value="save">Lưu</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Ảnh không gửi được cho AI → kiểm tra / bổ sung chữ OCR trước khi AI viết -->
+  <dialog id="dlg-ocr" class="dlg wide" aria-labelledby="ocr-title">
+    <div class="dlg-body">
+      <h2 id="ocr-title"><span class="ocr-only">⚠️ Kiểm tra chữ đọc được từ ảnh</span><span class="gap-only">⚠️ Bổ sung số liệu AI chưa đọc được</span></h2>
+      <p class="gap-only">AI đã nhìn ảnh nhưng <b>chưa đọc được số liệu của: <span id="ocr-missing"></span></b>. Hãy nhìn ảnh đề và gõ thêm số liệu còn thiếu vào ô dưới (ví dụ <i>Streams: 2011 = 5%, 2018 = 42%</i>), rồi bấm “Tiếp tục”. Nếu AI đọc đủ rồi, bấm “Giữ bản AI đọc”.</p>
+      <p class="ocr-only">Chế độ xem này <b>không gửi được ảnh cho AI</b>, nên app đọc chữ trong ảnh bằng OCR. OCR <b>không đọc được số liệu trên đường / cột</b> và có thể đọc sót hoặc sai chữ (ví dụ thiếu tên một đường trong chú thích).</p>
+      <p class="ocr-ask ocr-only">Hãy sửa và <b>bổ sung tên các đường / cột và số liệu chính</b> vào ô dưới (nhìn ảnh đề), rồi bấm “Tiếp tục”. AI chỉ viết theo những gì có trong ô này.</p>
+      <label class="field"><span>Nội dung đọc được từ ảnh (sửa được)</span>
+        <textarea id="ocr-text" rows="10" placeholder="Ví dụ:&#10;Percentage of total music sales by method, 2011–2018&#10;Streams: 2011 = 5%, 2014 = 15%, 2016 = 28%, 2018 = 42%&#10;Downloads: 2011 = 35%, 2014 = 43%, 2018 = 30%&#10;CDs purchased: 2011 = 55%, 2014 = 36%, 2018 = 25%"></textarea>
+      </label>
+      <div class="row end">
+        <button class="btn ghost" type="button" id="ocr-cancel">Huỷ</button>
+        <button class="btn primary" type="button" id="ocr-ok">✅ Tiếp tục</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="dlg-img" class="dlg wide">
@@ -2007,7 +2029,11 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   function taskBlock(text, visual) {
     let t = text ? 'Task text:\n"""' + text + '"""\n' : '';
     if (visual && visual.text) {
-      t += visual.source === 'ocr'
+      t += visual.source === 'ocr' && visual.checked
+        ? '\nText of the task image, read by OCR and then CHECKED AND COMPLETED BY THE TEACHER (the drawing itself could not be seen). Every series / category / figure the teacher wrote here is correct and must be used; do not invent values that are not here:\n"""' + visual.text + '"""\n'
+        : visual.checked
+        ? '\nContent of the task visual, transcribed from the image and then CHECKED AND COMPLETED BY THE TEACHER. Every series / category / figure here is correct and must be used:\n"""' + visual.text + '"""\n'
+        : visual.source === 'ocr'
         ? '\nOCR text of the task image (may contain recognition errors; the figures/drawing could not be seen — use only what is clearly given, and say in guide_vi if data is missing):\n"""' + visual.text + '"""\n'
         : '\nContent of the task visual, transcribed from the image:\n"""' + visual.text + '"""\n';
     }
@@ -2018,6 +2044,7 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   const READ_VALUES_RULES = `How to read the values:
 - Copy printed numbers exactly (data labels, table cells, pie percentages).
 - Charts WITHOUT data labels: you MUST still give a number for every point — never skip a value, never write "not labelled" or "unclear". First read the gridline values on the y-axis (they may be uneven steps such as 0, 15, 30, 45 or 0, 14, 28, 42), then place each point between the two nearest gridlines and interpolate (a point one third of the way from 30 to 45 ≈ 35). Round to a whole number (or to the axis precision) and set "approx": true.
+- Every legend entry is a series, including lines drawn DASHED or DOTTED, thin lines, light colours or markers only — never drop one. Match each line / bar to its legend entry by colour AND line style (solid / dashed / dotted) AND marker shape before reading its values.
 - Keep the unit (%, million, tonnes…). List series in the legend's order and points in the axis order.
 - Check the overall shape: which series is highest / lowest at the start and the end, which rise or fall, and where lines cross — your numbers must agree with it.`;
   const READ_PROMPT = `The attached image is an IELTS Writing Task 1 question (it may show the question text, a chart, table, map or process diagram).
@@ -2027,6 +2054,8 @@ Reply with ONLY one JSON object:
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
   "prompt_text": "the question text exactly as written in the image, or '' if there is none",
   "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels",
+  "legend": ["every series name exactly as written in the legend / row labels / pie slices, with its colour and line style, e.g. 'Series A (blue dashed line)'"],   // [] for maps and processes
+  "x_labels": ["every label on the x-axis (years, categories) or every table column, in order"],   // [] for maps, processes and a single pie
   "values": [ { "series": "Series A", "unit": "unit", "points": [ { "x": "1990", "v": 35, "approx": true } ] } ]   // charts and tables ONLY: every series (legend item / table row / pie) with a value for EVERY labelled point (year / category / column); [] for maps and processes
 }
 ${READ_VALUES_RULES}
@@ -2252,7 +2281,8 @@ Reply with ONLY one JSON object:
       try {
         // cache: false — “Bấm thử lại” phải hỏi AI lần nữa, không phát lại câu trả lời cũ
         const opts = { modelTier: 'default', signal, cache: false };
-        if (image) opts.images = dataUrlToBlob(image.dataUrl);
+        // Đọc ảnh đề: model mạnh nhất, nghĩ kỹ — đọc sai một đường là cả bài sai số liệu
+        if (image) Object.assign(opts, { images: dataUrlToBlob(image.dataUrl), modelTier: 'complex', effort: 'high' });
         res = await sample(prompt, opts);
       } catch (e) {
         const err = new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không trả lời được. Thử lại.');
@@ -2370,8 +2400,9 @@ Reply with ONLY one JSON object:
   }
 
   /* Bước 1: AI đọc ảnh đề → chữ (câu đề + toàn bộ số liệu/nội dung hình) */
-  const VALUES_PROMPT = `The attached image is an IELTS Writing Task 1 chart or table. Read the value of EVERY data point.
-${READ_VALUES_RULES}
+  // Đọc lại riêng số liệu, nhắc đúng tên các đường / cột và nhãn trục mà lượt đầu đã thấy trong chú thích
+  const valuesPrompt = (legend, xs) => `The attached image is an IELTS Writing Task 1 chart or table. Read the value of EVERY data point.
+${legend.length ? `The legend / labels show these series — give values for EVERY one of them, none may be missing: ${legend.join('; ')}\n` : ''}${xs.length ? `Give a value at every one of these x-axis labels / columns: ${xs.join('; ')}\n` : ''}${READ_VALUES_RULES}
 Reply with ONLY one JSON object:
 { "values": [ { "series": "name from the legend / row", "unit": "unit", "points": [ { "x": "year or category", "v": 0, "approx": true } ] } ] }`;
   function normValues(list) {
@@ -2381,19 +2412,46 @@ Reply with ONLY one JSON object:
     })).filter(x => x.points.length);
   }
   const valuesText = vals => vals.map(x => `${x.series}${x.unit ? ' (' + x.unit + ')' : ''}: ${x.points.map(p => `${p.x}: ${p.approx ? 'about ' : ''}${p.v}`).join('; ')}`).join('\n');
+  // So tên: "Streams (blue dashed line)" ≈ "streams"
+  const keyOf = x => String(x).toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9%]+/g, ' ').trim();
+  const sameName = (a, b) => { const x = keyOf(a), y = keyOf(b); return !!x && !!y && (x === y || x.includes(y) || y.includes(x)); };
+  const strList = l => (Array.isArray(l) ? l : []).map(x => String(x).trim()).filter(Boolean);
+  // Chỗ còn thiếu: đường / cột trong chú thích chưa có số, hoặc đường thiếu điểm trên trục (bảng có thể đọc theo cột → tên hàng nằm ở x)
+  function valueGaps(legend, xs, values) {
+    const named = n => values.some(v => sameName(v.series, n) || v.points.some(p => sameName(p.x, n)));
+    const missing = legend.filter(n => !named(n));
+    const covers = (v, list) => list.filter(n => v.points.some(p => sameName(p.x, n))).length;
+    const short = xs.length < 2 ? [] : values.filter(v => covers(v, xs) < xs.length && (legend.length < 2 || covers(v, legend) < legend.length)).map(v => v.series);
+    return { missing, short };
+  }
+  // Ghép lượt đọc lại vào lượt đầu: đường mới thì thêm, đường cũ thì lấy bản có nhiều điểm hơn
+  function mergeValues(old, add) {
+    const out = old.slice();
+    add.forEach(v => {
+      const i = out.findIndex(o => sameName(o.series, v.series));
+      if (i < 0) out.push(v); else if (v.points.length > out[i].points.length) out[i] = v;
+    });
+    return out;
+  }
   async function readImage({ image, signal }) {
     const r = await ask(READ_PROMPT, image, signal, 'high', 'task_type');
     let text = String((r && r.visual_data) || '').trim();
     if (!text && !(r && r.prompt_text)) throw new Error('AI không đọc được nội dung ảnh. Thử ảnh rõ hơn hoặc gõ đề vào ô văn bản.');
-    // Biểu đồ / bảng mà chưa có số → đọc riêng số liệu từng điểm thêm một lần
     let values = normValues(r.values);
     const isChart = /^(line|bar|pie|table|mixed)$/.test(r.task_type || '');
-    if (isChart && values.reduce((n, x) => n + x.points.length, 0) < 3) {
-      try { values = normValues((await ask(VALUES_PROMPT, image, signal, 'high', 'values')).values); }
-      catch (e) { if (e.code === 'cancelled') throw e; }
+    const legend = isChart ? strList(r.legend) : [], xs = isChart ? strList(r.x_labels) : [];
+    // Biểu đồ / bảng mà chưa có số, sót đường trong chú thích hoặc thiếu điểm → đọc riêng số liệu thêm một lần
+    let gaps = valueGaps(legend, xs, values);
+    if (isChart && (values.reduce((n, x) => n + x.points.length, 0) < 3 || gaps.missing.length || gaps.short.length)) {
+      try {
+        values = mergeValues(values, normValues((await ask(valuesPrompt(legend, xs), image, signal, 'high', 'values')).values));
+        gaps = valueGaps(legend, xs, values);
+      } catch (e) { if (e.code === 'cancelled') throw e; }
     }
+    if (legend.length) text += '\n\nSeries in the legend: ' + legend.join('; ');
     if (values.length) text += '\n\nDATA VALUES read from the image ("about" = estimated from the gridlines):\n' + valuesText(values);
-    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, visual: { source: 'ai', text } };
+    const missing = gaps.missing.map(n => n.replace(/\s*\(.*?\)\s*/g, ' ').trim()).concat(gaps.short.map(n => n + ' (thiếu điểm)'));
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, legend, missing: isChart ? missing : [], visual: { source: 'ai', text } };
   }
 
   /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */
@@ -2907,18 +2965,9 @@ window.LESSON = (function () {
     try {
       let visual = null, detected = '';
       if (L.image) {
-        try {
-          stage('Bước 1/2 · AI đang đọc ảnh biểu đồ: tiêu đề, trục, đơn vị, số liệu…');
-          const r = await AI.readImage({ image: L.image, signal: ctl.signal });
-          visual = r.visual; detected = r.task_type;
-          if (!L.prompt && r.prompt_text) L.prompt = r.prompt_text;
-        } catch (e) {
-          if (e.code === 'cancelled') throw e;
-          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
-          try { visual = await AI.ocr(L.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
-          catch (oe) { if (!L.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.'); }
-        }
+        const r = await H.readTask(L.image, ctl.signal, stage, 'Bước 1/2');
+        visual = r.visual; detected = r.task_type;
+        if (!L.prompt && r.prompt_text) L.prompt = r.prompt_text;
       }
       stage('Bước 2/2 · AI ghi bảng số liệu của biểu đồ rồi soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
       const type = L.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : L.type;
@@ -3506,18 +3555,9 @@ window.GRADE = (function () {
     try {
       // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại
       if (R.image && !R.visual) {
-        try {
-          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
-          const r = await AI.readImage({ image: R.image, signal: ctl.signal });
-          R.visual = r.visual;
-          if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
-        } catch (e) {
-          if (e.code === 'cancelled') throw e;
-          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
-          try { R.visual = await AI.ocr(R.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
-          catch (oe) { if (!R.prompt) throw new Error('Không đọc được ảnh đề (' + oe.message + '). Hãy dán chữ của đề rồi chấm lại.'); }
-        }
+        const r = await H.readTask(R.image, ctl.signal, stage, 'Bước 1/2');
+        R.visual = r.visual;
+        if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
       }
       stage(`Bước ${R.image ? 2 : 1}/${R.image ? 2 : 1} · AI đối chiếu số liệu, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn và sửa lỗi…`);
       R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, essay: R.essay, signal: ctl.signal });
@@ -3960,7 +4000,8 @@ window.GRADE = (function () {
     renderImage();
     const note = $('#setup-note');
     note.classList.remove('err');
-    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Chỉ dán ảnh đề cũng được: AI đọc ảnh rồi tạo gợi ý. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
+    if (AVAIL.via === 'claude' && !AVAIL.images) note.textContent = '⚠️ Chế độ xem này chưa gửi được ảnh cho AI nên AI không nhìn thấy biểu đồ (app chỉ đọc chữ bằng OCR, phải nhờ cô bổ sung số liệu). Để AI tự đọc đúng số liệu: mở app trên claude.ai bằng trình duyệt, khi trang hỏi thì bấm Cho phép (gồm cả gửi ảnh cho Claude), rồi tải lại trang.';
+    else if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Chỉ dán ảnh đề cũng được: AI đọc ảnh rồi tạo gợi ý. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
     else note.innerHTML = AI.getKey() ? 'Đang dùng Anthropic API key đã lưu (⚙️ để đổi).' : 'Mở ngoài claude.ai: cần Anthropic API key để dùng AI — bấm ⚙️ ở góc trên. Không có key vẫn bấm được “Xem bài mẫu”.';
   }
   function renderImage() {
@@ -3989,21 +4030,9 @@ window.GRADE = (function () {
       let detected = '';
       const total = S.image ? 3 : 2;
       if (S.image) {
-        try {
-          stage('Bước 1/3 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
-          const r = await AI.readImage({ image: S.image, signal: ctl.signal });
-          S.visual = r.visual; detected = r.task_type;
-          if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
-        } catch (e) {
-          if (e.code === 'cancelled') throw e;
-          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/3 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
-          try {
-            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/3 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
-          } catch (oe) {
-            if (!S.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.');
-          }
-        }
+        const r = await readTask(S.image, ctl.signal, stage, 'Bước 1/3');
+        S.visual = r.visual; detected = r.task_type;
+        if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       }
       stage(`Bước ${total - 1}/${total} · AI ghi bảng số liệu của đề rồi tạo gợi ý từng câu theo dàn ý…`);
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
@@ -4803,6 +4832,57 @@ window.GRADE = (function () {
   }
 
   /* ================= Dialogs ================= */
+  // OCR (khi không gửi được ảnh cho AI): giáo viên kiểm tra / bổ sung chữ và số liệu trước khi AI viết. null = huỷ
+  // missing: các đường / cột AI nhìn ảnh mà chưa đọc được số → cô bổ sung, hoặc giữ nguyên bản AI đọc
+  function reviewOcr(text, missing) {
+    return new Promise(resolve => {
+      const dlg = $('#dlg-ocr');
+      dlg.classList.toggle('ai-gap', !!missing);
+      if (missing) $('#ocr-missing').textContent = missing.join(', ');
+      $('#ocr-cancel').textContent = missing ? 'Giữ bản AI đọc' : 'Huỷ';
+      $('#ocr-text').value = text || '';
+      const done = v => { dlg.close(); resolve(v); };
+      $('#ocr-ok').onclick = () => {
+        const v = $('#ocr-text').value.trim();
+        if (!v) { toast('Hãy gõ ít nhất tên các đường / cột và số liệu chính.'); return; }
+        done(v);
+      };
+      $('#ocr-cancel').onclick = () => done(missing ? text : null);
+      dlg.oncancel = e => { e.preventDefault(); done(missing ? text : null); };
+      dlg.showModal();
+      $('#ocr-text').focus();
+    });
+  }
+  // Sau OCR: luôn cho giáo viên xem lại; huỷ → dừng như bấm “Dừng”
+  async function checkedOcr(visual) {
+    const text = await reviewOcr(visual && visual.text);
+    if (text == null) { const e = new Error('Đã huỷ.'); e.code = 'cancelled'; throw e; }
+    return { source: 'ocr', text, checked: true };
+  }
+  /* Đọc ảnh đề (dùng chung cho Luyện viết, Bài giảng, Chấm bài):
+   * AI nhìn ảnh → còn sót đường / cột trong chú thích thì cô bổ sung;
+   * chế độ xem không gửi được ảnh → OCR rồi cô kiểm tra. */
+  async function readTask(image, signal, stage, step) {
+    try {
+      stage(`${step} · AI đang nhìn ảnh đề: câu hỏi, chú thích, số liệu từng điểm…`);
+      const r = await AI.readImage({ image, signal });
+      if (r.missing.length) {
+        stage(`${step} · Chờ cô bổ sung số liệu AI chưa đọc được…`);
+        const text = await reviewOcr(r.visual.text, r.missing);
+        if (text !== r.visual.text) r.visual = { source: 'ai', text, checked: true };
+      }
+      return r;
+    } catch (e) {
+      if (e.code === 'cancelled') throw e;
+      if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
+      stage(`${step} · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…`);
+      let visual = null;
+      try { visual = await AI.ocr(image, p => stage(`${step} · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
+      catch (oe) { visual = null; }
+      stage(`${step} · Chờ cô kiểm tra chữ đọc được từ ảnh…`);
+      return { task_type: '', prompt_text: '', visual: await checkedOcr(visual) };
+    }
+  }
   function openKey() { $('#api-key').value = AI.getKey(); $('#dlg-key').showModal(); }
 
   /* ================= Events ================= */
@@ -4938,10 +5018,10 @@ window.GRADE = (function () {
 
   /* ================= Start ================= */
   bindPane();
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
   const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
-  GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, readTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
   show(S.view === 'loading' ? 'setup' : (WRITE_SPLIT.includes(S.view) && !S.analysis ? 'setup' : S.view));

@@ -99,7 +99,11 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   function taskBlock(text, visual) {
     let t = text ? 'Task text:\n"""' + text + '"""\n' : '';
     if (visual && visual.text) {
-      t += visual.source === 'ocr'
+      t += visual.source === 'ocr' && visual.checked
+        ? '\nText of the task image, read by OCR and then CHECKED AND COMPLETED BY THE TEACHER (the drawing itself could not be seen). Every series / category / figure the teacher wrote here is correct and must be used; do not invent values that are not here:\n"""' + visual.text + '"""\n'
+        : visual.checked
+        ? '\nContent of the task visual, transcribed from the image and then CHECKED AND COMPLETED BY THE TEACHER. Every series / category / figure here is correct and must be used:\n"""' + visual.text + '"""\n'
+        : visual.source === 'ocr'
         ? '\nOCR text of the task image (may contain recognition errors; the figures/drawing could not be seen — use only what is clearly given, and say in guide_vi if data is missing):\n"""' + visual.text + '"""\n'
         : '\nContent of the task visual, transcribed from the image:\n"""' + visual.text + '"""\n';
     }
@@ -110,6 +114,7 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
   const READ_VALUES_RULES = `How to read the values:
 - Copy printed numbers exactly (data labels, table cells, pie percentages).
 - Charts WITHOUT data labels: you MUST still give a number for every point — never skip a value, never write "not labelled" or "unclear". First read the gridline values on the y-axis (they may be uneven steps such as 0, 15, 30, 45 or 0, 14, 28, 42), then place each point between the two nearest gridlines and interpolate (a point one third of the way from 30 to 45 ≈ 35). Round to a whole number (or to the axis precision) and set "approx": true.
+- Every legend entry is a series, including lines drawn DASHED or DOTTED, thin lines, light colours or markers only — never drop one. Match each line / bar to its legend entry by colour AND line style (solid / dashed / dotted) AND marker shape before reading its values.
 - Keep the unit (%, million, tonnes…). List series in the legend's order and points in the axis order.
 - Check the overall shape: which series is highest / lowest at the start and the end, which rise or fall, and where lines cross — your numbers must agree with it.`;
   const READ_PROMPT = `The attached image is an IELTS Writing Task 1 question (it may show the question text, a chart, table, map or process diagram).
@@ -119,6 +124,8 @@ Reply with ONLY one JSON object:
   "task_type": "maps" | "process" | "line" | "bar" | "pie" | "table" | "mixed",
   "prompt_text": "the question text exactly as written in the image, or '' if there is none",
   "visual_data": "complete English transcription of the visual: title, axis labels, units, legend; for maps: each map's year and every feature with its position and what changed; for processes: every stage in order with its labels",
+  "legend": ["every series name exactly as written in the legend / row labels / pie slices, with its colour and line style, e.g. 'Series A (blue dashed line)'"],   // [] for maps and processes
+  "x_labels": ["every label on the x-axis (years, categories) or every table column, in order"],   // [] for maps, processes and a single pie
   "values": [ { "series": "Series A", "unit": "unit", "points": [ { "x": "1990", "v": 35, "approx": true } ] } ]   // charts and tables ONLY: every series (legend item / table row / pie) with a value for EVERY labelled point (year / category / column); [] for maps and processes
 }
 ${READ_VALUES_RULES}
@@ -344,7 +351,8 @@ Reply with ONLY one JSON object:
       try {
         // cache: false — “Bấm thử lại” phải hỏi AI lần nữa, không phát lại câu trả lời cũ
         const opts = { modelTier: 'default', signal, cache: false };
-        if (image) opts.images = dataUrlToBlob(image.dataUrl);
+        // Đọc ảnh đề: model mạnh nhất, nghĩ kỹ — đọc sai một đường là cả bài sai số liệu
+        if (image) Object.assign(opts, { images: dataUrlToBlob(image.dataUrl), modelTier: 'complex', effort: 'high' });
         res = await sample(prompt, opts);
       } catch (e) {
         const err = new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không trả lời được. Thử lại.');
@@ -462,8 +470,9 @@ Reply with ONLY one JSON object:
   }
 
   /* Bước 1: AI đọc ảnh đề → chữ (câu đề + toàn bộ số liệu/nội dung hình) */
-  const VALUES_PROMPT = `The attached image is an IELTS Writing Task 1 chart or table. Read the value of EVERY data point.
-${READ_VALUES_RULES}
+  // Đọc lại riêng số liệu, nhắc đúng tên các đường / cột và nhãn trục mà lượt đầu đã thấy trong chú thích
+  const valuesPrompt = (legend, xs) => `The attached image is an IELTS Writing Task 1 chart or table. Read the value of EVERY data point.
+${legend.length ? `The legend / labels show these series — give values for EVERY one of them, none may be missing: ${legend.join('; ')}\n` : ''}${xs.length ? `Give a value at every one of these x-axis labels / columns: ${xs.join('; ')}\n` : ''}${READ_VALUES_RULES}
 Reply with ONLY one JSON object:
 { "values": [ { "series": "name from the legend / row", "unit": "unit", "points": [ { "x": "year or category", "v": 0, "approx": true } ] } ] }`;
   function normValues(list) {
@@ -473,19 +482,46 @@ Reply with ONLY one JSON object:
     })).filter(x => x.points.length);
   }
   const valuesText = vals => vals.map(x => `${x.series}${x.unit ? ' (' + x.unit + ')' : ''}: ${x.points.map(p => `${p.x}: ${p.approx ? 'about ' : ''}${p.v}`).join('; ')}`).join('\n');
+  // So tên: "Streams (blue dashed line)" ≈ "streams"
+  const keyOf = x => String(x).toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9%]+/g, ' ').trim();
+  const sameName = (a, b) => { const x = keyOf(a), y = keyOf(b); return !!x && !!y && (x === y || x.includes(y) || y.includes(x)); };
+  const strList = l => (Array.isArray(l) ? l : []).map(x => String(x).trim()).filter(Boolean);
+  // Chỗ còn thiếu: đường / cột trong chú thích chưa có số, hoặc đường thiếu điểm trên trục (bảng có thể đọc theo cột → tên hàng nằm ở x)
+  function valueGaps(legend, xs, values) {
+    const named = n => values.some(v => sameName(v.series, n) || v.points.some(p => sameName(p.x, n)));
+    const missing = legend.filter(n => !named(n));
+    const covers = (v, list) => list.filter(n => v.points.some(p => sameName(p.x, n))).length;
+    const short = xs.length < 2 ? [] : values.filter(v => covers(v, xs) < xs.length && (legend.length < 2 || covers(v, legend) < legend.length)).map(v => v.series);
+    return { missing, short };
+  }
+  // Ghép lượt đọc lại vào lượt đầu: đường mới thì thêm, đường cũ thì lấy bản có nhiều điểm hơn
+  function mergeValues(old, add) {
+    const out = old.slice();
+    add.forEach(v => {
+      const i = out.findIndex(o => sameName(o.series, v.series));
+      if (i < 0) out.push(v); else if (v.points.length > out[i].points.length) out[i] = v;
+    });
+    return out;
+  }
   async function readImage({ image, signal }) {
     const r = await ask(READ_PROMPT, image, signal, 'high', 'task_type');
     let text = String((r && r.visual_data) || '').trim();
     if (!text && !(r && r.prompt_text)) throw new Error('AI không đọc được nội dung ảnh. Thử ảnh rõ hơn hoặc gõ đề vào ô văn bản.');
-    // Biểu đồ / bảng mà chưa có số → đọc riêng số liệu từng điểm thêm một lần
     let values = normValues(r.values);
     const isChart = /^(line|bar|pie|table|mixed)$/.test(r.task_type || '');
-    if (isChart && values.reduce((n, x) => n + x.points.length, 0) < 3) {
-      try { values = normValues((await ask(VALUES_PROMPT, image, signal, 'high', 'values')).values); }
-      catch (e) { if (e.code === 'cancelled') throw e; }
+    const legend = isChart ? strList(r.legend) : [], xs = isChart ? strList(r.x_labels) : [];
+    // Biểu đồ / bảng mà chưa có số, sót đường trong chú thích hoặc thiếu điểm → đọc riêng số liệu thêm một lần
+    let gaps = valueGaps(legend, xs, values);
+    if (isChart && (values.reduce((n, x) => n + x.points.length, 0) < 3 || gaps.missing.length || gaps.short.length)) {
+      try {
+        values = mergeValues(values, normValues((await ask(valuesPrompt(legend, xs), image, signal, 'high', 'values')).values));
+        gaps = valueGaps(legend, xs, values);
+      } catch (e) { if (e.code === 'cancelled') throw e; }
     }
+    if (legend.length) text += '\n\nSeries in the legend: ' + legend.join('; ');
     if (values.length) text += '\n\nDATA VALUES read from the image ("about" = estimated from the gridlines):\n' + valuesText(values);
-    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, visual: { source: 'ai', text } };
+    const missing = gaps.missing.map(n => n.replace(/\s*\(.*?\)\s*/g, ' ').trim()).concat(gaps.short.map(n => n + ' (thiếu điểm)'));
+    return { task_type: r.task_type || '', prompt_text: String(r.prompt_text || '').trim(), values, legend, missing: isChart ? missing : [], visual: { source: 'ai', text } };
   }
 
   /* Dự phòng: OCR ngay trong trình duyệt (Tesseract.js, file đóng gói trong vendor/tesseract) */

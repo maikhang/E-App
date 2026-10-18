@@ -179,7 +179,8 @@
     renderImage();
     const note = $('#setup-note');
     note.classList.remove('err');
-    if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Chỉ dán ảnh đề cũng được: AI đọc ảnh rồi tạo gợi ý. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
+    if (AVAIL.via === 'claude' && !AVAIL.images) note.textContent = '⚠️ Chế độ xem này chưa gửi được ảnh cho AI nên AI không nhìn thấy biểu đồ (app chỉ đọc chữ bằng OCR, phải nhờ cô bổ sung số liệu). Để AI tự đọc đúng số liệu: mở app trên claude.ai bằng trình duyệt, khi trang hỏi thì bấm Cho phép (gồm cả gửi ảnh cho Claude), rồi tải lại trang.';
+    else if (AVAIL.via === 'claude') note.textContent = 'AI chạy bằng tài khoản Claude của bạn — không cần API key. Chỉ dán ảnh đề cũng được: AI đọc ảnh rồi tạo gợi ý. Lần đầu dùng, trang sẽ hỏi bạn có cho phép không.';
     else note.innerHTML = AI.getKey() ? 'Đang dùng Anthropic API key đã lưu (⚙️ để đổi).' : 'Mở ngoài claude.ai: cần Anthropic API key để dùng AI — bấm ⚙️ ở góc trên. Không có key vẫn bấm được “Xem bài mẫu”.';
   }
   function renderImage() {
@@ -208,21 +209,9 @@
       let detected = '';
       const total = S.image ? 3 : 2;
       if (S.image) {
-        try {
-          stage('Bước 1/3 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
-          const r = await AI.readImage({ image: S.image, signal: ctl.signal });
-          S.visual = r.visual; detected = r.task_type;
-          if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
-        } catch (e) {
-          if (e.code === 'cancelled') throw e;
-          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/3 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
-          try {
-            S.visual = await AI.ocr(S.image, p => stage(`Bước 1/3 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`));
-          } catch (oe) {
-            if (!S.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.');
-          }
-        }
+        const r = await readTask(S.image, ctl.signal, stage, 'Bước 1/3');
+        S.visual = r.visual; detected = r.task_type;
+        if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
       }
       stage(`Bước ${total - 1}/${total} · AI ghi bảng số liệu của đề rồi tạo gợi ý từng câu theo dàn ý…`);
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
@@ -1022,6 +1011,57 @@
   }
 
   /* ================= Dialogs ================= */
+  // OCR (khi không gửi được ảnh cho AI): giáo viên kiểm tra / bổ sung chữ và số liệu trước khi AI viết. null = huỷ
+  // missing: các đường / cột AI nhìn ảnh mà chưa đọc được số → cô bổ sung, hoặc giữ nguyên bản AI đọc
+  function reviewOcr(text, missing) {
+    return new Promise(resolve => {
+      const dlg = $('#dlg-ocr');
+      dlg.classList.toggle('ai-gap', !!missing);
+      if (missing) $('#ocr-missing').textContent = missing.join(', ');
+      $('#ocr-cancel').textContent = missing ? 'Giữ bản AI đọc' : 'Huỷ';
+      $('#ocr-text').value = text || '';
+      const done = v => { dlg.close(); resolve(v); };
+      $('#ocr-ok').onclick = () => {
+        const v = $('#ocr-text').value.trim();
+        if (!v) { toast('Hãy gõ ít nhất tên các đường / cột và số liệu chính.'); return; }
+        done(v);
+      };
+      $('#ocr-cancel').onclick = () => done(missing ? text : null);
+      dlg.oncancel = e => { e.preventDefault(); done(missing ? text : null); };
+      dlg.showModal();
+      $('#ocr-text').focus();
+    });
+  }
+  // Sau OCR: luôn cho giáo viên xem lại; huỷ → dừng như bấm “Dừng”
+  async function checkedOcr(visual) {
+    const text = await reviewOcr(visual && visual.text);
+    if (text == null) { const e = new Error('Đã huỷ.'); e.code = 'cancelled'; throw e; }
+    return { source: 'ocr', text, checked: true };
+  }
+  /* Đọc ảnh đề (dùng chung cho Luyện viết, Bài giảng, Chấm bài):
+   * AI nhìn ảnh → còn sót đường / cột trong chú thích thì cô bổ sung;
+   * chế độ xem không gửi được ảnh → OCR rồi cô kiểm tra. */
+  async function readTask(image, signal, stage, step) {
+    try {
+      stage(`${step} · AI đang nhìn ảnh đề: câu hỏi, chú thích, số liệu từng điểm…`);
+      const r = await AI.readImage({ image, signal });
+      if (r.missing.length) {
+        stage(`${step} · Chờ cô bổ sung số liệu AI chưa đọc được…`);
+        const text = await reviewOcr(r.visual.text, r.missing);
+        if (text !== r.visual.text) r.visual = { source: 'ai', text, checked: true };
+      }
+      return r;
+    } catch (e) {
+      if (e.code === 'cancelled') throw e;
+      if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
+      stage(`${step} · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…`);
+      let visual = null;
+      try { visual = await AI.ocr(image, p => stage(`${step} · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
+      catch (oe) { visual = null; }
+      stage(`${step} · Chờ cô kiểm tra chữ đọc được từ ảnh…`);
+      return { task_type: '', prompt_text: '', visual: await checkedOcr(visual) };
+    }
+  }
   function openKey() { $('#api-key').value = AI.getKey(); $('#dlg-key').showModal(); }
 
   /* ================= Events ================= */
@@ -1157,10 +1197,10 @@
 
   /* ================= Start ================= */
   bindPane();
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
   const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
-  GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, readTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
   show(S.view === 'loading' ? 'setup' : (WRITE_SPLIT.includes(S.view) && !S.analysis ? 'setup' : S.view));

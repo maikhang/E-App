@@ -113,18 +113,9 @@ window.GRADE = (function () {
     try {
       // Cùng một đề cho nhiều học sinh: ảnh đã đọc rồi thì không đọc lại
       if (R.image && !R.visual) {
-        try {
-          stage('Bước 1/2 · AI đang đọc ảnh đề: câu hỏi, số liệu, chú thích…');
-          const r = await AI.readImage({ image: R.image, signal: ctl.signal });
-          R.visual = r.visual;
-          if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
-        } catch (e) {
-          if (e.code === 'cancelled') throw e;
-          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
-          try { R.visual = await AI.ocr(R.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
-          catch (oe) { if (!R.prompt) throw new Error('Không đọc được ảnh đề (' + oe.message + '). Hãy dán chữ của đề rồi chấm lại.'); }
-        }
+        const r = await H.readTask(R.image, ctl.signal, stage, 'Bước 1/2');
+        R.visual = r.visual;
+        if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
       }
       stage(`Bước ${R.image ? 2 : 1}/${R.image ? 2 : 1} · AI đối chiếu số liệu, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn và sửa lỗi…`);
       R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, essay: R.essay, signal: ctl.signal });

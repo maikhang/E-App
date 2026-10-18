@@ -432,6 +432,23 @@
     </form>
   </dialog>
 
+  <!-- Ảnh không gửi được cho AI → kiểm tra / bổ sung chữ OCR trước khi AI viết -->
+  <dialog id="dlg-ocr" class="dlg wide" aria-labelledby="ocr-title">
+    <div class="dlg-body">
+      <h2 id="ocr-title"><span class="ocr-only">⚠️ Kiểm tra chữ đọc được từ ảnh</span><span class="gap-only">⚠️ Bổ sung số liệu AI chưa đọc được</span></h2>
+      <p class="gap-only">AI đã nhìn ảnh nhưng <b>chưa đọc được số liệu của: <span id="ocr-missing"></span></b>. Hãy nhìn ảnh đề và gõ thêm số liệu còn thiếu vào ô dưới (ví dụ <i>Streams: 2011 = 5%, 2018 = 42%</i>), rồi bấm “Tiếp tục”. Nếu AI đọc đủ rồi, bấm “Giữ bản AI đọc”.</p>
+      <p class="ocr-only">Chế độ xem này <b>không gửi được ảnh cho AI</b>, nên app đọc chữ trong ảnh bằng OCR. OCR <b>không đọc được số liệu trên đường / cột</b> và có thể đọc sót hoặc sai chữ (ví dụ thiếu tên một đường trong chú thích).</p>
+      <p class="ocr-ask ocr-only">Hãy sửa và <b>bổ sung tên các đường / cột và số liệu chính</b> vào ô dưới (nhìn ảnh đề), rồi bấm “Tiếp tục”. AI chỉ viết theo những gì có trong ô này.</p>
+      <label class="field"><span>Nội dung đọc được từ ảnh (sửa được)</span>
+        <textarea id="ocr-text" rows="10" placeholder="Ví dụ:&#10;Percentage of total music sales by method, 2011–2018&#10;Streams: 2011 = 5%, 2014 = 15%, 2016 = 28%, 2018 = 42%&#10;Downloads: 2011 = 35%, 2014 = 43%, 2018 = 30%&#10;CDs purchased: 2011 = 55%, 2014 = 36%, 2018 = 25%"></textarea>
+      </label>
+      <div class="row end">
+        <button class="btn ghost" type="button" id="ocr-cancel">Huỷ</button>
+        <button class="btn primary" type="button" id="ocr-ok">✅ Tiếp tục</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="dlg-img" class="dlg wide">
     <div class="dlg-body">
       <div class="row between"><h2>Ảnh đề bài gốc</h2><button class="btn sm" type="button" data-close>Đóng</button></div>

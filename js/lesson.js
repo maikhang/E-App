@@ -118,18 +118,9 @@ window.LESSON = (function () {
     try {
       let visual = null, detected = '';
       if (L.image) {
-        try {
-          stage('Bước 1/2 · AI đang đọc ảnh biểu đồ: tiêu đề, trục, đơn vị, số liệu…');
-          const r = await AI.readImage({ image: L.image, signal: ctl.signal });
-          visual = r.visual; detected = r.task_type;
-          if (!L.prompt && r.prompt_text) L.prompt = r.prompt_text;
-        } catch (e) {
-          if (e.code === 'cancelled') throw e;
-          if (!['images_unavailable', 'image_rejected'].includes(e.code)) throw e;
-          stage('Bước 1/2 · Chế độ xem này không gửi được ảnh cho AI — đang đọc chữ trong ảnh (OCR)…');
-          try { visual = await AI.ocr(L.image, p => stage(`Bước 1/2 · Đang đọc chữ trong ảnh (OCR) ${Math.round(p * 100)}%…`)); }
-          catch (oe) { if (!L.prompt) throw new Error('Không đọc được ảnh (' + oe.message + '). Hãy gõ đề vào ô văn bản rồi thử lại.'); }
-        }
+        const r = await H.readTask(L.image, ctl.signal, stage, 'Bước 1/2');
+        visual = r.visual; detected = r.task_type;
+        if (!L.prompt && r.prompt_text) L.prompt = r.prompt_text;
       }
       stage('Bước 2/2 · AI ghi bảng số liệu của biểu đồ rồi soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
       const type = L.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : L.type;
