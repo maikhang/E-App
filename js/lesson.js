@@ -134,7 +134,10 @@ window.LESSON = (function () {
       stage('Bước 2/2 · AI ghi bảng số liệu của biểu đồ rồi soạn bài giảng và bài tập theo dàn ý Ms. Gigi…');
       const type = L.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : L.type;
       const types = TYPE_ORDER.filter(t => L.types.includes(t));
+      const extrasP = AI.makeExtras({ text: L.prompt, type, visual, detected, signal: ctl.signal }).catch(() => null);
       const data = await AI.makeLesson({ text: L.prompt, type, band: L.band, visual, detected, types, count: L.count, signal: ctl.signal });
+      const ex = await extrasP;
+      if (ex) Object.assign(data, ex);
       if (!L.prompt && data.prompt_text) L.prompt = data.prompt_text;
       L.data = data; L.tab = 'lesson'; L.isDemo = false; ans = {};
       save();

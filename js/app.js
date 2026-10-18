@@ -226,11 +226,15 @@
       }
       stage(`Bước ${total - 1}/${total} · AI ghi bảng số liệu của đề rồi tạo gợi ý từng câu theo dàn ý…`);
       const type = S.type === 'auto' && detected ? ({ maps: 'maps', process: 'process' }[detected] || 'charts') : S.type;
+      // Từ vựng của đề (paraphrase + paraphrase chủ thể) chạy song song bằng lượt AI riêng — lỗi thì bỏ qua, tạo lại sau được
+      const extrasP = AI.makeExtras({ text: S.prompt, type, visual: S.visual, detected, signal: ctl.signal }).catch(() => null);
       const r = await AI.analyze({ text: S.prompt, type, band: S.band, visual: S.visual, detected, signal: ctl.signal });
       // Bước kiểm tra: đối chiếu từng câu gợi ý với đề (số liệu, ngữ pháp, khung) — lỗi thì giữ bản chưa kiểm tra
       stage(`Bước ${total}/${total} · Giám khảo AI đối chiếu từng câu gợi ý với số liệu của đề và sửa lỗi…`);
       try { await AI.verify({ text: S.prompt || r.prompt_text, band: S.band, visual: S.visual, analysis: r, signal: ctl.signal }); }
       catch (ve) { if (ve.code === 'cancelled') throw ve; r.verified = null; }
+      const ex = await extrasP;
+      if (ex) Object.assign(r, ex);
       S.analysis = r; S.step = 0; S.paras = ['', '', '', '']; S.picks = [[], [], [], []]; S.open = null; S.isDemo = false;
       clearSlotState();
       if (!S.prompt && r.prompt_text) S.prompt = r.prompt_text;
@@ -614,8 +618,27 @@
     return (subj.length ? ['🧑‍🏫 PARAPHRASE CHỦ THỂ', ...tipsPlain(a.subject_tips), ...subjectsPlain(subj), ''].join('\n') + '\n' : '') + head + '\n' + list.map(x => `• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''} → ` +
       x.alternatives.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '') + (v.note_vi ? ' – ' + v.note_vi : '')).join('; ')).join('\n');
   }
+  const typeOfOutline = o => ({ maps: 'maps', floorplan: 'maps', process_man: 'process', process_nat: 'process' }[o] || 'charts');
+  let extrasBusy = false;
+  async function makeExtrasNow() {
+    if (extrasBusy || !S.analysis) return;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { openKey(); return; }
+    extrasBusy = true; renderParaphrase();
+    try {
+      Object.assign(S.analysis, await AI.makeExtras({ text: S.prompt || S.analysis.prompt_text, type: typeOfOutline(outlineOf(S.analysis)), visual: S.visual }));
+      save(); toast('Đã tạo bảng paraphrase cho đề này.');
+    } catch (e) { toast('⚠️ ' + (e.message || 'AI chưa tạo được bảng paraphrase. Thử lại.'), 4000); }
+    finally { extrasBusy = false; renderParaphrase(); }
+  }
   function renderParaphrase() {
     const a = S.analysis || {}, subj = a.subject_pp || [];
+    if (S.analysis && !S.isDemo && !subj.length && !(a.paraphrase || []).length) {
+      const html = extrasBusy ? '<p class="muted small"><span class="spinner"></span> AI đang soạn bảng paraphrase cho đề này…</p>'
+        : '<p class="muted small">Chưa có bảng paraphrase cho đề này.</p><button type="button" class="btn sm" data-mkextras>🔁 Tạo bảng paraphrase cho đề này</button>';
+      for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = html; }
+      return;
+    }
     const html = (subj.length ? `<h4 class="pp-h">🧑‍🏫 Paraphrase chủ thể</h4><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”. Xem đủ kỹ thuật ở 📚 Dàn ý Ms. Gigi → Paraphrase chủ thể.</p>${tipsHtml(a.subject_tips)}${subjectsHtml(subj)}<h4 class="pp-h">🔁 Từ khác trong đề</h4>` : '') + paraphraseHtml(a.paraphrase);
     for (const id of ['#pp-side', '#pp-review']) { const el = $(id); if (el) el.innerHTML = html; }
   }
@@ -1015,6 +1038,7 @@
     // ----- Gợi ý từng câu -----
     if (t.dataset.goto != null) { S.open = null; S.step = +t.dataset.goto; save(); renderStep(); return; }
     if (t.dataset.sopt != null) { chooseOption(+t.dataset.slot, +t.dataset.sopt); return; }
+    if (t.dataset.mkextras != null) { makeExtrasNow(); return; }
     if (t.dataset.grade != null) { gradeOwn(+t.dataset.grade); return; }
     if (t.dataset.usefix != null) { useOwn(+t.dataset.usefix, 'fix'); return; }
     if (t.dataset.usebetter != null) { useOwn(+t.dataset.usebetter, 'better'); return; }

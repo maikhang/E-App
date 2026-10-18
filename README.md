@@ -73,6 +73,8 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - Gợi ý lại một câu, chấm câu tự viết và bài giảng/bài tập (kể cả đáp án) cũng dùng bảng số liệu này. Mức thấp nhất là “Band 6.5 · câu dễ hơn” (câu đơn giản hơn nhưng vẫn đúng số liệu và ngữ pháp).
 
 ## AI
+- Câu trả lời của AI được đọc chịu lỗi: app tìm đúng khối JSON có phần cần dùng (kể cả khi AI viết thêm chữ, nhiều khối, chú thích); mỗi lần “Bấm thử lại” đều hỏi AI mới (không phát lại câu trả lời cũ). Lỗi ghi rõ thiếu phần nào / bị cắt do quá dài.
+- Từ vựng của đề (paraphrase + paraphrase chủ thể) là một lượt AI riêng chạy song song với phần gợi ý câu, để câu trả lời chính ngắn gọn; nếu lượt này lỗi, thẻ 🔁 Paraphrase có nút “Tạo bảng paraphrase cho đề này”.
 - Dán ảnh đề (không cần gõ chữ) vẫn dùng được AI: bước 1 AI đọc ảnh thành chữ (câu đề + toàn bộ số liệu/nội dung hình, hiện ở mục “AI đọc được từ ảnh” để kiểm tra), bước 2 tạo gợi ý. Nếu chế độ xem không gửi được ảnh, app tự đọc chữ trong ảnh bằng OCR (Tesseract.js đóng gói trong `vendor/tesseract`).
 - Mở trong claude.ai: dùng tài khoản Claude của người xem, không cần API key.
 - Mở file `index.html` riêng: cần Anthropic API key (⚙️), chỉ lưu trong trình duyệt.

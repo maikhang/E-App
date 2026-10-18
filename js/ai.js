@@ -69,19 +69,6 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
       ],
       "skipped": [ { "f": 3, "why_vi": "why this frame of the paragraph is not used for this task" } ]   // frames not used at all (e.g. "(2 biểu đồ)" frames for a single chart)
     }
-  ],
-  "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS task: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
-    { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
-      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
-      "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
-  ],
-  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
-    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
-    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
-  },
-  "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
-    { "word": "commuters", "meaning_vi": "người đi làm hằng ngày",
-      "alternatives": [ { "phrase": "people travelling to work", "meaning_vi": "người di chuyển đi làm" }, { "phrase": "car users", "meaning_vi": "người dùng ô tô", "note_vi": "chỉ dùng khi nói riêng nhóm đi ô tô" } ] }
   ]
 }`;
 
@@ -99,15 +86,14 @@ ${ids.some(i => i === 'maps' || i === 'floorplan') ? '\n' + mapsVocab() : ''}`;
 4. Respect her grammar rules: subject nouns kept whole (no "trọc lốc" subjects); account for/make up/constitute only for percentages; "witness" never with Percentage/Number/Figure as subject; maps tense = past (after "By + past year" use the past perfect: "By 2010, the area had experienced…"; present perfect only if the second map is "now"/"present": "By the present day, the area has experienced…"); processes = present simple passive.
 5. Introduction = 1 sentence (paraphrase, never copy the prompt). Overview = 1-2 sentences, no figures, starts with "Overall,". Body paragraphs 3-5 sentences with accurate figures and comparisons.
 6. All guidance and meanings in Vietnamese; all options in English. Keep guide_vi short (1-2 sentences): which data this paragraph covers.
-7. "paraphrase": list the important words of THIS prompt (the chart verb, the subject, every category/group/place/item, people, units, time phrases) with 2-4 paraphrases each that keep the same meaning (like her synonym table: Sales → Revenue; Visitors → Arrivals; Population → The number of inhabitants). Give Vietnamese meaning for the word and every alternative; add note_vi when an alternative is narrower or only fits some sentences (e.g. "car users" only for commuters who drive).
+7. Write every sentence subject following "HOW TO PARAPHRASE SUBJECTS": keep the subject noun whole (no "trọc lốc" subjects), closest to the prompt in the Introduction / Overview, paraphrased with the techniques in the Body.
 8. HIGH BAND INSIDE HER OUTLINE: her frames decide the sentence pattern and the fixed words; the band comes from what fills the [brackets] and from accuracy. Meet the IELTS descriptors at the target level (never below Band 7 for accuracy and Task Achievement):
    - Task Achievement: the Overview states the key_features (main trends / differences / stages) with no figures; body sentences select and group the key features and support them with accurate data and comparisons; no irrelevant detail, no data dumping.
    - Coherence & Cohesion: clear progression in her frame order; referencing (the former / the latter, this figure, the respective figures, respectively) instead of repeating the same noun; no mechanical linking.
    - Lexical Resource: precise words from her lists and the paraphrase list; do not repeat a key verb or noun within a paragraph when a correct synonym exists; accurate collocations (rose sharply, a significant increase in, accounted for the largest proportion of).
    - Grammatical Range & Accuracy: her frames already mix simple and complex sentences (while / whereas / which / with + noun / before + V-ing / respectively); keep articles, prepositions, agreement and tense error-free.
    - Length: with one option chosen for every sentence, the essay is 170-200 words.
-9. "subject_pp" and "subject_tips" follow "HOW TO PARAPHRASE SUBJECTS": tag every way with its technique id; say clearly whether "the percentage of" can be dropped in THIS task (with its own sentences); keep the subject noun whole (no "trọc lốc" subjects), first way = closest to the prompt for the Introduction / Overview, later ways for the Body; only real synonyms of the same meaning; use the exact categories / places / stages of THIS task. The options you write must use these subject forms.
-10. Before replying, re-read every option against your data sheet and fix any wrong figure, unit, year, place, comparison or grammar slip.`;
+9. Before replying, re-read every option against your data sheet and fix any wrong figure, unit, year, place, comparison or grammar slip.`;
 
   // Đề gửi cho AI luôn là chữ: câu đề + nội dung hình đã đọc từ ảnh (bởi AI hoặc OCR)
   function taskBlock(text, visual) {
@@ -259,7 +245,7 @@ Reply with ONLY one JSON object:
     };
   }
   async function checkSentence(args) {
-    return normCheck(await ask(buildCheckPrompt(args), null, args.signal, 'low'), args.sentence);
+    return normCheck(await ask(buildCheckPrompt(args), null, args.signal, 'low', 'verdict'), args.sentence);
   }
 
   /* ---------- Backends ---------- */
@@ -301,24 +287,73 @@ Reply with ONLY one JSON object:
     cancelled: 'Đã dừng.',
   };
 
-  function parseJson(text) {
-    const t = String(text || '').replace(/```json|```/g, '').trim();
-    const a = t.indexOf('{'), b = t.lastIndexOf('}');
-    return JSON.parse(a >= 0 ? t.slice(a, b + 1) : t);
+  /* Đọc JSON trong câu trả lời của AI một cách chịu lỗi: lấy MỌI khối {…}/[…] cân bằng trong câu trả lời
+   * (kể cả khi AI viết thêm chữ, nhiều khối, chú thích // hay dấu phẩy thừa) và chọn khối có trường cần dùng. */
+  function cleanJson(t) {
+    let out = '', inStr = false, esc = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (inStr) { out += c; if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') { inStr = true; out += c; continue; }
+      if (c === '/' && t[i + 1] === '/') { while (i < t.length && t[i] !== '\n') i++; out += '\n'; continue; }
+      out += c;
+    }
+    return out.replace(/,(\s*[}\]])/g, '$1');
+  }
+  function jsonBlocks(t) {
+    const out = [];
+    let depth = 0, start = -1, inStr = false, esc = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
+      if (c === '"') { if (depth > 0) inStr = true; continue; }
+      if (c === '{' || c === '[') { if (depth === 0) start = i; depth++; }
+      else if ((c === '}' || c === ']') && depth > 0 && --depth === 0) { out.push(t.slice(start, i + 1)); start = -1; }
+    }
+    return out;
+  }
+  function extractJson(text, want) {
+    const t = String(text || '');
+    const tryParse = x => { try { return JSON.parse(x); } catch (e) { try { return JSON.parse(cleanJson(x)); } catch (e2) { return undefined; } } };
+    const found = [tryParse(t.trim()), ...jsonBlocks(t).map(tryParse)].filter(v => v !== undefined && v !== null);
+    const has = v => v && typeof v === 'object' && !Array.isArray(v) && want in v;
+    if (want) {
+      for (const v of found) {
+        if (has(v)) return v;
+        if (v && typeof v === 'object') for (const k in v) if (has(v[k])) return v[k];   // bọc ngoài: {"result": {...}}
+      }
+      return undefined;
+    }
+    return found.sort((a, b) => JSON.stringify(b).length - JSON.stringify(a).length)[0];
+  }
+  const ONE_JSON = '\n\nOUTPUT FORMAT: reply with exactly ONE JSON object and nothing else — no text before or after it, no Markdown fences, no comments, no second object. Every field (including the data sheet) goes INSIDE that one object.';
+  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase' };
+  function badReply(text, truncated, want) {
+    const err = new Error(truncated ? 'Kết quả AI quá dài nên bị cắt giữa chừng. Bấm thử lại.' : 'AI trả lời chưa đúng định dạng' + (want ? ` (thiếu ${WANT_VI[want] || want})` : '') + '. Bấm thử lại.');
+    err.code = truncated ? 'truncated' : 'bad_format';
+    err.raw = String(text || '').slice(0, 2000);
+    return err;
   }
 
-  async function ask(prompt, image, signal, effort = 'medium') {
+  // want: trường bắt buộc có trong JSON trả về (vd. "steps") để chọn đúng khối và báo lỗi rõ ràng
+  async function ask(prompt, image, signal, effort = 'medium', want = '') {
+    prompt += ONE_JSON;
     const sample = await getSample();
     if (sample) {
+      let res;
       try {
-        const opts = { modelTier: 'default', signal };
+        // cache: false — “Bấm thử lại” phải hỏi AI lần nữa, không phát lại câu trả lời cũ
+        const opts = { modelTier: 'default', signal, cache: false };
         if (image) opts.images = dataUrlToBlob(image.dataUrl);
-        return await sample.json(prompt, opts);
+        res = await sample(prompt, opts);
       } catch (e) {
         const err = new Error(SAMPLE_ERRORS[e && e.code] || (e && e.message) || 'AI không trả lời được. Thử lại.');
         err.code = e && e.code;
         throw err;
       }
+      const v = extractJson(res && res.text, want);
+      if (v === undefined) throw badReply(res && res.text, res && res.truncated, want);
+      return v;
     }
     const apiKey = getKey();
     if (!apiKey) { const e = new Error('Cần Anthropic API key để dùng AI khi mở file ngoài claude.ai. Bấm ⚙️ để nhập.'); e.code = 'no_key'; throw e; }
@@ -339,10 +374,11 @@ Reply with ONLY one JSON object:
     }, { signal });
     const msg = await stream.finalMessage();
     if (msg.stop_reason === 'refusal') throw new Error('AI từ chối xử lý đề này.');
-    if (msg.stop_reason === 'max_tokens') throw new Error('Kết quả AI bị cắt ngắn. Thử lại.');
     const block = msg.content.find(b => b.type === 'text');
     if (!block) throw new Error('AI không trả về kết quả.');
-    return parseJson(block.text);
+    const v = extractJson(block.text, want);
+    if (v === undefined) throw badReply(block.text, msg.stop_reason === 'max_tokens', want);
+    return v;
   }
 
   // Một gợi ý: chuỗi, hoặc danh sách câu [{f, text}] → { text, parts }
@@ -404,7 +440,12 @@ Reply with ONLY one JSON object:
   }
 
   function validate(r) {
-    if (!r || !Array.isArray(r.steps) || r.steps.length < 4) throw new Error('AI trả về dữ liệu không đầy đủ. Bấm thử lại.');
+    if (r && r.steps && !Array.isArray(r.steps) && typeof r.steps === 'object') r.steps = Object.values(r.steps);   // {"Introduction": {...}, ...}
+    if (!r || !Array.isArray(r.steps) || r.steps.length < 4) {
+      const err = new Error(`AI trả về chưa đủ 4 đoạn (${Array.isArray(r && r.steps) ? r.steps.length : 0}/4). Bấm thử lại.`);
+      err.code = 'missing_steps';
+      throw err;
+    }
     r.steps = r.steps.slice(0, 4).map(s => ({
       title: String(s.title || ''), guide_vi: String(s.guide_vi || ''),
       vocab: Array.isArray(s.vocab) ? s.vocab.filter(v => v && v.phrase) : [],
@@ -433,14 +474,14 @@ Reply with ONLY one JSON object:
   }
   const valuesText = vals => vals.map(x => `${x.series}${x.unit ? ' (' + x.unit + ')' : ''}: ${x.points.map(p => `${p.x}: ${p.approx ? 'about ' : ''}${p.v}`).join('; ')}`).join('\n');
   async function readImage({ image, signal }) {
-    const r = await ask(READ_PROMPT, image, signal, 'high');
+    const r = await ask(READ_PROMPT, image, signal, 'high', 'task_type');
     let text = String((r && r.visual_data) || '').trim();
     if (!text && !(r && r.prompt_text)) throw new Error('AI không đọc được nội dung ảnh. Thử ảnh rõ hơn hoặc gõ đề vào ô văn bản.');
     // Biểu đồ / bảng mà chưa có số → đọc riêng số liệu từng điểm thêm một lần
     let values = normValues(r.values);
     const isChart = /^(line|bar|pie|table|mixed)$/.test(r.task_type || '');
     if (isChart && values.reduce((n, x) => n + x.points.length, 0) < 3) {
-      try { values = normValues((await ask(VALUES_PROMPT, image, signal, 'high')).values); }
+      try { values = normValues((await ask(VALUES_PROMPT, image, signal, 'high', 'values')).values); }
       catch (e) { if (e.code === 'cancelled') throw e; }
     }
     if (values.length) text += '\n\nDATA VALUES read from the image ("about" = estimated from the gridlines):\n' + valuesText(values);
@@ -500,7 +541,7 @@ Reply with ONLY one JSON object:
 
   /* Bước 2: tạo gợi ý 4 đoạn từ chữ */
   async function analyze({ text, type, band, visual, detected, signal }) {
-    const r = validate(await ask(buildPrompt({ text, type, band, visual, detected }), null, signal));
+    const r = validate(await ask(buildPrompt({ text, type, band, visual, detected }), null, signal, 'medium', 'steps'));
     r.outline = G.outlineFor(r.task_type, r.outline);
     return r;
   }
@@ -543,7 +584,7 @@ Reply with ONLY one JSON object:
 }`;
   }
   async function verify({ text, band, visual, analysis, signal }) {
-    const r = await ask(buildVerifyPrompt({ text, band, visual, analysis }), null, signal, 'medium');
+    const r = await ask(buildVerifyPrompt({ text, band, visual, analysis }), null, signal, 'medium', 'fixes');
     let fixed = 0;
     for (const f of (r && Array.isArray(r.fixes) ? r.fixes : [])) {
       const [p, k, j] = String(f && f.id || '').split('.').map(n => +n - 1);
@@ -591,7 +632,7 @@ Reply with ONLY one JSON object:
 { "items": [ { "id": "reduced_rel", "name_vi": "only for other", "name_en": "only for other", "formula": "only for other", "use_vi": "...", "examples": [ { "s": "3.2", "part": "exact words" } ], "practice": { "q_vi": "...", "from": "...", "to": "..." } } ] }`;
   }
   async function analyzeStructures({ sentences, band, signal }) {
-    const r = await ask(buildStructPrompt({ sentences, band }), null, signal, 'low');
+    const r = await ask(buildStructPrompt({ sentences, band }), null, signal, 'low', 'items');
     const S = window.STRUCTS, byKey = {};
     sentences.forEach(x => { byKey[`${x.p + 1}.${x.n + 1}`] = x; });
     const items = (r && Array.isArray(r.items) ? r.items : []).map(it => {
@@ -617,7 +658,7 @@ Reply with ONLY one JSON object:
   }
 
   async function regenSentence({ text, band, visual, analysis, stepIndex, slotIndex, picks, signal }) {
-    const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal));
+    const r = normSlot(await ask(buildSentencePrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks }), null, signal, 'medium', 'options'));
     if (!r) throw new Error('AI chưa tạo được gợi ý mới. Thử lại.');
     return r;
   }
@@ -697,7 +738,47 @@ Reply with ONLY one JSON object:
     };
   }
   async function gradeEssay({ text, visual, essay, signal }) {
-    return normGrade(await ask(buildGradePrompt({ text, visual, essay }), null, signal, 'medium'), essay);
+    return normGrade(await ask(buildGradePrompt({ text, visual, essay }), null, signal, 'medium', 'bands'), essay);
+  }
+
+  /* ---------- Từ vựng của đề (lượt AI riêng, chạy song song): paraphrase + paraphrase chủ thể ---------- */
+  const EXTRAS_SHAPE = `{
+  "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS task: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
+    { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
+      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
+      "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
+  ],
+  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
+    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
+    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
+  },
+  "paraphrase": [   // 8-14 entries: the key words of THIS prompt and how to paraphrase them, for students to learn
+    { "word": "commuters", "meaning_vi": "người đi làm hằng ngày",
+      "alternatives": [ { "phrase": "people travelling to work", "meaning_vi": "người di chuyển đi làm" }, { "phrase": "car users", "meaning_vi": "người dùng ô tô", "note_vi": "chỉ dùng khi nói riêng nhóm đi ô tô" } ] }
+  ]
+}`;
+  function buildExtrasPrompt({ text, type, visual, detected }) {
+    const ids = OUTLINE_CANDIDATES[type] || OUTLINE_CANDIDATES.auto;
+    return `You are an IELTS Writing Task 1 teacher helping Ms. Gigi, a Vietnamese teacher. For the task below, write the VOCABULARY her students need: how to paraphrase the key words of the prompt and how to paraphrase every subject their sentences will start with.
+Task type selected by the teacher: ${TYPE_HINT[type] || TYPE_HINT.auto}${detected ? ' (image reader detected: ' + detected + ')' : ''}
+
+${G.generalBlock()}
+
+${G.subjectBlock(ids)}
+
+${taskBlock(text, visual)}
+Rules:
+- Use the EXACT subjects, categories, places, stages and units of THIS task; only real synonyms with the same meaning.
+- "paraphrase": the important words of THIS prompt (the chart verb, the subject, every category / group / place / item, people, units, time phrases) with 2-4 paraphrases each (like her synonym table). Vietnamese meaning for the word and every alternative; note_vi when an alternative is narrower or only fits some sentences.
+- "subject_pp" and "subject_tips" follow "HOW TO PARAPHRASE SUBJECTS": tag every way with its technique id; say clearly whether "the percentage of" can be dropped in THIS task, with its own sentences; keep the subject noun whole (no "trọc lốc" subjects); first way closest to the prompt.
+- All explanations in Vietnamese, all English phrases natural and accurate.
+
+Reply with ONLY one JSON object in this shape:
+${EXTRAS_SHAPE}`;
+  }
+  async function makeExtras({ text, type, visual, detected, signal }) {
+    const r = await ask(buildExtrasPrompt({ text, type, visual, detected }), null, signal, 'low', 'paraphrase');
+    return { paraphrase: normParaphrase(r.paraphrase), subject_pp: normSubjects(r.subject_pp), subject_tips: normTips(r.subject_tips) };
   }
 
   /* ---------- Bài giảng & bài tập làm quen biểu đồ ---------- */
@@ -724,16 +805,6 @@ Reply with ONLY one JSON object:
     "vocab": [ { "phrase": "...", "meaning_vi": "...", "example": "example sentence about THIS visual" } ],   // 8-12 items
     "mistakes_vi": ["3-4 common mistakes on this visual and the correct form"]
   },
-  "subject_pp": [   // HOW TO PARAPHRASE THE SUBJECTS of THIS visual: first the main subject of the prompt, then every subject a sentence will start with (each series / category / country / age group / place / feature / material / stage) — 4-8 entries
-    { "subject": "the percentage of commuters who travelled to work by car", "meaning_vi": "tỷ lệ người đi làm bằng ô tô",
-      "ways": [ { "text": "the proportion of car commuters", "tech": "ratio", "how_vi": "percentage → proportion; people who commute by car → car commuters", "where_vi": "Body" } ],   // 2-4 grammatical ways with the SAME meaning, closest to the prompt first; "tech" = one technique id from the subject guide
-      "avoid": [ { "text": "Car increased", "why_vi": "trọc lốc — thiếu danh từ chủ thể" } ] }   // 0-2 typical wrong subjects students write
-  ],
-  "subject_tips": {   // answers for THIS task, in Vietnamese, with English examples from THIS task
-    "drop_vi": "Can 'the percentage of / the proportion of / the number of' be dropped in THIS task? When yes / when no, with 1-2 example sentences using its real subjects and figures",
-    "forms": [ { "word": "commuting", "family": "commuters (người) · commute (động từ) · car commuting / car use (danh từ ghép)", "note_vi": "which form fits which sentence in THIS task, and which change would distort the meaning" } ]   // 1-4 key words of the subject
-  },
-  "paraphrase": [ { "word": "...", "meaning_vi": "...", "alternatives": [ { "phrase": "...", "meaning_vi": "...", "note_vi": "" } ] } ],   // 8-12 key words of the prompt
   "exercises": [   // one object per requested type, in the order requested
     { "type": "mcq", "title_vi": "...", "instruction_vi": "...", "items": [ { "q": "question in English", "options": ["...", "...", "..."], "answer": 0, "explain_vi": "..." } ] },
     { "type": "tf", "title_vi": "...", "instruction_vi": "...", "items": [ { "statement": "English statement about the visual", "answer": "T" | "F" | "NG", "explain_vi": "..." } ] },
@@ -750,7 +821,6 @@ Build a short LESSON and small scaffolded EXERCISES that help her students get f
 
 Rules:
 - DATA ACCURACY first: write the "data" sheet from the task, then use only those facts. Exact subjects, categories, places, years, units and figures; never invent data; approximate with "about" only when a value is read between gridlines; comparisons and calculations must be true. Every exercise answer (mcq, tf, gap, order, write model) must be correct according to the data — re-check each answer key before replying.
-- "subject_pp": show how to paraphrase the main subject and every category / place / stage subject of THIS visual, following "HOW TO PARAPHRASE SUBJECTS" (no "trọc lốc" subjects; first way closest to the prompt).
 - Model sentences are high-band (Band 7-8+) yet keep her frames: accurate data with comparisons, precise collocations, no repeated words within a paragraph, error-free grammar.
 - Follow the teacher's outline below. Every model sentence and every exercise sentence must be written from her numbered frames (F1, F2...) for the right paragraph, keeping the frames' fixed words; tag model sentences with the frame number.
 - Respect her grammar rules (account for only with %, no bare "trọc lốc" subjects, "witness" not with Percentage/Number/Figure, maps = past tense, process = present simple passive).
@@ -801,9 +871,9 @@ ${LESSON_SHAPE}`;
     return r;
   }
   async function makeLesson({ text, type, band, visual, detected, types, count, signal }) {
-    const r = await ask(buildLessonPrompt({ text, type, band, visual, detected, types, count }), null, signal);
+    const r = await ask(buildLessonPrompt({ text, type, band, visual, detected, types, count }), null, signal, 'medium', 'exercises');
     return validateLesson(r, types);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, makeExtras, extractJson, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
