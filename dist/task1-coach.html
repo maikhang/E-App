@@ -593,6 +593,12 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 #dlg-ocr .gap-only { display: none; }
 #dlg-ocr.ai-gap .gap-only { display: revert; }
 #dlg-ocr.ai-gap .ocr-only { display: none; }
+.save-btn.saved { border-color: var(--accent); color: var(--accent); }
+.saved-list .gr-hist-open { flex-direction: column; align-items: flex-start; gap: 2px; }
+.saved-list .gr-hist-open b { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.saved-list .cur { font-size: 12px; font-weight: 600; color: var(--accent); }
+.saved-list .del-ask { color: #b42318; border-color: #b42318; }
+.saved-empty { padding: 12px; border: 1px dashed var(--border); border-radius: 12px; }
 </style>
 <header class="topbar">
     <div class="brand">
@@ -609,6 +615,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
     </nav>
     <div class="top-actions">
       <button class="btn ghost" id="btn-vocab" type="button">📚 Dàn ý Ms. Gigi</button>
+      <button class="btn ghost" id="btn-saved" type="button">📂 Bài đã lưu</button>
       <button class="btn ghost" id="btn-new" type="button">＋ Nhập đề khác</button>
       <button class="btn ghost" id="btn-key" type="button" aria-label="Cài đặt API key">⚙️</button>
     </div>
@@ -734,6 +741,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
               </div>
             </div>
             <div class="toolbar">
+              <button type="button" class="btn sm save-btn" data-save="write">💾 Lưu bài</button>
               <button type="button" class="btn sm toggle" id="btn-blur" aria-pressed="false">🙈 Che mờ gợi ý</button>
               <button type="button" class="btn sm toggle" id="btn-frames" aria-pressed="false">📐 Xem khung cả đoạn</button>
               <span class="legend-mini"><b class="fx">chữ xanh</b> = chữ giữ nguyên của khung · <mark>nền vàng</mark> = từ vựng của đề</span>
@@ -772,6 +780,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
               <div class="row">
                 <button type="button" class="btn primary" id="btn-copy-lesson">📚 Sao chép bài học hoàn chỉnh</button>
                 <button type="button" class="btn" id="btn-copy">📋 Chỉ sao chép bài viết</button>
+                <button type="button" class="btn save-btn" data-save="write">💾 Lưu bài</button>
                 <button type="button" class="btn" id="btn-new-2">＋ Nhập đề khác</button>
               </div>
             </div>
@@ -881,6 +890,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             <div class="row between">
               <div><span class="kicker">Bài giảng &amp; bài tập</span><p class="muted small" id="lr-meta"></p></div>
               <div class="row">
+                <button type="button" class="btn sm save-btn" data-save="lesson">💾 Lưu bài giảng</button>
                 <button type="button" class="btn sm" id="lr-copy-lesson">📋 Sao chép bài giảng</button>
                 <button type="button" class="btn sm" id="lr-copy-sheet">📋 Phiếu bài tập</button>
                 <button type="button" class="btn sm" id="lr-copy-key">🔑 Đáp án</button>
@@ -1028,6 +1038,15 @@ td:first-child { font-weight: 600; white-space: nowrap; }
         <button class="btn ghost" type="button" id="ocr-cancel">Huỷ</button>
         <button class="btn primary" type="button" id="ocr-ok">✅ Tiếp tục</button>
       </div>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-saved" class="dlg" aria-labelledby="saved-title">
+    <div class="dlg-body">
+      <div class="row between"><h2 id="saved-title">📂 Bài đã lưu</h2><button class="btn sm" type="button" data-close>Đóng</button></div>
+      <p class="note err" id="saved-full" hidden></p>
+      <p class="muted small" id="saved-where"></p>
+      <ul class="gr-hist saved-list" id="saved-list"></ul>
     </div>
   </dialog>
 
@@ -2837,6 +2856,172 @@ ${LESSON_SHAPE}`;
 })();
 </script>
   <script>
+/* 💾 Bài đã lưu — tối đa 10 bài cho mỗi mục (Luyện viết, Bài giảng).
+ * Trên claude.ai: lưu vào kho dữ liệu riêng của tài khoản (db, thư mục data/users/<id> — chỉ người đó đọc được),
+ *   nên mở trên máy khác vẫn thấy. Mỗi tài liệu tối đa 256 KiB → bài và ảnh được chia thành nhiều phần.
+ * Mở ngoài claude.ai, hoặc tài khoản không ghi được vào kho đó: lưu trong trình duyệt này (IndexedDB). */
+window.SAVED = (function () {
+  const MAX = 10;
+  const STATE_PART = 60000;    // ký tự / phần (chữ tiếng Việt tới 3 byte + thoát ký tự JSON — vẫn dưới 256 KiB)
+  const IMAGE_PART = 200000;   // ảnh base64 chỉ có ký tự ASCII
+  const DENIED = ['not_granted', 'invalid_argument', 'capability_disabled', 'capability_removed', 'revoked', 'not_declared'];
+
+  const newId = () => 's-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const parts = (str, n) => { const out = []; for (let i = 0; i < str.length; i += n) out.push(str.slice(i, i + n)); return out.length ? out : ['']; };
+  const imageKey = img => (img && img.dataUrl ? img.dataUrl.length + ':' + img.dataUrl.slice(-48) : '');
+  const imageOf = (dataUrl, mediaType) => (dataUrl ? { dataUrl, mediaType: mediaType || (dataUrl.match(/data:([^;]+)/) || [])[1] || 'image/png', base64: dataUrl.split(',')[1] } : null);
+  const byNewest = (a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt));
+  const metaOf = (id, m) => ({ id, kind: m.kind, title: m.title, sub: m.sub, savedAt: m.savedAt, updatedAt: m.updatedAt });
+  function err(code, message) { const e = new Error(message); e.code = code; return e; }
+
+  /* ---------- Kho của tài khoản Claude ---------- */
+  function remote(db, uid) {
+    const col = db.collection('data/users/' + uid);
+    async function list(kind) {
+      const snap = await col.where('kind', '==', kind).get();
+      return snap.docs.map(d => metaOf(d.id, d.data())).sort(byNewest);
+    }
+    async function writeParts(id, tag, chunks, oldCount) {
+      for (let i = 0; i < chunks.length; i++) await col.doc(`${id}.${tag}${i}`).set({ d: chunks[i] });
+      for (let i = chunks.length; i < (oldCount || 0); i++) await col.doc(`${id}.${tag}${i}`).delete();
+    }
+    const readParts = async (id, tag, n) => (await Promise.all(Array.from({ length: n || 0 }, (_, i) => col.doc(`${id}.${tag}${i}`).get())))
+      .map(s => (s.exists ? String(s.data().d || '') : '')).join('');
+    async function put(id, kind, rec) {
+      const old = (await col.doc(id).get());
+      const prev = old.exists ? old.data() : null;
+      const stateChunks = parts(JSON.stringify(rec.state), STATE_PART);
+      await writeParts(id, 's', stateChunks, prev && prev.sParts);
+      const iKey = imageKey(rec.image);
+      let iParts = prev ? prev.iParts || 0 : 0;
+      if (!prev || prev.iKey !== iKey) {
+        const chunks = rec.image ? parts(rec.image.dataUrl, IMAGE_PART) : [];
+        await writeParts(id, 'i', chunks, iParts);
+        iParts = chunks.length;
+      }
+      const now = new Date().toISOString();
+      await col.doc(id).set({ kind, title: rec.title, sub: rec.sub, savedAt: prev ? prev.savedAt : now, updatedAt: now,
+        sParts: stateChunks.length, iParts, iKey, mediaType: rec.image ? rec.image.mediaType : '' });
+    }
+    async function load(id) {
+      const s = await col.doc(id).get();
+      if (!s.exists) throw err('missing', 'Không tìm thấy bài này (có thể đã bị xoá).');
+      const m = s.data();
+      const [state, dataUrl] = await Promise.all([readParts(id, 's', m.sParts), readParts(id, 'i', m.iParts)]);
+      return { meta: metaOf(id, m), state: JSON.parse(state), image: imageOf(dataUrl, m.mediaType) };
+    }
+    async function remove(id) {
+      const s = await col.doc(id).get();
+      const m = s.exists ? s.data() : {};
+      await writeParts(id, 's', [], m.sParts);
+      await writeParts(id, 'i', [], m.iParts);
+      await col.doc(id).delete();
+    }
+    async function exists(id) { return (await col.doc(id).get()).exists; }
+    return { where: 'account', list, put, load, remove, exists };
+  }
+
+  /* ---------- Trình duyệt này (IndexedDB) ---------- */
+  function local() {
+    let dbp = null;
+    const open = () => dbp || (dbp = new Promise((resolve, reject) => {
+      const req = indexedDB.open('e-app-saved', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('items', { keyPath: 'id' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => { dbp = null; reject(err('no_storage', 'Trình duyệt này không cho lưu bài (bộ nhớ IndexedDB bị chặn).')); };
+    }));
+    const run = (mode, fn) => open().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction('items', mode), st = tx.objectStore('items');
+      const req = fn(st);
+      tx.oncomplete = () => resolve(req && req.result);
+      tx.onerror = () => reject(err(tx.error && tx.error.name === 'QuotaExceededError' ? 'quota_exceeded' : 'no_storage', 'Không lưu được vào trình duyệt này.'));
+    }));
+    async function list(kind) { return ((await run('readonly', st => st.getAll())) || []).filter(r => r.kind === kind).map(r => metaOf(r.id, r)).sort(byNewest); }
+    async function put(id, kind, rec) {
+      const prev = await run('readonly', st => st.get(id));
+      const now = new Date().toISOString();
+      await run('readwrite', st => st.put({ id, kind, title: rec.title, sub: rec.sub, savedAt: prev ? prev.savedAt : now, updatedAt: now, state: rec.state, image: rec.image || null }));
+    }
+    async function load(id) {
+      const r = await run('readonly', st => st.get(id));
+      if (!r) throw err('missing', 'Không tìm thấy bài này (có thể đã bị xoá).');
+      return { meta: metaOf(r.id, r), state: r.state, image: r.image };
+    }
+    const remove = id => run('readwrite', st => st.delete(id));
+    async function exists(id) { return !!(await run('readonly', st => st.get(id))); }
+    return { where: 'browser', list, put, load, remove, exists };
+  }
+
+  /* ---------- Chọn nơi lưu ----------
+   * Có kho tài khoản thì lưu bài mới vào đó; bài từng lưu trong trình duyệt (khi kho tài khoản từ chối) vẫn hiện
+   * trong danh sách và được cập nhật / mở / xoá ngay tại trình duyệt. */
+  let LOCAL = null;
+  const localStore = () => LOCAL || (LOCAL = local());
+  let main = null;
+  function backend() {
+    return main || (main = (async () => {
+      try {
+        if (window.claude && typeof window.claude.use === 'function') {
+          const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+          const uid = db && user ? await user.id() : null;
+          if (uid) return remote(db, uid);
+        }
+      } catch (e) { /* dùng trình duyệt */ }
+      return localStore();
+    })());
+  }
+  // Kho tài khoản từ chối (chưa cho phép, chỉ có quyền xem…) → từ giờ lưu trong trình duyệt
+  async function guard(store, fn) {
+    try { return await fn(store); }
+    catch (e) {
+      if (store.where === 'account' && DENIED.includes(e && e.code)) { main = Promise.resolve(localStore()); return fn(localStore()); }
+      if (store.where === 'account' && e && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 800 + Math.random() * 800)); return fn(store); }
+      if (e && e.code === 'quota_exceeded') throw err('quota_exceeded', 'Kho lưu đã đầy. Xoá bớt bài đã lưu rồi thử lại.');
+      throw e;
+    }
+  }
+  async function list(kind) {
+    const m = await backend();
+    const items = (await guard(m, b => b.list(kind))).map(x => Object.assign(x, { where: m.where }));
+    const m2 = await backend();
+    if (m2.where === 'account') {
+      try { items.push(...(await localStore().list(kind)).map(x => Object.assign(x, { where: 'browser' }))); } catch (e) { /* trình duyệt chặn bộ nhớ */ }
+    }
+    return items.sort(byNewest);
+  }
+  // Bài nằm ở kho nào (null: không còn)
+  async function storeOf(id) {
+    const m = await backend();
+    if (await guard(m, b => b.exists(id))) return (await backend());
+    if (m.where === 'account') { try { if (await localStore().exists(id)) return localStore(); } catch (e) { /* bỏ qua */ } }
+    return null;
+  }
+  async function located(id) {
+    const st = await storeOf(id);
+    if (!st) throw err('missing', 'Không tìm thấy bài này (có thể đã bị xoá).');
+    return st;
+  }
+
+  return {
+    MAX,
+    where: async () => { try { return (await backend()).where; } catch (e) { return 'browser'; } },
+    list,
+    load: async id => { const st = await located(id); return guard(st, b => b.load(id)); },
+    remove: async id => { const st = await storeOf(id); if (st) await guard(st, b => b.remove(id)); },
+    /* Lưu bài: id rỗng → bài mới (báo lỗi “full” nếu đã đủ 10 bài); có id → cập nhật bài đó. Trả về id. */
+    save: async (kind, id, rec) => {
+      let st = id ? await storeOf(id) : null;
+      if (!st) {
+        if ((await list(kind)).length >= MAX) throw err('full', `Đã lưu đủ ${MAX} bài. Xoá bớt một bài để lưu bài mới.`);
+        st = await backend(); id = id || newId();
+      }
+      await guard(st, b => b.put(id, kind, rec));
+      return id;
+    },
+  };
+})();
+</script>
+  <script>
 /* 🎓 Bài giảng & bài tập làm quen biểu đồ (theo dàn ý Ms. Gigi).
  * Giáo viên dán ảnh biểu đồ → AI soạn bài giảng (đọc biểu đồ, đặc điểm chính, dàn ý + câu mẫu,
  * từ vựng, paraphrase, lỗi hay gặp) và bài tập nhỏ từ dễ đến khó. Học sinh làm ngay trên app;
@@ -2854,7 +3039,7 @@ window.LESSON = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { image: null, prompt: '', type: 'auto', band: '7.0', types: TYPE_ORDER.slice(), count: 4, data: null, tab: 'lesson', isDemo: false };
+    return { image: null, prompt: '', type: 'auto', band: '7.0', types: TYPE_ORDER.slice(), count: 4, data: null, tab: 'lesson', isDemo: false, savedId: null };
   }
   let L = load();
   let ans = {};           // trạng thái làm bài (không lưu)
@@ -2871,7 +3056,27 @@ window.LESSON = (function () {
     saveT = null;
     try { localStorage.setItem(STORE, JSON.stringify(L)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, L, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+    if (L.savedId) H.autoSave('lesson');   // bài đã lưu: tự cập nhật bản lưu
   }
+
+  /* ================= Bài đã lưu ================= */
+  // Bản để lưu (không có ảnh — ảnh lưu riêng); null khi chưa có bài giảng hoặc là bài mẫu
+  function snapshot() {
+    if (!L.data || L.isDemo) return null;
+    const d = L.data, o = G.OUTLINES[G.outlineFor(d.task_type, d.outline)];
+    const title = String(L.prompt || d.prompt_text || d.topic_vi || 'Bài giảng').replace(/\s+/g, ' ').trim();
+    return { title: title.length > 140 ? title.slice(0, 140) + '…' : title, sub: `${o.short} · Band ${L.band} · ${(d.exercises || []).length} bài tập`,
+      state: Object.assign({}, L, { image: null, savedId: null }), image: L.image };
+  }
+  function openSaved(state, image, id) {
+    if (busy) { toast('AI đang soạn bài giảng — đợi xong rồi mở bài đã lưu nhé.'); return false; }
+    if (L.data && !L.isDemo && L.savedId !== id) prev = L;
+    L = Object.assign(blank(), state, { image, savedId: id, isDemo: false });
+    ans = {}; save(); render(); window.scrollTo({ top: 0 });
+    return true;
+  }
+  const savedId = () => L.savedId;
+  function setSavedId(id) { L.savedId = id; save(); }
   addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
 
   /* Trộn có hạt giống: cùng một bài thì thứ tự luôn giống nhau (trên màn hình và trên phiếu) */
@@ -2984,6 +3189,7 @@ window.LESSON = (function () {
   function renderResult() {
     const d = L.data, o = G.OUTLINES[G.outlineFor(d.task_type, d.outline)];
     $('#lr-meta').textContent = `${o.short}${d.topic_vi ? ' · ' + d.topic_vi : ''}${L.isDemo ? ' · bài giảng mẫu (đề minh hoạ)' : ''}`;
+    H.renderSaveBtns();
     document.querySelectorAll('[data-ltab]').forEach(b => b.classList.toggle('on', b.dataset.ltab === L.tab));
     // Biểu đồ + đề nằm ở khung cố định bên trái, bài giảng / bài tập cuộn bên phải
     H.setPaneImage($('#pane-lesson'), L.image);
@@ -3428,7 +3634,7 @@ window.LESSON = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, pasteImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible, snapshot, openSaved, savedId, setSavedId };
 })();
 </script>
   <script>
@@ -3824,7 +4030,7 @@ window.GRADE = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, structs: null, isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, structs: null, isDemo: false, savedId: null };
   }
   let S = load();
   function load() {
@@ -3860,6 +4066,7 @@ window.GRADE = (function () {
     saveT = null;
     try { localStorage.setItem(STORE, JSON.stringify(S)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+    if (S.savedId) autoSave('write');   // bài đã lưu: tự cập nhật bản lưu
   }
   // Lưu ngay khi rời trang (save() chờ 200ms)
   addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
@@ -3879,6 +4086,8 @@ window.GRADE = (function () {
     const mode = view === 'lesson' || view === 'grade' ? view : 'write';
     document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
     $('#btn-new').hidden = mode !== 'write';
+    $('#btn-saved').hidden = mode === 'grade';   // Chấm bài có “Bài đã chấm” riêng
+    renderSaveBtns();
     if (view === 'lesson') LESSON.render();
     if (view === 'grade') GRADE.render();
     if (view === 'setup') renderSetup();
@@ -4877,6 +5086,141 @@ window.GRADE = (function () {
       return { task_type: '', prompt_text: '', visual: await checkedOcr(visual) };
     }
   }
+  /* ================= Bài đã lưu (tối đa 10 bài mỗi mục: Luyện viết, Bài giảng) =================
+   * Bấm “💾 Lưu bài” → bài vào danh sách “📂 Bài đã lưu”; từ đó mọi thay đổi của bài tự cập nhật vào bản lưu. */
+  const kindNow = () => (S.view === 'lesson' ? 'lesson' : 'write');
+  const fmtDate = iso => { try { return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const clip = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+  function writeSnapshot() {
+    if (!S.analysis || S.isDemo) return null;
+    const a = S.analysis;
+    const slots = a.steps.reduce((n, st) => n + st.sentences.length, 0);
+    const done = S.picks.reduce((n, p) => n + (p || []).filter(Boolean).length, 0);
+    return { title: clip(S.prompt || a.prompt_text || 'Bài luyện viết', 140), sub: `${TYPE_VI[a.task_type] || 'Task 1'} · Band ${S.band} · đã viết ${done}/${slots} câu`,
+      state: Object.assign({}, S, { view: S.view === 'review' ? 'review' : 'wizard', image: null, open: null, savedId: null }), image: S.image };
+  }
+  const snapshotOf = kind => (kind === 'lesson' ? LESSON.snapshot() : writeSnapshot());
+  const savedIdOf = kind => (kind === 'lesson' ? LESSON.savedId() : S.savedId);
+  function setSavedIdOf(kind, id) { if (kind === 'lesson') LESSON.setSavedId(id); else { S.savedId = id; save(); } renderSaveBtns(); }
+  function renderSaveBtns() {
+    document.querySelectorAll('[data-save]').forEach(b => {
+      const on = !!savedIdOf(b.dataset.save);
+      b.classList.toggle('saved', on);
+      b.textContent = on ? '✓ Đã lưu' : b.dataset.save === 'lesson' ? '💾 Lưu bài giảng' : '💾 Lưu bài';
+      b.title = on ? 'Bài này đã lưu — mọi thay đổi tự cập nhật vào bản lưu' : `Lưu để mở lại sau trong “📂 Bài đã lưu” (tối đa ${SAVED.MAX} bài)`;
+    });
+  }
+  // Tự cập nhật bản lưu (gộp nhiều thay đổi liên tiếp thành một lần ghi). “pending” nhớ qua lần tải lại trang
+  // để lần mở sau ghi nốt thay đổi chưa kịp lưu.
+  const PEND_KEY = 'e-app.saved-pending.v1';
+  function unsynced(kind, id) {
+    try {
+      const p = JSON.parse(localStorage.getItem(PEND_KEY) || '{}');
+      if (id === undefined) return p[kind] || null;
+      if (id) p[kind] = id; else delete p[kind];
+      localStorage.setItem(PEND_KEY, JSON.stringify(p));
+    } catch (e) { /* bỏ qua */ }
+    return null;
+  }
+  const syncKey = snap => JSON.stringify(snap.state) + '|' + (snap.image ? snap.image.dataUrl.length : 0);
+  const lastSynced = { write: '', lesson: '' }, syncT = {}, syncing = {};
+  function autoSave(kind) {
+    if (unsynced(kind) !== savedIdOf(kind)) unsynced(kind, savedIdOf(kind));
+    clearTimeout(syncT[kind]);
+    syncT[kind] = setTimeout(() => syncSaved(kind), 2500);
+  }
+  async function syncSaved(kind) {
+    if (syncing[kind]) { await syncing[kind]; return syncSaved(kind); }   // mỗi lần chỉ ghi một bản
+    const id = savedIdOf(kind), snap = id && snapshotOf(kind);
+    if (!snap) return;
+    const key = syncKey(snap);
+    if (key === lastSynced[kind]) { unsynced(kind, null); return; }
+    syncing[kind] = SAVED.save(kind, id, snap)
+      .then(() => { lastSynced[kind] = key; if (savedIdOf(kind) === id) unsynced(kind, null); })
+      .catch(e => { if (e.code === 'full') setSavedIdOf(kind, null); else console.warn('Chưa tự cập nhật được bài đã lưu:', e); })
+      .finally(() => { syncing[kind] = null; });
+    await syncing[kind];
+  }
+  const busySave = {};
+  async function saveNow(kind) {
+    const snap = snapshotOf(kind);
+    if (!snap) { toast('Chưa có bài để lưu (bài mẫu thì không cần lưu).'); return; }
+    if (busySave[kind]) return;
+    busySave[kind] = true;
+    const old = savedIdOf(kind);
+    try {
+      if (syncing[kind]) await syncing[kind];
+      const id = await SAVED.save(kind, old, snap);
+      lastSynced[kind] = syncKey(snap);
+      unsynced(kind, null);
+      if (id !== old) setSavedIdOf(kind, id);
+      const n = (await SAVED.list(kind)).length;
+      toast(old ? 'Đã lưu. Bài này tự cập nhật vào bản lưu mỗi khi có thay đổi.' : `Đã lưu bài (${n}/${SAVED.MAX}) — mở lại ở “📂 Bài đã lưu”. Từ giờ mọi thay đổi tự cập nhật vào bản lưu.`, 4000);
+    } catch (e) {
+      if (e.code === 'full') openSavedDlg(kind, e.message + ' Rồi bấm lưu lại.');
+      else toast('⚠️ ' + (e.message || 'Chưa lưu được bài.'), 4000);
+    } finally { busySave[kind] = false; }
+  }
+  let dlgKind = 'write';
+  async function openSavedDlg(kind, fullMsg) {
+    dlgKind = kind;
+    $('#saved-title').textContent = kind === 'lesson' ? '📂 Bài giảng đã lưu' : '📂 Bài luyện viết đã lưu';
+    $('#saved-full').hidden = !fullMsg; $('#saved-full').textContent = fullMsg || '';
+    $('#saved-where').textContent = '';
+    $('#saved-list').innerHTML = '<li class="muted small"><span class="spinner"></span> Đang tải…</li>';
+    if (!$('#dlg-saved').open) $('#dlg-saved').showModal();
+    await renderSavedList();
+  }
+  async function renderSavedList() {
+    const kind = dlgKind;
+    let items;
+    try { items = await SAVED.list(kind); }
+    catch (e) { $('#saved-list').innerHTML = `<li class="note err">⚠️ ${esc(e.message || 'Không đọc được bài đã lưu.')}</li>`; return; }
+    const where = await SAVED.where(), cur = savedIdOf(kind);
+    $('#saved-where').textContent = `${items.length}/${SAVED.MAX} bài · ` + (where === 'account'
+      ? '☁️ Lưu trên tài khoản Claude của cô — mở trên máy khác (cùng tài khoản) vẫn thấy.'
+      : '💻 Lưu trong trình duyệt này — chỉ máy này thấy; xoá dữ liệu trình duyệt thì mất.');
+    $('#saved-list').innerHTML = items.length ? items.map(m => `<li>
+      <button type="button" class="gr-hist-open" data-saved-open="${esc(m.id)}"><b>${esc(m.title)}</b><span class="gr-hist-ex">${esc(m.sub)} · ${fmtDate(m.updatedAt)}${where === 'account' && m.where === 'browser' ? ' · 💻 chỉ trên máy này' : ''}</span>${m.id === cur ? '<span class="cur">● Đang mở</span>' : ''}</button>
+      <button type="button" class="btn sm ghost" data-saved-del="${esc(m.id)}" aria-label="Xoá bài đã lưu">✕</button></li>`).join('')
+      : `<li class="saved-empty muted small">Chưa có bài nào. Bấm “${kind === 'lesson' ? '💾 Lưu bài giảng” khi đang xem bài giảng' : '💾 Lưu bài” khi đang luyện viết'} để lưu (tối đa ${SAVED.MAX} bài).</li>`;
+  }
+  // Xoá: bấm ✕ rồi bấm “Xoá?” để chắc chắn
+  async function delSaved(btn) {
+    if (!btn.classList.contains('del-ask')) {
+      btn.classList.add('del-ask'); btn.textContent = 'Xoá?';
+      setTimeout(() => { if (btn.isConnected && !btn.disabled) { btn.classList.remove('del-ask'); btn.textContent = '✕'; } }, 3000);
+      return;
+    }
+    const id = btn.dataset.savedDel;
+    btn.disabled = true;
+    try { await SAVED.remove(id); } catch (e) { toast('⚠️ ' + (e.message || 'Chưa xoá được bài.')); }
+    ['write', 'lesson'].forEach(k => { if (savedIdOf(k) === id) { setSavedIdOf(k, null); unsynced(k, null); } });
+    $('#saved-full').hidden = true;
+    await renderSavedList();
+  }
+  async function openSaved(id) {
+    const kind = dlgKind;
+    if (S.view === 'loading' || (kind === 'lesson' && !$('#lesson-loading').hidden)) { toast('AI đang chạy — đợi xong rồi mở bài đã lưu nhé.'); return; }
+    let r;
+    try { r = await SAVED.load(id); } catch (e) { toast('⚠️ ' + (e.message || 'Không mở được bài này.')); return; }
+    if (kind === 'lesson') {
+      if (!LESSON.openSaved(r.state, r.image, id)) return;
+    } else {
+      if (S.analysis && !S.isDemo && S.savedId !== id) prevWrite = S;   // “↩ Quay lại bài đang viết”
+      S = Object.assign(blank(), r.state, { image: r.image, savedId: id, open: null, isDemo: false });
+      if (S.analysis) S.analysis.steps = AI.upgradeSteps(S.analysis.steps);
+      clearSlotState();
+      show(S.analysis ? (S.view === 'review' ? 'review' : 'wizard') : 'setup');
+    }
+    const snap = snapshotOf(kind);
+    lastSynced[kind] = snap ? syncKey(snap) : '';
+    unsynced(kind, null);
+    $('#dlg-saved').close();
+    renderSaveBtns();
+    toast('Đã mở bài đã lưu: ' + clip(r.meta.title, 60), 3000);
+  }
+
   function openKey() { $('#api-key').value = AI.getKey(); $('#dlg-key').showModal(); }
 
   /* ================= Events ================= */
@@ -4885,6 +5229,9 @@ window.GRADE = (function () {
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
     if (paneClick(t)) return;
+    if (t.dataset.save) { saveNow(t.dataset.save); return; }
+    if (t.dataset.savedOpen) { openSaved(t.dataset.savedOpen); return; }
+    if (t.dataset.savedDel) { delSaved(t); return; }
     if (t.dataset.mode) { show(t.dataset.mode === 'write' ? (S.analysis ? 'wizard' : 'setup') : t.dataset.mode); return; }
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
     if (S.view === 'grade' && GRADE.onClick(t, e)) return;
@@ -4922,6 +5269,7 @@ window.GRADE = (function () {
       case 'ref-img-btn': if (S.image) { $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); } return;
       case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
+      case 'btn-saved': openSavedDlg(kindNow()); return;
       case 'api-save': AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); if (S.view === 'setup') renderSetup(); return;
       case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;
       case 'btn-new': case 'btn-new-2': {
@@ -5012,10 +5360,13 @@ window.GRADE = (function () {
 
   /* ================= Start ================= */
   bindPane();
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  LESSON.init({ autoSave, renderSaveBtns, $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
   const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
   GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, readTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  // Lần trước có thay đổi chưa kịp ghi vào bài đã lưu (đóng trang sớm) → ghi nốt
+  if (S.savedId && unsynced('write') === S.savedId) autoSave('write');
+  if (LESSON.savedId() && unsynced('lesson') === LESSON.savedId()) autoSave('lesson');
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
   show(S.view === 'loading' ? 'setup' : (WRITE_SPLIT.includes(S.view) && !S.analysis ? 'setup' : S.view));

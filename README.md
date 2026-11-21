@@ -9,6 +9,14 @@ Khi viết bài và khi xem bài giảng/bài tập, **ảnh đề nằm cố đ
 - Khung đề khi viết bài có 3 thẻ: Đề bài · Paraphrase · Bài viết.
 - Màn hình hẹp (điện thoại, máy tính bảng dọc): khung đề thành dải dính trên cùng; nút ▾ đổi cỡ vừa → lớn → thu gọn.
 
+## 💾 Bài đã lưu (tối đa 10 bài mỗi mục)
+- Đang luyện viết: bấm “💾 Lưu bài” (trên thanh công cụ của từng đoạn hoặc ở trang bài hoàn chỉnh). Đang xem bài giảng: bấm “💾 Lưu bài giảng”.
+- Mở lại bằng nút “📂 Bài đã lưu” trên thanh đầu trang: Luyện viết và Bài giảng có danh sách riêng, **mỗi danh sách tối đa 10 bài**. Đủ 10 bài thì app mở danh sách để xoá bớt (bấm ✕ rồi “Xoá?”).
+- Bài đã lưu lưu cả ảnh đề, số liệu đã đọc, gợi ý, các câu đã chọn / tự viết (hoặc bài giảng + bài tập). Sau khi lưu, mọi thay đổi **tự cập nhật** vào bản lưu (nút đổi thành “✓ Đã lưu”).
+- Mở bài đã lưu khi đang viết dở bài khác thì có nút “↩ Quay lại bài đang viết” / “↩ Quay lại bài giảng vừa rồi”.
+- Trên claude.ai, bài lưu vào kho dữ liệu riêng của tài khoản (chỉ chính người đó đọc được), nên mở trên máy khác cùng tài khoản vẫn thấy. Mở file ngoài claude.ai, hoặc tài khoản không ghi được vào kho đó, thì bài lưu trong trình duyệt này (IndexedDB) và hiện “💻 chỉ trên máy này”. Mã trong `js/saved.js`.
+- Bài đã chấm vẫn nằm ở “📚 Bài đã chấm” trong mục Chấm bài như trước.
+
 ## Dán ảnh đề mới lúc nào cũng được
 Ở cả 3 mục, dán (Ctrl+V) hoặc kéo ảnh vào khung đề bên trái bất cứ lúc nào: đang xem bài giảng / phiếu chấm / bài đang viết thì app mở bài mới với ảnh đó. Nút “↩ Quay lại bài giảng vừa rồi” / “↩ Quay lại bài đang viết” để trở lại bài trước (bài đã chấm luôn nằm trong “📚 Bài đã chấm”).
 
@@ -87,6 +95,7 @@ Sửa trong `src/index.html`, `css/`, `js/` rồi chạy `python3 build.py` đ�
 
 - `js/content.js` – dàn ý & từ vựng Maps, bài mẫu
 - `js/structures.js` – danh mục & nhận diện cấu trúc câu trong bài
+- `js/saved.js` – lưu / mở / xoá bài đã lưu (kho tài khoản Claude hoặc trình duyệt)
 - `js/ai.js` – gọi AI đọc đề, tạo gợi ý, kiểm tra số liệu, chấm câu, phân tích cấu trúc câu, soạn bài giảng & bài tập
 - `js/lesson.js` – mục Bài giảng & bài tập
 - `js/grade.js` – mục Chấm bài

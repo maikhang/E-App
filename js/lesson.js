@@ -15,7 +15,7 @@ window.LESSON = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { image: null, prompt: '', type: 'auto', band: '7.0', types: TYPE_ORDER.slice(), count: 4, data: null, tab: 'lesson', isDemo: false };
+    return { image: null, prompt: '', type: 'auto', band: '7.0', types: TYPE_ORDER.slice(), count: 4, data: null, tab: 'lesson', isDemo: false, savedId: null };
   }
   let L = load();
   let ans = {};           // trạng thái làm bài (không lưu)
@@ -32,7 +32,27 @@ window.LESSON = (function () {
     saveT = null;
     try { localStorage.setItem(STORE, JSON.stringify(L)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, L, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+    if (L.savedId) H.autoSave('lesson');   // bài đã lưu: tự cập nhật bản lưu
   }
+
+  /* ================= Bài đã lưu ================= */
+  // Bản để lưu (không có ảnh — ảnh lưu riêng); null khi chưa có bài giảng hoặc là bài mẫu
+  function snapshot() {
+    if (!L.data || L.isDemo) return null;
+    const d = L.data, o = G.OUTLINES[G.outlineFor(d.task_type, d.outline)];
+    const title = String(L.prompt || d.prompt_text || d.topic_vi || 'Bài giảng').replace(/\s+/g, ' ').trim();
+    return { title: title.length > 140 ? title.slice(0, 140) + '…' : title, sub: `${o.short} · Band ${L.band} · ${(d.exercises || []).length} bài tập`,
+      state: Object.assign({}, L, { image: null, savedId: null }), image: L.image };
+  }
+  function openSaved(state, image, id) {
+    if (busy) { toast('AI đang soạn bài giảng — đợi xong rồi mở bài đã lưu nhé.'); return false; }
+    if (L.data && !L.isDemo && L.savedId !== id) prev = L;
+    L = Object.assign(blank(), state, { image, savedId: id, isDemo: false });
+    ans = {}; save(); render(); window.scrollTo({ top: 0 });
+    return true;
+  }
+  const savedId = () => L.savedId;
+  function setSavedId(id) { L.savedId = id; save(); }
   addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
 
   /* Trộn có hạt giống: cùng một bài thì thứ tự luôn giống nhau (trên màn hình và trên phiếu) */
@@ -145,6 +165,7 @@ window.LESSON = (function () {
   function renderResult() {
     const d = L.data, o = G.OUTLINES[G.outlineFor(d.task_type, d.outline)];
     $('#lr-meta').textContent = `${o.short}${d.topic_vi ? ' · ' + d.topic_vi : ''}${L.isDemo ? ' · bài giảng mẫu (đề minh hoạ)' : ''}`;
+    H.renderSaveBtns();
     document.querySelectorAll('[data-ltab]').forEach(b => b.classList.toggle('on', b.dataset.ltab === L.tab));
     // Biểu đồ + đề nằm ở khung cố định bên trái, bài giảng / bài tập cuộn bên phải
     H.setPaneImage($('#pane-lesson'), L.image);
@@ -589,5 +610,5 @@ window.LESSON = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, pasteImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible, snapshot, openSaved, savedId, setSavedId };
 })();

@@ -9,7 +9,7 @@
 
   /* ================= State ================= */
   function blank() {
-    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, structs: null, isDemo: false };
+    return { view: 'setup', type: 'auto', band: '7.0', prompt: '', image: null, visual: null, analysis: null, step: 0, paras: ['', '', '', ''], picks: [[], [], [], []], blur: false, showFrames: false, open: null, structs: null, isDemo: false, savedId: null };
   }
   let S = load();
   function load() {
@@ -45,6 +45,7 @@
     saveT = null;
     try { localStorage.setItem(STORE, JSON.stringify(S)); }
     catch (e) { try { localStorage.setItem(STORE, JSON.stringify(Object.assign({}, S, { image: null }))); } catch (e2) { /* bỏ qua */ } }
+    if (S.savedId) autoSave('write');   // bài đã lưu: tự cập nhật bản lưu
   }
   // Lưu ngay khi rời trang (save() chờ 200ms)
   addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
@@ -64,6 +65,8 @@
     const mode = view === 'lesson' || view === 'grade' ? view : 'write';
     document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
     $('#btn-new').hidden = mode !== 'write';
+    $('#btn-saved').hidden = mode === 'grade';   // Chấm bài có “Bài đã chấm” riêng
+    renderSaveBtns();
     if (view === 'lesson') LESSON.render();
     if (view === 'grade') GRADE.render();
     if (view === 'setup') renderSetup();
@@ -1062,6 +1065,141 @@
       return { task_type: '', prompt_text: '', visual: await checkedOcr(visual) };
     }
   }
+  /* ================= Bài đã lưu (tối đa 10 bài mỗi mục: Luyện viết, Bài giảng) =================
+   * Bấm “💾 Lưu bài” → bài vào danh sách “📂 Bài đã lưu”; từ đó mọi thay đổi của bài tự cập nhật vào bản lưu. */
+  const kindNow = () => (S.view === 'lesson' ? 'lesson' : 'write');
+  const fmtDate = iso => { try { return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  const clip = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+  function writeSnapshot() {
+    if (!S.analysis || S.isDemo) return null;
+    const a = S.analysis;
+    const slots = a.steps.reduce((n, st) => n + st.sentences.length, 0);
+    const done = S.picks.reduce((n, p) => n + (p || []).filter(Boolean).length, 0);
+    return { title: clip(S.prompt || a.prompt_text || 'Bài luyện viết', 140), sub: `${TYPE_VI[a.task_type] || 'Task 1'} · Band ${S.band} · đã viết ${done}/${slots} câu`,
+      state: Object.assign({}, S, { view: S.view === 'review' ? 'review' : 'wizard', image: null, open: null, savedId: null }), image: S.image };
+  }
+  const snapshotOf = kind => (kind === 'lesson' ? LESSON.snapshot() : writeSnapshot());
+  const savedIdOf = kind => (kind === 'lesson' ? LESSON.savedId() : S.savedId);
+  function setSavedIdOf(kind, id) { if (kind === 'lesson') LESSON.setSavedId(id); else { S.savedId = id; save(); } renderSaveBtns(); }
+  function renderSaveBtns() {
+    document.querySelectorAll('[data-save]').forEach(b => {
+      const on = !!savedIdOf(b.dataset.save);
+      b.classList.toggle('saved', on);
+      b.textContent = on ? '✓ Đã lưu' : b.dataset.save === 'lesson' ? '💾 Lưu bài giảng' : '💾 Lưu bài';
+      b.title = on ? 'Bài này đã lưu — mọi thay đổi tự cập nhật vào bản lưu' : `Lưu để mở lại sau trong “📂 Bài đã lưu” (tối đa ${SAVED.MAX} bài)`;
+    });
+  }
+  // Tự cập nhật bản lưu (gộp nhiều thay đổi liên tiếp thành một lần ghi). “pending” nhớ qua lần tải lại trang
+  // để lần mở sau ghi nốt thay đổi chưa kịp lưu.
+  const PEND_KEY = 'e-app.saved-pending.v1';
+  function unsynced(kind, id) {
+    try {
+      const p = JSON.parse(localStorage.getItem(PEND_KEY) || '{}');
+      if (id === undefined) return p[kind] || null;
+      if (id) p[kind] = id; else delete p[kind];
+      localStorage.setItem(PEND_KEY, JSON.stringify(p));
+    } catch (e) { /* bỏ qua */ }
+    return null;
+  }
+  const syncKey = snap => JSON.stringify(snap.state) + '|' + (snap.image ? snap.image.dataUrl.length : 0);
+  const lastSynced = { write: '', lesson: '' }, syncT = {}, syncing = {};
+  function autoSave(kind) {
+    if (unsynced(kind) !== savedIdOf(kind)) unsynced(kind, savedIdOf(kind));
+    clearTimeout(syncT[kind]);
+    syncT[kind] = setTimeout(() => syncSaved(kind), 2500);
+  }
+  async function syncSaved(kind) {
+    if (syncing[kind]) { await syncing[kind]; return syncSaved(kind); }   // mỗi lần chỉ ghi một bản
+    const id = savedIdOf(kind), snap = id && snapshotOf(kind);
+    if (!snap) return;
+    const key = syncKey(snap);
+    if (key === lastSynced[kind]) { unsynced(kind, null); return; }
+    syncing[kind] = SAVED.save(kind, id, snap)
+      .then(() => { lastSynced[kind] = key; if (savedIdOf(kind) === id) unsynced(kind, null); })
+      .catch(e => { if (e.code === 'full') setSavedIdOf(kind, null); else console.warn('Chưa tự cập nhật được bài đã lưu:', e); })
+      .finally(() => { syncing[kind] = null; });
+    await syncing[kind];
+  }
+  const busySave = {};
+  async function saveNow(kind) {
+    const snap = snapshotOf(kind);
+    if (!snap) { toast('Chưa có bài để lưu (bài mẫu thì không cần lưu).'); return; }
+    if (busySave[kind]) return;
+    busySave[kind] = true;
+    const old = savedIdOf(kind);
+    try {
+      if (syncing[kind]) await syncing[kind];
+      const id = await SAVED.save(kind, old, snap);
+      lastSynced[kind] = syncKey(snap);
+      unsynced(kind, null);
+      if (id !== old) setSavedIdOf(kind, id);
+      const n = (await SAVED.list(kind)).length;
+      toast(old ? 'Đã lưu. Bài này tự cập nhật vào bản lưu mỗi khi có thay đổi.' : `Đã lưu bài (${n}/${SAVED.MAX}) — mở lại ở “📂 Bài đã lưu”. Từ giờ mọi thay đổi tự cập nhật vào bản lưu.`, 4000);
+    } catch (e) {
+      if (e.code === 'full') openSavedDlg(kind, e.message + ' Rồi bấm lưu lại.');
+      else toast('⚠️ ' + (e.message || 'Chưa lưu được bài.'), 4000);
+    } finally { busySave[kind] = false; }
+  }
+  let dlgKind = 'write';
+  async function openSavedDlg(kind, fullMsg) {
+    dlgKind = kind;
+    $('#saved-title').textContent = kind === 'lesson' ? '📂 Bài giảng đã lưu' : '📂 Bài luyện viết đã lưu';
+    $('#saved-full').hidden = !fullMsg; $('#saved-full').textContent = fullMsg || '';
+    $('#saved-where').textContent = '';
+    $('#saved-list').innerHTML = '<li class="muted small"><span class="spinner"></span> Đang tải…</li>';
+    if (!$('#dlg-saved').open) $('#dlg-saved').showModal();
+    await renderSavedList();
+  }
+  async function renderSavedList() {
+    const kind = dlgKind;
+    let items;
+    try { items = await SAVED.list(kind); }
+    catch (e) { $('#saved-list').innerHTML = `<li class="note err">⚠️ ${esc(e.message || 'Không đọc được bài đã lưu.')}</li>`; return; }
+    const where = await SAVED.where(), cur = savedIdOf(kind);
+    $('#saved-where').textContent = `${items.length}/${SAVED.MAX} bài · ` + (where === 'account'
+      ? '☁️ Lưu trên tài khoản Claude của cô — mở trên máy khác (cùng tài khoản) vẫn thấy.'
+      : '💻 Lưu trong trình duyệt này — chỉ máy này thấy; xoá dữ liệu trình duyệt thì mất.');
+    $('#saved-list').innerHTML = items.length ? items.map(m => `<li>
+      <button type="button" class="gr-hist-open" data-saved-open="${esc(m.id)}"><b>${esc(m.title)}</b><span class="gr-hist-ex">${esc(m.sub)} · ${fmtDate(m.updatedAt)}${where === 'account' && m.where === 'browser' ? ' · 💻 chỉ trên máy này' : ''}</span>${m.id === cur ? '<span class="cur">● Đang mở</span>' : ''}</button>
+      <button type="button" class="btn sm ghost" data-saved-del="${esc(m.id)}" aria-label="Xoá bài đã lưu">✕</button></li>`).join('')
+      : `<li class="saved-empty muted small">Chưa có bài nào. Bấm “${kind === 'lesson' ? '💾 Lưu bài giảng” khi đang xem bài giảng' : '💾 Lưu bài” khi đang luyện viết'} để lưu (tối đa ${SAVED.MAX} bài).</li>`;
+  }
+  // Xoá: bấm ✕ rồi bấm “Xoá?” để chắc chắn
+  async function delSaved(btn) {
+    if (!btn.classList.contains('del-ask')) {
+      btn.classList.add('del-ask'); btn.textContent = 'Xoá?';
+      setTimeout(() => { if (btn.isConnected && !btn.disabled) { btn.classList.remove('del-ask'); btn.textContent = '✕'; } }, 3000);
+      return;
+    }
+    const id = btn.dataset.savedDel;
+    btn.disabled = true;
+    try { await SAVED.remove(id); } catch (e) { toast('⚠️ ' + (e.message || 'Chưa xoá được bài.')); }
+    ['write', 'lesson'].forEach(k => { if (savedIdOf(k) === id) { setSavedIdOf(k, null); unsynced(k, null); } });
+    $('#saved-full').hidden = true;
+    await renderSavedList();
+  }
+  async function openSaved(id) {
+    const kind = dlgKind;
+    if (S.view === 'loading' || (kind === 'lesson' && !$('#lesson-loading').hidden)) { toast('AI đang chạy — đợi xong rồi mở bài đã lưu nhé.'); return; }
+    let r;
+    try { r = await SAVED.load(id); } catch (e) { toast('⚠️ ' + (e.message || 'Không mở được bài này.')); return; }
+    if (kind === 'lesson') {
+      if (!LESSON.openSaved(r.state, r.image, id)) return;
+    } else {
+      if (S.analysis && !S.isDemo && S.savedId !== id) prevWrite = S;   // “↩ Quay lại bài đang viết”
+      S = Object.assign(blank(), r.state, { image: r.image, savedId: id, open: null, isDemo: false });
+      if (S.analysis) S.analysis.steps = AI.upgradeSteps(S.analysis.steps);
+      clearSlotState();
+      show(S.analysis ? (S.view === 'review' ? 'review' : 'wizard') : 'setup');
+    }
+    const snap = snapshotOf(kind);
+    lastSynced[kind] = snap ? syncKey(snap) : '';
+    unsynced(kind, null);
+    $('#dlg-saved').close();
+    renderSaveBtns();
+    toast('Đã mở bài đã lưu: ' + clip(r.meta.title, 60), 3000);
+  }
+
   function openKey() { $('#api-key').value = AI.getKey(); $('#dlg-key').showModal(); }
 
   /* ================= Events ================= */
@@ -1070,6 +1208,9 @@
     if (!t) return;
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
     if (paneClick(t)) return;
+    if (t.dataset.save) { saveNow(t.dataset.save); return; }
+    if (t.dataset.savedOpen) { openSaved(t.dataset.savedOpen); return; }
+    if (t.dataset.savedDel) { delSaved(t); return; }
     if (t.dataset.mode) { show(t.dataset.mode === 'write' ? (S.analysis ? 'wizard' : 'setup') : t.dataset.mode); return; }
     if (S.view === 'lesson' && LESSON.onClick(t, e)) return;
     if (S.view === 'grade' && GRADE.onClick(t, e)) return;
@@ -1107,6 +1248,7 @@
       case 'ref-img-btn': if (S.image) { $('#dlg-img-src').src = S.image.dataUrl; $('#dlg-img').showModal(); } return;
       case 'btn-vocab': libTab = null; renderVocab(); $('#dlg-vocab').showModal(); return;
       case 'btn-key': openKey(); return;
+      case 'btn-saved': openSavedDlg(kindNow()); return;
       case 'api-save': AI.setKey($('#api-key').value.trim()); toast('Đã lưu API key.'); if (S.view === 'setup') renderSetup(); return;
       case 'api-clear': AI.setKey(''); $('#api-key').value = ''; toast('Đã xoá API key.'); return;
       case 'btn-new': case 'btn-new-2': {
@@ -1197,10 +1339,13 @@
 
   /* ================= Start ================= */
   bindPane();
-  LESSON.init({ $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  LESSON.init({ autoSave, renderSaveBtns, $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
   const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
   GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, readTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
+  // Lần trước có thay đổi chưa kịp ghi vào bài đã lưu (đóng trang sớm) → ghi nốt
+  if (S.savedId && unsynced('write') === S.savedId) autoSave('write');
+  if (LESSON.savedId() && unsynced('lesson') === LESSON.savedId()) autoSave('lesson');
   const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
   if (IN_CLAUDE) $('#btn-key').hidden = true;
   show(S.view === 'loading' ? 'setup' : (WRITE_SPLIT.includes(S.view) && !S.analysis ? 'setup' : S.view));
