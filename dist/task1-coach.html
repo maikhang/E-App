@@ -599,6 +599,25 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .saved-list .cur { font-size: 12px; font-weight: 600; color: var(--accent); }
 .saved-list .del-ask { color: #b42318; border-color: #b42318; }
 .saved-empty { padding: 12px; border: 1px dashed var(--border); border-radius: 12px; }
+.memo-head { gap: 10px; align-items: flex-start; }
+.memo-head h3 { margin: 0; }
+.memo-h { margin: 14px 0 6px; font-size: 15px; display: inline; }
+.memo-a > summary { cursor: pointer; margin: 14px 0 6px; }
+.memo-t td, .memo-t th { vertical-align: top; }
+.memo-t .memo-n { color: var(--muted); width: 34px; font-variant-numeric: tabular-nums; }
+.memo-t .memo-g td { background: var(--accent-soft, #e0eee2); color: var(--accent); font-weight: 700; }
+.memo-t .memo-ex { display: block; color: var(--muted); font-style: italic; font-size: 13px; }
+.memo-t .memo-alt { display: block; color: #5a3fb5; font-weight: 600; }
+.l-step { display: inline-block; font-size: 12px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 999px; padding: 2px 10px; margin-right: 4px; vertical-align: middle; }
+.l-how { background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; margin: 8px 0; }
+.l-how ol { margin: 4px 0 0; padding-left: 20px; }
+.l-note { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); font-family: var(--font, inherit); font-style: normal; }
+.l-models li { margin-bottom: 8px; }
+.l-hint { margin: 2px 0; font-size: 13px; color: #93600a; }
+.l-tip { background: #fff6dc; border-left: 4px solid #e0a526; border-radius: 0 8px 8px 0; padding: 8px 12px; margin: 8px 0 0; }
+.l-gram li { margin-bottom: 6px; }
+.l-check { list-style: none; padding-left: 4px; }
+.l-check li { margin-bottom: 4px; }
 </style>
 <header class="topbar">
     <div class="brand">
@@ -794,6 +813,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
             </div>
             <div class="structs" id="structs"></div>
           </div>
+          <div class="card" id="memo-review"></div>
           <details class="card preview-card" open>
             <summary><h3>👁️ Xem trước bản gửi học sinh</h3><span class="muted small">Đúng như khi dán vào Word / Google Docs</span></summary>
             <div class="lesson-preview" id="lesson-preview"></div>
@@ -1711,6 +1731,274 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   };
   const TECH = Object.fromEntries(SUBJECT_GUIDE.techniques.map(t => [t.id, t.name]));
 
+  /* ---------- 📒 Từ cần học thuộc theo từng dạng ----------
+   * Lấy từ chính dàn ý của cô ở trên (khung câu, lưu ý & từ vựng, bài mẫu): mỗi nhóm = một phần của bài.
+   * Mỗi từ: en (từ / cụm từ) · vi (nghĩa) · ex (ví dụ, phần lớn trích bài mẫu của cô). Maps lấy thêm 2 bảng từ vựng Maps (content.js). */
+  const W = (en, vi, ex) => ({ en, vi, ex: ex || '' });
+  const MEMORIZE = {
+    trend: [
+      { group: 'Mở bài (Introduction)', items: [
+        W('shows / illustrates / presents / demonstrates', 'cho thấy / minh hoạ / trình bày', 'The line graph illustrates the percentage of commuters …'),
+        W('the number of', 'số lượng (danh từ đếm được)', 'the number of visitors'),
+        W('the amount of', 'lượng (danh từ không đếm được)', 'the amount of water'),
+        W('the quantity of', 'số lượng (dùng được cả hai loại)', 'the quantity of goods'),
+        W('the percentage of', 'tỉ lệ phần trăm (phần so với tổng)', 'the percentage of commuters using cars'),
+        W('the proportion of', 'tỉ lệ (giữa các phần)', 'the proportion of bus users'),
+        W('the figure for', 'số liệu của (nói chung)', 'the figure for car usage'),
+        W('from … to … / between … and …', 'từ … đến … / trong khoảng … và …', 'between 2000 and 2025'),
+        W('over a period of … years', 'trong khoảng thời gian … năm', 'over a period of 25 years'),
+      ] },
+      { group: 'Tổng quan (Overview)', items: [
+        W('Overall, it is obvious that …', 'Nhìn chung, rõ ràng là …', 'Overall, it is obvious that while the proportion of car users witnessed a downward trend, …'),
+        W('while …, the opposite was true for …', 'trong khi …, điều ngược lại xảy ra với …', '… the opposite was true for bus and bicycle commuters.'),
+        W('an upward / a downward trend', 'xu hướng tăng / xu hướng giảm', 'witnessed a downward trend'),
+        W('showed a similar upward / downward trend', 'có xu hướng tăng / giảm giống nhau', 'All three figures showed a similar upward trend over the period.'),
+        W('the most popular … at the end of the period', '… phổ biến nhất vào cuối giai đoạn', 'Bus commuting is projected to become the most popular method at the end of the period.'),
+      ] },
+      { group: 'Động từ xu hướng: TĂNG', items: [
+        W('rise · increase · grow · climb · go up', 'tăng (mức bình thường)', 'The figure rose to 40%.'),
+        W('jump · soar · surge · skyrocket', 'tăng vọt, tăng rất mạnh', 'Sales soared to 80%.'),
+        W('a significant increase in', 'sự tăng đáng kể của (danh từ)', 'There was a significant increase in bus use.'),
+        W('steady growth', 'sự tăng trưởng đều', 'The figures for bus and bicycle commuters experienced a steady growth.'),
+      ] },
+      { group: 'Động từ xu hướng: GIẢM', items: [
+        W('fall · drop · decline · decrease · go down', 'giảm (mức bình thường)', 'The figure fell to about 35%.'),
+        W('plunge · plummet', 'giảm mạnh, lao dốc', 'Sales plummeted in 2010.'),
+        W('a gradual decline', 'sự giảm dần', 'Car usage experienced a gradual decline to roughly 55%.'),
+      ] },
+      { group: 'Dao động · ổn định · đỉnh · đáy', items: [
+        W('fluctuate', 'dao động, lên xuống thất thường', 'The figure fluctuated around 20%.'),
+        W('remain stable / remain steady', 'giữ ổn định', 'The figure remained stable at 10%.'),
+        W('level off / plateau', 'chững lại, đi ngang', '… before leveling off at 30%.'),
+        W('reach a peak of / peak at', 'đạt đỉnh ở mức', 'It peaked at 50% in 2010.'),
+        W('hit a low of', 'chạm đáy ở mức', 'It hit a low of 5% in 2015.'),
+      ] },
+      { group: 'Trạng từ chỉ mức độ', items: [
+        W('sharply · quickly · rapidly · steeply', 'mạnh, nhanh, dốc', 'rose sharply'),
+        W('considerably · significantly · substantially', 'đáng kể', 'continued to drop significantly'),
+        W('steadily · gradually · moderately', 'đều đặn, từ từ, vừa phải', 'increased gradually'),
+        W('slightly · slowly', 'nhẹ, chậm', 'saw a slight increase'),
+      ] },
+      { group: 'Giới từ đi với số liệu', items: [
+        W('by + số', 'thay đổi MỘT LƯỢNG bằng …', 'increased by 10%'),
+        W('to + số', 'tăng / giảm ĐẾN mức …', 'rose to 10%'),
+        W('at + số', 'giữ Ở mức …', 'remained at 10%'),
+        W('around / about / approximately / roughly / nearly', 'khoảng / gần (số không chính xác)', 'climbing to nearly 40% in 2025'),
+        W('respectively', 'lần lượt (theo thứ tự đã nêu)', '… were around 25% and 5% respectively.'),
+      ] },
+      { group: 'Cấu trúc câu (Body)', items: [
+        W('There was a + adj + noun + in …', 'Đã có một sự … trong …', 'There was a significant increase in …'),
+        W('[Thời gian] + saw / witnessed / experienced + a … in …', 'Giai đoạn … chứng kiến một sự …', 'The first five years witnessed a significant increase in …'),
+        W('…, followed by …', '…, theo sau là …', 'a sharp rise, followed by a slight fall'),
+        W('… before leveling off at …', '… trước khi chững lại ở …', 'saw a sharp increase before leveling off at 30%'),
+        W('A was overtaken by B in [năm]', 'A bị B vượt qua vào năm …', 'The proportion of bus users overtook that of car users in 2023.'),
+        W('The two figures intersected at … in …', 'Hai số liệu gặp nhau tại … vào …', ''),
+        W('The gap between A and B narrowed', 'Khoảng cách giữa A và B thu hẹp', ''),
+      ] },
+      { group: 'Từ nối & so sánh', items: [
+        W('In [năm đầu], …', 'Vào năm … (mở Body 1 bằng số liệu năm đầu)', 'In 2000, the percentage of car commuters was the highest at approximately 60%.'),
+        W('Over the next … years', 'Trong … năm tiếp theo', 'Over the next 10 years, …'),
+        W('From … to … / Between … and …', 'Từ … đến … (mở Body 2)', 'From 2010 to 2025, …'),
+        W('whereas / while', 'trong khi (hai xu hướng trái ngược)', ''),
+        W('in contrast / compared to', 'ngược lại / so với', 'In contrast, the percentages of people traveling by bus …'),
+        W('meanwhile · notably', 'trong khi đó · đáng chú ý là', 'Meanwhile, the figures for bus and bicycle commuters …'),
+      ] },
+    ],
+    compare: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('illustrates / shows + [chủ thể] + in [năm / nơi]', 'minh hoạ / cho thấy … tại …', 'The pie chart illustrates … in 2020.'),
+        W('had the highest / lowest …', 'có … cao nhất / thấp nhất', ''),
+        W('recorded the lowest / highest figures', 'ghi nhận số liệu thấp nhất / cao nhất', ''),
+        W('showed similar / different values', 'có giá trị giống nhau / khác nhau', ''),
+        W('the most dominant', 'chiếm ưu thế nhất', 'travel and business are the most dominant motives'),
+        W('While A and B are the most dominant … in the first chart, C is … in the second one.', '(2 biểu đồ) nối miếng lớn nhất của mỗi hình', ''),
+      ] },
+      { group: 'Body: từ số lớn đến số nhỏ', items: [
+        W('Looking at the chart more closely, …', 'Nhìn kỹ hơn vào biểu đồ, …', ''),
+        W('accounted for … %', 'chiếm … % (chỉ dùng với %)', 'travel … accounting for the highest proportion at 33%'),
+        W('making it the dominant category', 'khiến nó trở thành hạng mục chiếm ưu thế', ''),
+        W('This was followed by … at … %', 'Theo sau là … với … %', 'followed closely by purchasing real estate abroad at 19%'),
+        W('nearly double that of / slightly lower than / roughly the same as', 'gần gấp đôi / thấp hơn một chút / gần bằng', ''),
+        W('represented … %', 'chiếm / đại diện cho … %', ''),
+        W('showing a noticeable difference compared with …', 'cho thấy sự khác biệt rõ rệt so với …', ''),
+        W('By contrast, the smallest proportion was seen in …', 'Ngược lại, tỉ lệ nhỏ nhất thuộc về …', ''),
+        W('Similarly, … had a relatively modest figure, standing at …', 'Tương tự, … có số liệu khá khiêm tốn, ở mức …', ''),
+        W('It is also worth noting that … were identical', 'Cũng đáng chú ý là … bằng nhau', ''),
+        W('Another striking feature is that …', 'Một điểm nổi bật khác là …', ''),
+        W('Turning to the second chart, …', 'Chuyển sang biểu đồ thứ hai, …', 'Looking at the second chart, a striking 34% of teachers …'),
+      ] },
+      { group: 'Pie chart (chỉ dùng khi là % và tổng 100%)', items: [
+        W('account for · make up · constitute · represent', 'chiếm (bao nhiêu %)', 'Business accounted for 26%.'),
+        W('a larger share than', 'phần lớn hơn so với', ''),
+        W('the lion’s share', 'phần lớn nhất, phần “sư tử”', ''),
+        W('took the lead / led the chart with …', 'dẫn đầu với …', 'Chinese food took the lead with 34%.'),
+        W('ranked second, accounting for …', 'đứng thứ hai, chiếm …', ''),
+        W('tops the list / ranks first', 'đứng đầu danh sách', 'Travel tops the list, accounting for the highest proportion at 33%.'),
+      ] },
+      { group: 'Bar chart (số tuyệt đối)', items: [
+        W('outweigh · surpass · exceed', 'vượt hơn, cao hơn', ''),
+        W('double', 'gấp đôi', ''),
+        W('lag behind', 'tụt lại phía sau', ''),
+        W('recorded / registered', 'ghi nhận', 'Business … registered at 26%'),
+        W('stood at · reached', 'ở mức · đạt tới', ''),
+        W('attracted (người) · sold / produced / earned', 'thu hút · bán / sản xuất / thu về', 'There were 500 visitors in City A, compared to only 200 in City B.'),
+      ] },
+      { group: 'Mức độ so sánh', items: [
+        W('approximately · about · roughly', 'khoảng (số không chính xác 100%)', ''),
+        W('slightly · marginally', 'chênh lệch nhỏ', ''),
+        W('far · significantly', 'chênh lệch lớn', ''),
+        W('In stark contrast, … registered only …', 'Trái ngược hoàn toàn, … chỉ ghi nhận …', 'In stark contrast, personal development and social contacts each represent a mere 7%.'),
+        W('double / triple / nearly triple that of …', 'gấp đôi / gấp ba / gần gấp ba … (Band 7+)', ''),
+        W('… times higher than that of …', 'cao hơn … lần so với …', ''),
+        W('only a third / a quarter of …', 'chỉ bằng một phần ba / một phần tư …', ''),
+      ] },
+      { group: 'Phân số thay cho %', items: [
+        W('all / every', '100%', ''), W('three quarters', '75%', ''), W('a half', '50%', ''),
+        W('about a third', '≈ 33%', ''), W('a quarter', '25%', ''), W('no / none', '0%', ''),
+      ] },
+      { group: 'Câu ghép', items: [
+        W('…, which was the highest figure in the chart', 'mệnh đề quan hệ bổ sung thông tin', '… 50%, which was the highest figure in the chart.'),
+        W('While / Whereas A …, B …', 'Trong khi A …, B …', 'While Group A accounted for 50%, Group B represented only 10%.'),
+        W('A and B stood at … and … respectively', 'A và B lần lượt ở mức … và …', ''),
+      ] },
+    ],
+    maps: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The maps illustrate the development of …', 'Các bản đồ minh hoạ sự phát triển của …', 'The maps illustrate the development of the village of Ryemouth between 1995 and present.'),
+        W('The maps illustrate the changes in …', 'Các bản đồ minh hoạ những thay đổi ở …', ''),
+        W('underwent significant / considerable development', 'trải qua sự phát triển đáng kể', 'Overall, the area underwent significant development, …'),
+        W('with the addition of … and the removal of …', 'với việc thêm … và dỡ bỏ …', 'with the addition of new recreational facilities and the removal of the fishing port'),
+        W('Some areas, however, remained unchanged.', 'Tuy nhiên, một số khu vực vẫn giữ nguyên.', ''),
+      ] },
+      { group: 'Body 1: vị trí trên bản đồ đầu tiên', items: [
+        W('In [năm], the layout of … included several key features.', 'Năm …, bố cục của … gồm một số đặc điểm chính.', 'In 1995, the layout of the village included several key features.'),
+        W('was located in / was situated in', 'nằm ở', 'A housing area was located in the north-west.'),
+        W('lay to the north / south of', 'nằm về phía bắc / nam của', 'A shop lay to the south of the housing area.'),
+        W('stood next to', 'đứng cạnh, nằm cạnh', 'A hotel stood next to the forest park.'),
+      ] },
+      { group: 'Body 2: thay đổi trên bản đồ sau', items: [
+        W('By [năm], the area had experienced significant changes.', 'Đến năm …, khu vực đã trải qua nhiều thay đổi (quá khứ hoàn thành)', ''),
+        W('By the present day, the area has experienced …', 'Đến nay, khu vực đã trải qua … (bản đồ hiện tại: hiện tại hoàn thành)', 'By the present day, the area has experienced significant changes, …'),
+        W('A new … was constructed in …', 'Một … mới được xây ở …', 'A new golf course was constructed in the north-east.'),
+        W('These modifications resulted in …', 'Những thay đổi này dẫn đến …', ''),
+      ] },
+      { group: 'Giới từ chỉ vị trí (quy tắc của cô)', items: [
+        W('In the North of the city', 'BÊN TRONG thành phố, phía Bắc', ''),
+        W('To the North of the city', 'BÊN NGOÀI thành phố, lệch về hướng Bắc', ''),
+        W('on the northern side of …', 'có “side” → dùng ON', 'on the northern side of the bridge'),
+        W('in the eastern part of …', 'có “part” → dùng IN', 'in the eastern part of the village'),
+        W('IN: center · middle · corner · part · area', 'nhóm đi với IN', ''),
+        W('AT: top · bottom · entrance · intersection · junction', 'nhóm đi với AT', ''),
+        W('ON: side · bank · edge · left/right-hand side', 'nhóm đi với ON', ''),
+      ] },
+      { group: 'Từ đồng nghĩa & thời gian', items: [
+        W('erected · constructed · built', 'được xây mới', ''),
+        W('demolished · knocked down', 'bị phá bỏ', ''),
+        W('enlarged · expanded', 'được mở rộng', ''),
+        W('replaced by · made way for', 'bị thay thế bằng · nhường chỗ cho', ''),
+        W('modernized · renovated', 'được hiện đại hoá · cải tạo', ''),
+        W('In the first map · By 2020 · In the second / final map', 'cách nói mốc thời gian / bản đồ', ''),
+        W('Over the 30 years / Over the two decades', 'Trong 30 năm / hai thập kỷ', ''),
+      ] },
+    ],
+    floorplan: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The diagram illustrates the layout of …', 'Sơ đồ minh hoạ bố cục của …', ''),
+        W('the arrangement of rooms / facilities / exits', 'cách sắp xếp phòng / tiện ích / lối ra', ''),
+        W('is divided into … main sections', 'được chia thành … khu chính', 'Overall, the building is divided into three main sections, …'),
+        W('the most noticeable feature', 'đặc điểm nổi bật nhất', ''),
+        W('has a symmetrical layout centred around …', 'có bố cục đối xứng xoay quanh …', ''),
+        W('serves as the main access point', 'đóng vai trò lối vào chính', ''),
+        W('arranged around', 'được bố trí xung quanh', ''),
+      ] },
+      { group: 'Body 1: khu vực chính', items: [
+        W('On the north / south / west / east side, there is …', 'Ở phía bắc / nam / tây / đông có …', ''),
+        W('In the centre of the building, … is located', 'Ở trung tâm toà nhà là …', ''),
+        W('which connects to …', 'nối với …', ''),
+        W('Surrounding this central area are …', 'Bao quanh khu trung tâm này là …', ''),
+      ] },
+      { group: 'Body 2: lối đi & tiện ích', items: [
+        W('is equipped with …', 'được trang bị …', 'The building is equipped with stairs and lifts, …'),
+        W('providing access to …', 'giúp đi đến …', ''),
+        W('… runs through the centre, linking … to …', '… chạy qua trung tâm, nối … với …', ''),
+        W('situated in the corners / along the hallway', 'nằm ở các góc / dọc hành lang', ''),
+      ] },
+      { group: 'Vị trí', items: [
+        W('to the left / right of', 'bên trái / phải của', ''), W('adjacent to', 'kề bên', ''), W('opposite', 'đối diện', ''),
+        W('between … and …', 'giữa … và …', ''), W('next to', 'bên cạnh', ''),
+        W('at the end of the corridor', 'ở cuối hành lang', ''), W('at / near the main entrance', 'ở / gần lối vào chính', ''),
+      ] },
+      { group: 'Động từ bố cục & kết nối', items: [
+        W('occupies · is positioned · is located · is situated · is found · lies', 'chiếm / nằm ở', ''),
+        W('is connected to · gives access to · leads to', 'được nối với · dẫn vào · dẫn tới', ''),
+        W('opens into · branches off into', 'mở ra · rẽ nhánh thành', ''),
+        W('provides direct access to', 'đi thẳng tới', ''),
+      ] },
+      { group: 'Kích thước', items: [
+        W('occupies the largest area', 'chiếm diện tích lớn nhất', ''),
+        W('takes up most of the space', 'chiếm phần lớn không gian', ''),
+        W('covers approximately half of the building', 'chiếm khoảng một nửa toà nhà', ''),
+        W('is considerably larger than …', 'lớn hơn đáng kể so với …', ''),
+      ] },
+    ],
+    process_man: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The diagram demonstrates / illustrates the process of …', 'Sơ đồ mô tả quy trình …', 'The diagram illustrates the process of how olive oil is produced.'),
+        W('comprises … main stages', 'gồm … giai đoạn chính', 'Overall, this process comprises several main stages, …'),
+        W('beginning with … and ending with …', 'bắt đầu bằng … và kết thúc bằng …', 'beginning with harvesting the olives and ending with storing the oil in a tank'),
+        W('The entire process can be divided into two main phases', 'Toàn bộ quy trình chia thành hai giai đoạn lớn', ''),
+      ] },
+      { group: 'Từ nối trình tự', items: [
+        W('In the first stage of the process, …', 'Ở giai đoạn đầu tiên của quy trình, …', 'In the first stage of the process, olives are harvested from trees …'),
+        W('First / Firstly / Initially', 'Đầu tiên', ''),
+        W('After that / Next / Then', 'Sau đó / Tiếp theo', 'After that, they are moved to be de-leafed and washed.'),
+        W('Following this, …', 'Tiếp theo bước này, …', 'Following this, the olives are crushed in an olive mill …'),
+        W('Subsequently, …', 'Sau đó, …', 'Subsequently, the mixture is pressed in a centrifugal press.'),
+        W('Once this is completed, …', 'Khi bước này hoàn tất, …', ''),
+        W('…, followed by …', '…, tiếp theo là …', ''),
+        W('In the final stage / Finally', 'Ở giai đoạn cuối / Cuối cùng', 'Finally, the cleaned oil is collected and stored in a storage tank.'),
+        W('which results in …', 'tạo ra / dẫn đến …', ''),
+      ] },
+      { group: 'Động từ bị động (hiện tại đơn)', items: [
+        W('is / are produced', 'được sản xuất', ''),
+        W('is transformed into', 'được biến đổi thành', ''),
+        W('is carried out', 'được thực hiện', ''),
+        W('is fed into / is introduced into', 'được đưa vào (máy)', 'the trimmed logs are fed into a machine'),
+        W('is transferred to / is conveyed to / is moved to', 'được chuyển đến', ''),
+        W('undergoes · is processed in · is subjected to', 'trải qua · được xử lý trong · chịu (tác động)', ''),
+      ] },
+      { group: 'Cách kéo dài câu', items: [
+        W('before + V-ing', 'trước khi …', ''),
+        W('after being + V3', 'sau khi được …', ''),
+        W('which is then …', 'cái mà sau đó được …', ''),
+        W('using … / for … hours / in a special machine', 'thêm dụng cụ / thời gian / địa điểm có trong hình', 'dried using hot air in a special machine for 24 hours'),
+      ] },
+    ],
+    process_nat: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The diagram illustrates the life cycle of …', 'Sơ đồ minh hoạ vòng đời của …', 'The diagram illustrates the natural process of the life cycle of a salmon.'),
+        W('the natural process of …', 'quá trình tự nhiên của …', ''),
+        W('a cyclical process with … stages', 'một quá trình tuần hoàn gồm … giai đoạn', 'Overall, this is a cyclical process with three main stages, …'),
+        W('beginning with … and ending with …', 'bắt đầu bằng … và kết thúc bằng …', ''),
+        W('after which the cycle repeats itself', 'sau đó chu trình lặp lại', ''),
+      ] },
+      { group: 'Từ nối trình tự', items: [
+        W('Initially, …', 'Ban đầu, …', 'Initially, salmon eggs are laid in the upper river, …'),
+        W('Following this, …', 'Tiếp theo, …', 'Following this, they hatch and develop into “fry”, …'),
+        W('At the next stage, …', 'Ở giai đoạn tiếp theo, …', ''),
+        W('In the subsequent stage, …', 'Ở giai đoạn sau đó, …', 'In the subsequent stage, the salmon move to the open ocean, …'),
+        W('Finally, …', 'Cuối cùng, …', ''),
+        W('which completes the cycle as it returns to the original stage', 'khép lại chu trình khi quay về giai đoạn ban đầu', ''),
+      ] },
+      { group: 'Động từ & chi tiết', items: [
+        W('develop into / grow into', 'phát triển thành', 'they grow into “smolt”'),
+        W('reach a length / size of', 'đạt chiều dài / kích thước', 'reaching a length of 12 to 15cm'),
+        W('for about … months / years', 'trong khoảng … tháng / năm', 'where they stay for about 5 to 6 months'),
+        W('between … and … cm long', 'dài từ … đến … cm', ''),
+      ] },
+    ],
+  };
+
   /* Cách paraphrase CHỦ THỂ theo từng dạng (bám quy tắc của cô: không “trọc lốc”, lần 1 sát đề, lần 2 mới đổi).
    * Mỗi dòng: loại chủ thể · từ trong đề → cách viết khác · lưu ý. */
   const SUBJECT_PP = {
@@ -1818,7 +2106,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return [...new Set(out)].sort((a, b) => b.length - a.length);
   }
 
-  return { OUTLINES, GENERAL, SUBJECT_PP, SUBJECT_GUIDE, TECH, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
+  return { OUTLINES, GENERAL, SUBJECT_PP, SUBJECT_GUIDE, TECH, MEMORIZE, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
 })();
 </script>
   <script>
@@ -1936,6 +2224,99 @@ window.STRUCTS = (function () {
     return out;
   }
   return { CATALOG, BY_ID, detect };
+})();
+</script>
+  <script>
+/* 📒 Bảng từ cần học thuộc: (A) từ trong dàn ý của dạng đề (gigi.js → MEMORIZE, Maps thêm 2 bảng từ vựng Maps)
+ * + (B) từ của chính đề đang làm (paraphrase chủ thể, từ paraphrase, từ vựng AI gợi ý cho đề).
+ * Thứ tự hiển thị: A = từ của đề (nếu có), B = từ trong dàn ý. Hiện trên màn hình và sao chép thành bảng màu (Word / Google Docs) hoặc phiếu tự kiểm tra (che nghĩa). */
+window.MEMO = (function () {
+  const G = window.GIGI, C = window.CONTENT;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // (A) Từ trong dàn ý của dạng
+  function groups(outline) {
+    const out = (G.MEMORIZE[outline] || []).slice();
+    if (outline === 'maps' && C) {
+      out.push({ group: 'Từ vựng thay đổi (Body 2)', items: C.changeVocab.map(v => ({ en: v.phrase, vi: v.meaning, ex: v.example })) });
+      out.push({ group: 'Từ vựng vị trí (Body 1 & Body 2)', items: C.positionVocab.map(v => ({ en: v.phrase, vi: v.meaning, ex: v.example })) });
+    }
+    return out;
+  }
+  // (B) Từ của đề: src = { paraphrase, subject_pp, vocab }
+  function taskWords(src) {
+    if (!src) return [];
+    const rows = [], seen = new Set();
+    const add = r => { const k = String(r.en).toLowerCase().trim(); if (k && !seen.has(k)) { seen.add(k); rows.push(r); } };
+    (src.subject_pp || []).forEach(x => add({ en: x.subject, vi: x.meaning_vi, alt: x.ways.map(w => w.text).join(' · '), ex: '' }));
+    (src.paraphrase || []).forEach(x => add({ en: x.word, vi: x.meaning_vi, alt: x.alternatives.map(a => a.phrase).join(' · '), ex: '' }));
+    (src.vocab || []).forEach(v => add({ en: v.phrase, vi: v.meaning_vi || '', alt: '', ex: v.example || '' }));
+    return rows;
+  }
+  const count = outline => groups(outline).reduce((n, g) => n + g.items.length, 0);
+
+  /* ---------- Trên màn hình ---------- */
+  // ctx: nơi gọi (write / lesson / lib:<dạng>) để nút sao chép biết lấy dữ liệu nào
+  function screen(outline, src, ctx) {
+    const o = G.OUTLINES[outline];
+    const task = taskWords(src);
+    let n = 0;
+    const outlineRows = groups(outline).map(g => `<tr class="memo-g"><td colspan="4">${esc(g.group)}</td></tr>` +
+      g.items.map(w => `<tr><td class="memo-n">${++n}</td><td><b>${esc(w.en)}</b></td><td>${esc(w.vi)}</td><td class="memo-ex">${esc(w.ex)}</td></tr>`).join('')).join('');
+    const taskRows = task.map((w, i) => `<tr><td class="memo-n">${i + 1}</td><td><b>${esc(w.en)}</b></td><td>${esc(w.vi)}</td><td>${w.alt ? `<span class="memo-alt">${esc(w.alt)}</span>` : ''}${w.ex ? `<span class="memo-ex">${esc(w.ex)}</span>` : ''}</td></tr>`).join('');
+    return `<div class="memo">
+      <div class="row between memo-head"><div><h3>📒 Từ cần học thuộc${o ? ' · ' + esc(o.short) : ''}</h3>
+        <p class="muted small">${task.length ? 'A. Từ của đề này · B. Từ trong dàn ý Ms. Gigi cho dạng này' : 'Từ trong dàn ý Ms. Gigi cho dạng này'} — học sinh học thuộc trước khi viết.</p></div>
+        <div class="row"><button type="button" class="btn sm primary" data-memo="full" data-memo-ctx="${esc(ctx)}">📋 Sao chép bảng từ</button>
+          <button type="button" class="btn sm" data-memo="quiz" data-memo-ctx="${esc(ctx)}">📝 Phiếu tự kiểm tra</button></div></div>
+      ${task.length ? `<h4 class="memo-h">A. Từ của đề này (${task.length} từ)</h4>
+      <div class="table-wrap"><table class="memo-t"><thead><tr><th>#</th><th>Từ trong đề</th><th>Nghĩa</th><th>Cách viết khác · ví dụ</th></tr></thead><tbody>${taskRows}</tbody></table></div>` : ''}
+      <details class="memo-a" ${task.length ? '' : 'open'}><summary><h4 class="memo-h">${task.length ? 'B. ' : ''}Từ trong dàn ý Ms. Gigi · ${esc(o ? o.name : '')} (${count(outline)} từ)</h4></summary>
+      <div class="table-wrap"><table class="memo-t"><thead><tr><th>#</th><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>${outlineRows}</tbody></table></div></details>
+    </div>`;
+  }
+
+  /* ---------- Bản sao chép (style inline để dán Word / Docs giữ màu) ---------- */
+  // quiz = phiếu tự kiểm tra: giữ từ tiếng Anh, để trống cột nghĩa cho học sinh tự ghi
+  function copy(outline, src, quiz) {
+    const o = G.OUTLINES[outline] || { name: '', short: '' };
+    const task = taskWords(src), gs = groups(outline);
+    const B = '1px solid #d5dfd0', blank = '<span style="color:#c4ccc2">…………………………</span>';
+    const td = (x, st) => `<td style="border:${B};padding:6px 8px;vertical-align:top;${st || ''}">${x}</td>`;
+    const th = (x, c, w) => `<th style="border:1px solid ${c};background:${c};color:#ffffff;padding:6px 8px;text-align:left;${w ? 'width:' + w : ''}">${x}</th>`;
+    const table = rows => `<table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+    const h2 = (t, c) => `<h2 style="font-size:16px;margin:18px 0 8px;color:${c};border-bottom:3px solid ${c};padding-bottom:4px">${t}</h2>`;
+    let h = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px">
+      <div style="background:#2f6f45;color:#ffffff;padding:12px 16px;font-size:19px;font-weight:bold">📒 ${quiz ? 'Phiếu tự kiểm tra từ vựng' : 'Từ cần học thuộc'} · ${esc(o.short)}</div>
+      <p style="margin:8px 0;color:#5b6957">Ms. Nhi Gigi · IELTS Writing Task 1${quiz ? ' — em ghi nghĩa tiếng Việt vào chỗ trống, rồi so với bảng từ để tự chấm.' : ' — học thuộc trước khi viết bài.'}</p>`;
+    const plain = [`📒 ${quiz ? 'PHIẾU TỰ KIỂM TRA TỪ VỰNG' : 'TỪ CẦN HỌC THUỘC'} · ${o.short}`, 'Ms. Nhi Gigi · IELTS Writing Task 1', ''];
+    if (task.length) {
+      const c = '#5a3fb5';
+      h += h2(`A. Từ của đề này (${task.length} từ)`, c);
+      h += table(`<tr>${th('#', c, '34px')}${th('Từ trong đề', c, '28%')}${th('Nghĩa', c, '24%')}${th('Cách viết khác · ví dụ', c)}</tr>` + task.map((w, i) => {
+        const bg = i % 2 ? '#ffffff' : '#f3f0fb';
+        return `<tr>${td(i + 1, `background:${bg};color:#5b6957`)}${td(`<b>${esc(w.en)}</b>`, `background:${bg}`)}${td(quiz ? blank : esc(w.vi), `background:${bg}`)}${td(quiz ? blank : (w.alt ? `<b style="color:${c}">${esc(w.alt)}</b>` : '') + (w.ex ? `${w.alt ? '<br>' : ''}<i style="color:#5b6957">${esc(w.ex)}</i>` : ''), `background:${bg}`)}</tr>`;
+      }).join(''));
+      plain.push(`A. TỪ CỦA ĐỀ NÀY (${task.length} từ)`, ...task.map((w, i) => quiz ? `${i + 1}. ${w.en} = ……………… → ………………` : `${i + 1}. ${w.en}${w.vi ? ' = ' + w.vi : ''}${w.alt ? ' → ' + w.alt : ''}${w.ex ? '\n   VD: ' + w.ex : ''}`), '');
+    }
+    const c = '#2f6f45';
+    h += h2(`${task.length ? 'B. ' : ''}Từ trong dàn ý Ms. Gigi · ${esc(o.name)}`, c);
+    let n = 0, rows = `<tr>${th('#', c, '34px')}${th('Từ / cụm từ', c, '38%')}${th('Nghĩa', c, '26%')}${th(quiz ? 'Đặt câu với từ này' : 'Ví dụ', c)}</tr>`;
+    plain.push(`${task.length ? 'B. ' : ''}TỪ TRONG DÀN Ý MS. GIGI · ${o.name}`);
+    gs.forEach(g => {
+      rows += `<tr><td colspan="4" style="border:${B};background:#e0eee2;padding:6px 8px;font-weight:bold;color:${c}">${esc(g.group)}</td></tr>`;
+      plain.push('', `▸ ${g.group}`);
+      g.items.forEach((w, i) => {
+        const bg = i % 2 ? '#ffffff' : '#f6faf4';
+        rows += `<tr>${td(++n, `background:${bg};color:#5b6957`)}${td(`<b>${esc(w.en)}</b>`, `background:${bg}`)}${td(quiz ? blank : esc(w.vi), `background:${bg}`)}${td(quiz ? blank : `<i style="color:#5b6957">${esc(w.ex)}</i>`, `background:${bg}`)}</tr>`;
+        plain.push(quiz ? `${n}. ${w.en} = ………………` : `${n}. ${w.en} = ${w.vi}${w.ex ? '\n   VD: ' + w.ex : ''}`);
+      });
+    });
+    h += table(rows) + '<p style="color:#8a958a;font-size:12px;margin:6px 0 0">Soạn bằng Ms. Nhi Gigi · IELTS Writing Task 1</p></div>';
+    return { plain: plain.join('\n'), html: h };
+  }
+
+  return { groups, taskWords, count, screen, copy };
 })();
 </script>
   <script>
@@ -2275,7 +2656,7 @@ Reply with ONLY one JSON object:
     return found.sort((a, b) => JSON.stringify(b).length - JSON.stringify(a).length)[0];
   }
   const ONE_JSON = '\n\nOUTPUT FORMAT: reply with exactly ONE JSON object and nothing else — no text before or after it, no Markdown fences, no comments, no second object. Every field (including the data sheet) goes INSIDE that one object.';
-  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase' };
+  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase', lesson: 'bài giảng' };
   function badReply(text, truncated, want) {
     const err = new Error(truncated ? 'Kết quả AI quá dài nên bị cắt giữa chừng. Bấm thử lại.' : 'AI trả lời chưa đúng định dạng' + (want ? ` (thiếu ${WANT_VI[want] || want})` : '') + '. Bấm thử lại.');
     err.code = truncated ? 'truncated' : 'bad_format';
@@ -2776,12 +3157,24 @@ ${EXTRAS_SHAPE}`;
   "data": [ "one fact per line copied exactly from the task, with its unit — write this FIRST" ],
   "lesson": {
     "objectives_vi": ["2-3 lesson objectives in Vietnamese"],
-    "reading_steps": [ { "q_vi": "guided question to read the visual (Vietnamese)", "a": "answer (Vietnamese, with the real figures)" } ],   // 5-7 questions: what it shows, units, time/categories, highest, lowest, main trend/change, special point
+    "type_why_vi": "1-2 Vietnamese sentences: which of the teacher's outlines this task uses and the visible signs that tell the student so",
+    "reading_steps": [ { "q_vi": "guided question to read the visual (Vietnamese)", "hint_vi": "where to look on the visual / how to find the answer (Vietnamese)", "a": "answer (Vietnamese, with the real figures)" } ],   // 6-8 questions: what it shows, units, time/categories, highest, lowest, main trend/change, special point
     "key_features": ["3-5 key features in Vietnamese with real figures"],
-    "plan": [ { "step": "intro" | "overview" | "body1" | "body2", "focus_vi": "what this paragraph covers and which data (Vietnamese)", "model": [ { "f": 1, "text": "model sentence written from frame F1" } ] } ],   // exactly 4 items in order
+    "overview_how_vi": "2-3 Vietnamese sentences: which key features go into the Overview and why (no figures in the Overview)",
+    "plan": [ {
+      "step": "intro" | "overview" | "body1" | "body2",
+      "focus_vi": "what this paragraph covers and which data (Vietnamese)",
+      "how_vi": ["3-5 short numbered steps in Vietnamese to write THIS paragraph for THIS visual: which data to take, what to compare, which frame (K1, K2…) and which words"],
+      "model": [ { "f": 1, "text": "model sentence written from frame F1", "note_vi": "Vietnamese explanation of this sentence: what was put into each [slot] of the frame, and why this word / tense / structure" } ]
+    } ],   // exactly 4 items in order
+    "grammar_vi": [ { "point_vi": "grammar point used in the model sentences (tense, passive, comparison, reduced clause…) explained simply in Vietnamese", "example": "sentence about THIS visual" } ],   // 3-4 items
     "vocab": [ { "phrase": "...", "meaning_vi": "...", "example": "example sentence about THIS visual" } ],   // 8-12 items
-    "mistakes_vi": ["3-4 common mistakes on this visual and the correct form"]
-  },
+    "mistakes_vi": ["3-5 common mistakes on this visual, each as: wrong → correct (why)"],
+    "checklist_vi": ["4-6 things the student checks before handing in (Vietnamese)"]
+  }
+}`;
+  const EXERCISES_SHAPE = `{
+  "data": [ "one fact per line copied exactly from the task, with its unit — write this FIRST" ],
   "exercises": [   // one object per requested type, in the order requested
     { "type": "mcq", "title_vi": "...", "instruction_vi": "...", "items": [ { "q": "question in English", "options": ["...", "...", "..."], "answer": 0, "explain_vi": "..." } ] },
     { "type": "tf", "title_vi": "...", "instruction_vi": "...", "items": [ { "statement": "English statement about the visual", "answer": "T" | "F" | "NG", "explain_vi": "..." } ] },
@@ -2791,25 +3184,38 @@ ${EXTRAS_SHAPE}`;
     { "type": "write", "title_vi": "...", "instruction_vi": "...", "items": [ { "para": "Introduction" | "Overview" | "Body 1" | "Body 2", "frame": "the exact Ms. Gigi frame to use", "task_vi": "what to write about (Vietnamese)", "hint_vi": "which data/words to use", "model": "model sentence" } ] }
   ]
 }`;
-  function buildLessonPrompt({ text, type, band, visual, detected, types, count }) {
+  /* Bài giảng và bài tập soạn bằng 2 lượt AI chạy song song (part = 'lesson' | 'exercises'):
+   * bài giảng chi tiết hơn mà không bị cắt giữa chừng vì quá dài. */
+  function buildLessonPrompt({ text, type, band, visual, detected, types, count, part }) {
     const wanted = types.map((t, i) => `${i + 1}. "${t}": ${EX_TYPES[t]}`).join('\n');
-    return `You are an IELTS Writing Task 1 teacher assistant for Ms. Gigi, a Vietnamese teacher.
-Build a short LESSON and small scaffolded EXERCISES that help her students get familiar with THIS visual and with each sentence of her outline BEFORE they write the full essay.
+    const common = `- DATA ACCURACY first: write the "data" sheet from the task, then use only those facts. Exact subjects, categories, places, years, units and figures; never invent data; approximate with "about" only when a value is read between gridlines; comparisons and calculations must be true.
+- Follow the teacher's outline below: every model / exercise sentence is written from her numbered frames (F1, F2...) for the right paragraph, keeping the frames' fixed words.
+- Respect her grammar rules (account for only with %, no bare "trọc lốc" subjects, "witness" not with Percentage/Number/Figure, maps = past tense, process = present simple passive).
+- All instructions, explanations and meanings in Vietnamese; all English content in natural academic English at ${BAND[band] || BAND['7.0']}`;
+    const head = part === 'exercises'
+      ? `You are an IELTS Writing Task 1 teacher assistant for Ms. Gigi, a Vietnamese teacher.
+Build small scaffolded EXERCISES that help her students get familiar with THIS visual and with each sentence of her outline BEFORE they write the full essay. (The lesson itself is written separately.)
 
 Rules:
-- DATA ACCURACY first: write the "data" sheet from the task, then use only those facts. Exact subjects, categories, places, years, units and figures; never invent data; approximate with "about" only when a value is read between gridlines; comparisons and calculations must be true. Every exercise answer (mcq, tf, gap, order, write model) must be correct according to the data — re-check each answer key before replying.
-- Model sentences are high-band (Band 7-8+) yet keep her frames: accurate data with comparisons, precise collocations, no repeated words within a paragraph, error-free grammar.
-- Follow the teacher's outline below. Every model sentence and every exercise sentence must be written from her numbered frames (F1, F2...) for the right paragraph, keeping the frames' fixed words; tag model sentences with the frame number.
-- Respect her grammar rules (account for only with %, no bare "trọc lốc" subjects, "witness" not with Percentage/Number/Figure, maps = past tense, process = present simple passive).
+${common}
+- Every exercise answer (mcq, tf, gap, order, write model) must be correct according to the data — re-check each answer key before replying.
 - Exercises go from easy to hard: understanding the visual → vocabulary → sentence building → writing. Each type has exactly ${count} items (match: ${Math.max(count, 6)} pairs; write: one item per paragraph, 4 items).
 - gap: blanks focus on her key phrases (trend verbs, comparison phrases, prepositions, frame words); "answers" must appear in "bank".
 - order: chunks are short phrases (not single letters), given in the CORRECT order — the app shuffles them.
 - mcq: exactly one correct option; "answer" is its 0-based index. tf: use NG only when the visual really does not say.
 - instruction_vi must work both on screen and on a printed worksheet (say "chọn / điền / sắp xếp / nối / viết", never "bấm").
-- All instructions, explanations and meanings in Vietnamese; all English content in natural academic English at ${BAND[band] || BAND['7.0']}
 
 Exercise types requested (in this order):
-${wanted}
+${wanted}`
+      : `You are an IELTS Writing Task 1 teacher assistant for Ms. Gigi, a Vietnamese teacher.
+Write a DETAILED, EASY-TO-UNDERSTAND LESSON on THIS visual that walks her students (Vietnamese, around Band 5-6) step by step from reading the visual to writing each sentence of her outline. (Exercises are written separately.)
+
+Rules:
+${common}
+- Explain like a patient teacher: short Vietnamese sentences, one idea per line, always pointing to the real figures and names of THIS visual; no vague advice ("viết hay hơn", "dùng từ đa dạng").
+- Model sentences are high-band (Band 7-8+) yet keep her frames: accurate data with comparisons, precise collocations, no repeated words within a paragraph, error-free grammar. Tag each with the frame number and explain it in note_vi (what went into each [slot] of the frame and why).
+- The 4 paragraphs' model sentences together must form a complete essay of 170-200 words.`;
+    return `${head}
 
 Task type selected by the teacher: ${TYPE_HINT[type] || TYPE_HINT.auto}${detected ? ' (image reader detected: ' + detected + ')' : ''}
 
@@ -2817,23 +3223,33 @@ ${outlineNotes(OUTLINE_CANDIDATES[type] || OUTLINE_CANDIDATES.auto)}
 
 ${taskBlock(text, visual)}
 Reply with ONLY one JSON object in this shape:
-${LESSON_SHAPE}`;
+${part === 'exercises' ? EXERCISES_SHAPE : LESSON_SHAPE}`;
   }
-  function validateLesson(r, types) {
-    if (!r || !r.lesson || !Array.isArray(r.exercises)) throw new Error('AI trả về bài giảng chưa đầy đủ. Bấm thử lại.');
+  function validateLesson(r, ex) {
+    if (!r || !r.lesson) throw new Error('AI trả về bài giảng chưa đầy đủ. Bấm thử lại.');
+    if (!ex || !Array.isArray(ex.exercises)) throw new Error('AI trả về bài tập chưa đầy đủ. Bấm thử lại.');
     const L = r.lesson;
     const arr = x => (Array.isArray(x) ? x : []);
+    const str = x => String(x || '').trim();
     L.objectives_vi = arr(L.objectives_vi).map(String);
-    L.reading_steps = arr(L.reading_steps).filter(x => x && x.q_vi).map(x => ({ q_vi: String(x.q_vi), a: String(x.a || '') }));
+    L.type_why_vi = str(L.type_why_vi);
+    L.reading_steps = arr(L.reading_steps).filter(x => x && x.q_vi).map(x => ({ q_vi: String(x.q_vi), hint_vi: str(x.hint_vi), a: String(x.a || '') }));
     L.key_features = arr(L.key_features).map(String);
-    L.plan = arr(L.plan).slice(0, 4).map((x, i) => ({ step: G.STEP_KEYS[i], focus_vi: String((x && x.focus_vi) || ''), model: normOption(x && x.model).parts || [] }));
+    L.overview_how_vi = str(L.overview_how_vi);
+    L.plan = arr(L.plan).slice(0, 4).map((x, i) => ({
+      step: G.STEP_KEYS[i], focus_vi: str(x && x.focus_vi), how_vi: arr(x && x.how_vi).map(str).filter(Boolean),
+      model: arr(x && x.model).map(m => (typeof m === 'string' ? { f: 0, text: m.trim(), note_vi: '' } : { f: +(m && m.f) || 0, text: str(m && m.text), note_vi: str(m && m.note_vi) })).filter(m => m.text),
+    }));
+    L.grammar_vi = arr(L.grammar_vi).filter(g => g && g.point_vi).map(g => ({ point_vi: str(g.point_vi), example: str(g.example) }));
     L.vocab = arr(L.vocab).filter(v => v && v.phrase);
     L.mistakes_vi = arr(L.mistakes_vi).map(String);
+    L.checklist_vi = arr(L.checklist_vi).map(str).filter(Boolean);
     r.paraphrase = normParaphrase(r.paraphrase);
-    r.data = arr(r.data).map(x => String(x).trim()).filter(Boolean);
+    r.data = arr(r.data).length ? arr(r.data) : arr(ex.data);
+    r.data = r.data.map(x => String(x).trim()).filter(Boolean);
     r.subject_pp = normSubjects(r.subject_pp);
     r.subject_tips = normTips(r.subject_tips);
-    r.exercises = r.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
+    r.exercises = ex.exercises.filter(e => e && EX_TYPES[e.type] && Array.isArray(e.items) && e.items.length).map(e => {
       if (e.type === 'mcq') e.items = e.items.filter(it => Array.isArray(it.options) && it.options.length > 1).map(it => ({ ...it, answer: Math.min(Math.max(+it.answer || 0, 0), it.options.length - 1) }));
       if (e.type === 'gap') {
         e.items = e.items.filter(it => it.sentence && Array.isArray(it.answers));
@@ -2848,8 +3264,12 @@ ${LESSON_SHAPE}`;
     return r;
   }
   async function makeLesson({ text, type, band, visual, detected, types, count, signal }) {
-    const r = await ask(buildLessonPrompt({ text, type, band, visual, detected, types, count }), null, signal, 'medium', 'exercises');
-    return validateLesson(r, types);
+    const args = { text, type, band, visual, detected, types, count };
+    const [r, ex] = await Promise.all([
+      ask(buildLessonPrompt(Object.assign({ part: 'lesson' }, args)), null, signal, 'medium', 'lesson'),
+      ask(buildLessonPrompt(Object.assign({ part: 'exercises' }, args)), null, signal, 'medium', 'exercises'),
+    ]);
+    return validateLesson(r, ex);
   }
 
   return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, makeExtras, extractJson, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
@@ -3201,29 +3621,45 @@ window.LESSON = (function () {
     $('#lr-score').textContent = sc; $('#lr-score').hidden = !sc;
   }
 
+  // Bài mẫu hoàn chỉnh ghép từ câu mẫu của 4 đoạn
+  const modelEssay = x => x.plan.map(p => p.model.map(m => m.text).join(' ')).filter(Boolean);
+  const words = t => (String(t).match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+  const memoSrc = () => (L.data ? { outline: G.outlineFor(L.data.task_type, L.data.outline), src: { paraphrase: L.data.paraphrase || [], subject_pp: L.data.subject_pp || [], vocab: (L.data.lesson && L.data.lesson.vocab) || [] } } : null);
+
   function lessonView(d, o) {
     const x = d.lesson;
     const ul = a => `<ul>${a.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    const ph = t => esc(t).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>');
+    let n = 0;
+    const sec = (title, body, cls) => `<section class="l-sec${cls ? ' ' + cls : ''}"><h3><span class="l-step">Bước ${++n}</span> ${title}</h3>${body}</section>`;
     const plan = x.plan.map((p, i) => {
-      const sec = o[G.STEP_KEYS[i]];
+      const sc = o[G.STEP_KEYS[i]];
       return `<div class="l-plan">
-        <h4>${['①', '②', '③', '④'][i]} ${STEP_NAMES[i]} <span class="muted">— ${esc(sec.rule)}</span></h4>
-        ${p.focus_vi ? `<p class="l-focus">🎯 ${esc(p.focus_vi)}</p>` : ''}
+        <h4>${['①', '②', '③', '④'][i]} ${STEP_NAMES[i]} <span class="muted">— ${esc(sc.rule)}</span></h4>
+        ${p.focus_vi ? `<p class="l-focus">🎯 <b>Đoạn này viết gì:</b> ${esc(p.focus_vi)}</p>` : ''}
+        ${(p.how_vi || []).length ? `<div class="l-how"><b>🪜 Cách viết từng bước</b><ol>${p.how_vi.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>` : ''}
         <div class="l-two">
-          <div><h5>Khung câu</h5><ul class="frames">${sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>
-          <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
+          <div><h5>Khung câu của cô</h5><ul class="frames">${sc.frames.map((f, k) => `<li><span class="fno">K${k + 1}</span> ${ph(f)}</li>`).join('')}</ul></div>
+          <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames l-models">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}${m.note_vi ? `<span class="l-note">💡 ${esc(m.note_vi)}</span>` : ''}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
         </div></div>`;
     }).join('');
+    const essay = modelEssay(x);
+    const total = essay.reduce((k, t) => k + words(t), 0);
     return `${x.objectives_vi.length ? `<section class="l-sec"><h3>🎯 Mục tiêu bài học</h3>${ul(x.objectives_vi)}</section>` : ''}
-      <section class="l-sec"><h3>👀 Bước 1 · Đọc biểu đồ</h3><p class="muted small">Hỏi lớp từng câu trước, rồi bấm để hiện đáp án.</p>
-        <ol class="l-read">${x.reading_steps.map(r => `<li><b>${esc(r.q_vi)}</b><details><summary>Hiện đáp án</summary><p>${esc(r.a)}</p></details></li>`).join('')}</ol></section>
-      ${x.key_features.length ? `<section class="l-sec"><h3>⭐ Đặc điểm chính cần nhận ra</h3>${ul(x.key_features)}</section>` : ''}
-      <section class="l-sec"><h3>📐 Bước 2 · Áp dụng dàn ý Ms. Gigi: ${esc(o.name)}</h3>${plan}</section>
-      ${x.vocab.length ? `<section class="l-sec"><h3>📌 Từ vựng cho biểu đồ này</h3><div class="table-wrap"><table><thead><tr><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
-        ${x.vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi || '')}</td><td>${esc(v.example || '')}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
-      ${(d.subject_pp || []).length ? `<section class="l-sec"><h3>🧑‍🏫 Paraphrase chủ thể</h3><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.tipsHtml(d.subject_tips)}${H.subjectsHtml(d.subject_pp)}</section>` : ''}
-      ${d.paraphrase.length ? `<section class="l-sec"><h3>🔁 Từ paraphrase</h3>${H.paraphraseHtml(d.paraphrase)}</section>` : ''}
+      ${sec('🧭 Nhận dạng đề', `<p><b>Dạng:</b> ${esc(o.name)}</p>${x.type_why_vi ? `<p>${esc(x.type_why_vi)}</p>` : ''}<p class="muted small">Dấu hiệu chung của dạng này: ${esc(o.when)}</p>`)}
+      ${sec('👀 Đọc biểu đồ', `<p class="muted small">Hỏi lớp từng câu, cho học sinh nhìn vào chỗ gợi ý rồi mới bấm “Hiện đáp án”.</p>
+        <ol class="l-read">${x.reading_steps.map(r => `<li><b>${esc(r.q_vi)}</b>${r.hint_vi ? `<p class="l-hint">💡 ${esc(r.hint_vi)}</p>` : ''}<details><summary>Hiện đáp án</summary><p>${esc(r.a)}</p></details></li>`).join('')}</ol>`)}
+      ${x.key_features.length ? sec('⭐ Đặc điểm chính → ý cho Overview', `${ul(x.key_features)}${x.overview_how_vi ? `<p class="l-tip">📝 <b>Chọn ý cho Overview:</b> ${esc(x.overview_how_vi)}</p>` : ''}`) : ''}
+      ${sec(`📐 Viết từng đoạn theo dàn ý Ms. Gigi: ${esc(o.name)}`, `<p class="muted small"><span class="slot-ph">[chữ trong ngoặc]</span> = phần em điền thông tin của đề; phần còn lại của khung giữ nguyên. 💡 = giải thích câu mẫu.</p>${plan}`)}
+      ${essay.length ? sec(`📄 Bài mẫu hoàn chỉnh (${total} từ)`, `<div class="paper">${essay.map((t, i) => `<div class="para-block"><h3><span>${STEP_NAMES[i]}</span></h3><p>${esc(t)}</p></div>`).join('')}</div>`) : ''}
+      ${(x.grammar_vi || []).length ? sec('🧩 Ngữ pháp dùng trong bài', `<ul class="l-gram">${x.grammar_vi.map(g => `<li><b>${esc(g.point_vi)}</b>${g.example ? `<span class="l-note">VD: ${esc(g.example)}</span>` : ''}</li>`).join('')}</ul>`) : ''}
+      ${x.vocab.length ? sec('📌 Từ vựng cho biểu đồ này', `<div class="table-wrap"><table><thead><tr><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
+        ${x.vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi || '')}</td><td>${esc(v.example || '')}</td></tr>`).join('')}</tbody></table></div>`) : ''}
+      ${(d.subject_pp || []).length ? sec('🧑‍🏫 Paraphrase chủ thể', `<p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.tipsHtml(d.subject_tips)}${H.subjectsHtml(d.subject_pp)}`) : ''}
+      ${d.paraphrase.length ? sec('🔁 Từ paraphrase', H.paraphraseHtml(d.paraphrase)) : ''}
+      <section class="l-sec">${MEMO.screen(memoSrc().outline, memoSrc().src, 'lesson')}</section>
       ${x.mistakes_vi.length ? `<section class="l-sec"><h3>⚠️ Lỗi học sinh hay mắc</h3>${ul(x.mistakes_vi)}</section>` : ''}
+      ${(x.checklist_vi || []).length ? `<section class="l-sec"><h3>✅ Tự kiểm tra trước khi nộp bài</h3><ul class="l-check">${x.checklist_vi.map(t => `<li>☐ ${esc(t)}</li>`).join('')}</ul></section>` : ''}
       <div class="row end"><button type="button" class="btn primary" data-ltab="ex">✏️ Sang phần bài tập →</button></div>`;
   }
 
@@ -3338,22 +3774,32 @@ window.LESSON = (function () {
     if (d.topic_vi) p.push(d.topic_vi);
     if (L.prompt || d.prompt_text) p.push('', '📝 ĐỀ BÀI', L.prompt || d.prompt_text);
     if (x.objectives_vi.length) p.push('', '🎯 MỤC TIÊU', ...x.objectives_vi.map(t => '• ' + t));
-    p.push('', line, '👀 BƯỚC 1 · ĐỌC BIỂU ĐỒ', line, ...x.reading_steps.map((r, i) => `${i + 1}. ${r.q_vi}\n   → ${r.a}`));
-    if (x.key_features.length) p.push('', '⭐ ĐẶC ĐIỂM CHÍNH', ...x.key_features.map(t => '• ' + t));
-    p.push('', line, `📐 BƯỚC 2 · DÀN Ý MS. GIGI: ${o.name}`, line);
+    let n = 0;
+    const head = t => p.push('', line, `BƯỚC ${++n} · ${t}`, line);
+    head('🧭 NHẬN DẠNG ĐỀ'); p.push(`Dạng: ${o.name}`); if (x.type_why_vi) p.push(x.type_why_vi);
+    head('👀 ĐỌC BIỂU ĐỒ'); p.push(...x.reading_steps.map((r, i) => `${i + 1}. ${r.q_vi}${r.hint_vi ? '\n   💡 ' + r.hint_vi : ''}\n   → ${r.a}`));
+    if (x.key_features.length) { head('⭐ ĐẶC ĐIỂM CHÍNH → Ý CHO OVERVIEW'); p.push(...x.key_features.map(t => '• ' + t)); if (x.overview_how_vi) p.push('📝 Chọn ý cho Overview: ' + x.overview_how_vi); }
+    head(`📐 VIẾT TỪNG ĐOẠN THEO DÀN Ý MS. GIGI: ${o.name}`);
     x.plan.forEach((pl, i) => {
       const sec = o[G.STEP_KEYS[i]];
       p.push('', `${['①', '②', '③', '④'][i]} ${STEP_NAMES[i].toUpperCase()} — ${sec.rule}`);
-      if (pl.focus_vi) p.push('Nội dung: ' + pl.focus_vi);
-      p.push('Khung câu:', ...sec.frames.map((f, n) => `  K${n + 1}. ${f}`));
-      if (pl.model.length) p.push('Câu mẫu:', ...pl.model.map(m => `  ${m.f ? 'K' + m.f : '•'} → ${m.text}`));
+      if (pl.focus_vi) p.push('🎯 Đoạn này viết gì: ' + pl.focus_vi);
+      if ((pl.how_vi || []).length) p.push('🪜 Cách viết từng bước:', ...pl.how_vi.map((t, k) => `  ${k + 1}. ${t}`));
+      p.push('Khung câu của cô:', ...sec.frames.map((f, k) => `  K${k + 1}. ${f}`));
+      if (pl.model.length) p.push('Câu mẫu:', ...pl.model.map(m => `  ${m.f ? 'K' + m.f : '•'} → ${m.text}${m.note_vi ? '\n     💡 ' + m.note_vi : ''}`));
     });
-    if (x.vocab.length) p.push('', line, '📌 TỪ VỰNG', line, ...x.vocab.map(v => `• ${v.phrase} (${v.meaning_vi || ''})${v.example ? '\n   VD: ' + v.example : ''}`));
-    if ((d.subject_pp || []).length) p.push('', line, '🧑‍🏫 PARAPHRASE CHỦ THỂ', line, ...H.tipsPlain(d.subject_tips), ...H.subjectsPlain(d.subject_pp));
-    if (d.paraphrase.length) p.push('', line, '🔁 TỪ PARAPHRASE', line, ...d.paraphrase.map(w => `• ${w.word}${w.meaning_vi ? ' (' + w.meaning_vi + ')' : ''}\n` + w.alternatives.map(a => `   → ${a.phrase}${a.meaning_vi ? ' (' + a.meaning_vi + ')' : ''}${a.note_vi ? ' – ' + a.note_vi : ''}`).join('\n')));
+    const essay = modelEssay(x);
+    if (essay.length) { head(`📄 BÀI MẪU HOÀN CHỈNH (${essay.reduce((k, t) => k + words(t), 0)} từ)`); essay.forEach((t, i) => p.push('', `${STEP_NAMES[i]}:`, t)); }
+    if ((x.grammar_vi || []).length) { head('🧩 NGỮ PHÁP DÙNG TRONG BÀI'); p.push(...x.grammar_vi.map(g => `• ${g.point_vi}${g.example ? '\n   VD: ' + g.example : ''}`)); }
+    if (x.vocab.length) { head('📌 TỪ VỰNG CHO BIỂU ĐỒ NÀY'); p.push(...x.vocab.map(v => `• ${v.phrase} (${v.meaning_vi || ''})${v.example ? '\n   VD: ' + v.example : ''}`)); }
+    if ((d.subject_pp || []).length) { head('🧑‍🏫 PARAPHRASE CHỦ THỂ'); p.push(...H.tipsPlain(d.subject_tips), ...H.subjectsPlain(d.subject_pp)); }
+    if (d.paraphrase.length) { head('🔁 TỪ PARAPHRASE'); p.push(...d.paraphrase.map(w => `• ${w.word}${w.meaning_vi ? ' (' + w.meaning_vi + ')' : ''}\n` + w.alternatives.map(a => `   → ${a.phrase}${a.meaning_vi ? ' (' + a.meaning_vi + ')' : ''}${a.note_vi ? ' – ' + a.note_vi : ''}`).join('\n'))); }
     if (x.mistakes_vi.length) p.push('', '⚠️ LỖI HAY MẮC', ...x.mistakes_vi.map(t => '• ' + t));
-    const plain = p.join('\n');
-    const html = toHtml(plain);
+    if ((x.checklist_vi || []).length) p.push('', '✅ TỰ KIỂM TRA TRƯỚC KHI NỘP BÀI', ...x.checklist_vi.map(t => '☐ ' + t));
+    // Bảng từ cần học thuộc ở cuối bài giảng (bảng màu khi dán Word / Docs)
+    const m = memoSrc(), memo = MEMO.copy(m.outline, m.src, false);
+    const plain = p.join('\n') + '\n\n' + line + '\n' + memo.plain;
+    const html = toHtml(p.join('\n')) + memo.html;
     return { plain, html };
   }
 
@@ -3394,7 +3840,7 @@ window.LESSON = (function () {
     const body = plain.split('\n').map(l => {
       if (/^━+$/.test(l)) return '';
       const e = esc(l);
-      if (/^(🎓|✏️|🔑|👀|📐|📌|🔁|⚠️|⭐|🎯|📝|BÀI \d|①|②|③|④)/.test(l)) return `<p style="margin:10px 0 4px;font-weight:bold;color:#2f6f45">${e}</p>`;
+      if (/^(🎓|✏️|🔑|👀|📐|📌|🔁|⚠️|⭐|🎯|📝|✅|BÀI \d|BƯỚC \d|①|②|③|④)/.test(l)) return `<p style="margin:10px 0 4px;font-weight:bold;color:#2f6f45">${e}</p>`;
       return `<p style="margin:0 0 3px;white-space:pre-wrap">${e || '&nbsp;'}</p>`;
     }).join('');
     const img = withImage && L.image ? `<p><img src="${L.image.dataUrl}" style="max-width:520px" alt="Biểu đồ"></p>` : '';
@@ -3461,19 +3907,21 @@ window.LESSON = (function () {
       lesson: {
         objectives_vi: ['Đọc hiểu biểu đồ đường: trục, đơn vị, mốc thời gian và 3 đường số liệu.', 'Nhận ra 2 xu hướng ngược nhau và điểm hai đường cắt nhau.', 'Viết từng câu theo khung Line graph của Ms. Gigi.'],
         reading_steps: [
-          { q_vi: 'Đây là dạng biểu đồ gì và nói về điều gì?', a: 'Biểu đồ đường (line graph), cho biết tỷ lệ % người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp.' },
-          { q_vi: 'Đơn vị là gì? Vậy chủ ngữ nên viết thế nào?', a: 'Phần trăm (%). Viết “the percentage / the proportion of car commuters”, không viết trống “Car increased”.' },
-          { q_vi: 'Khoảng thời gian bao lâu? Dùng thì gì?', a: 'Từ 2000 đến 2025, mỗi mốc cách 5 năm → dùng thì quá khứ đơn.' },
-          { q_vi: 'Năm 2000, phương tiện nào cao nhất và thấp nhất?', a: 'Ô tô cao nhất (60%), xe đạp thấp nhất (5%); xe buýt 25%.' },
-          { q_vi: 'Xu hướng chính của mỗi đường là gì?', a: 'Ô tô giảm liên tục (60% → 35%); xe buýt (25% → 39%) và xe đạp (5% → 20%) đều tăng.' },
-          { q_vi: 'Có điểm đặc biệt nào cần nhắc tới?', a: 'Khoảng năm 2023 xe buýt vượt ô tô và trở thành phương tiện phổ biến nhất vào năm 2025.' },
+          { q_vi: 'Đây là dạng biểu đồ gì và nói về điều gì?', hint_vi: 'Đọc tiêu đề phía trên và chú thích (3 màu đường).', a: 'Biểu đồ đường (line graph), cho biết tỷ lệ % người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp.' },
+          { q_vi: 'Đơn vị là gì? Vậy chủ ngữ nên viết thế nào?', hint_vi: 'Nhìn nhãn trục tung (bên trái): có dấu %.', a: 'Phần trăm (%). Viết “the percentage / the proportion of car commuters”, không viết trống “Car increased”.' },
+          { q_vi: 'Khoảng thời gian bao lâu? Dùng thì gì?', hint_vi: 'Nhìn trục hoành (phía dưới): năm đầu và năm cuối.', a: 'Từ 2000 đến 2025, mỗi mốc cách 5 năm → dùng thì quá khứ đơn.' },
+          { q_vi: 'Năm 2000, phương tiện nào cao nhất và thấp nhất?', hint_vi: 'Đặt thước dọc ở năm 2000, so điểm đầu của 3 đường với các vạch kẻ ngang.', a: 'Ô tô cao nhất (60%), xe đạp thấp nhất (5%); xe buýt 25%.' },
+          { q_vi: 'Xu hướng chính của mỗi đường là gì?', hint_vi: 'So điểm đầu (2000) với điểm cuối (2025) của từng đường: lên hay xuống?', a: 'Ô tô giảm liên tục (60% → 35%); xe buýt (25% → 39%) và xe đạp (5% → 20%) đều tăng.' },
+          { q_vi: 'Có điểm đặc biệt nào cần nhắc tới?', hint_vi: 'Tìm chỗ hai đường cắt nhau.', a: 'Khoảng năm 2023 xe buýt vượt ô tô và trở thành phương tiện phổ biến nhất vào năm 2025.' },
         ],
+        type_why_vi: 'Biểu đồ đường có trục thời gian (2000 → 2025, nhiều năm) nên dùng dàn ý Line / Bar (xu hướng): Overview nêu 2 xu hướng trái ngược, Body chia theo thời gian.',
+        overview_how_vi: 'Lấy 2 ý: (1) ô tô giảm trong khi xe buýt và xe đạp tăng — hai xu hướng ngược nhau; (2) xe buýt phổ biến nhất vào cuối giai đoạn. Không ghi số % trong Overview.',
         key_features: ['Ô tô giảm từ 60% xuống 35%.', 'Xe buýt tăng từ 25% lên 39%, xe đạp tăng gấp 4 lần (5% → 20%).', 'Xe buýt vượt ô tô vào khoảng năm 2023.', 'Cuối giai đoạn, xe buýt là phương tiện phổ biến nhất.'],
         plan: [
-          { step: 'intro', focus_vi: 'Paraphrase đề: shows → illustrates, giữ đủ 3 phương tiện và 2 mốc năm.', model: [{ f: 1, text: 'The line graph illustrates the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025.' }] },
-          { step: 'overview', focus_vi: 'Hai xu hướng ngược nhau (ô tô giảm, xe buýt & xe đạp tăng) + phương tiện phổ biến nhất cuối giai đoạn. Không ghi số.', model: [{ f: 1, text: 'Overall, it is obvious that while the proportion of car commuters experienced a downward trend, the opposite was true for bus and bicycle commuters.' }, { f: 2, text: 'In addition, the bus became the most popular means of transport at the end of the period.' }] },
-          { step: 'body1', focus_vi: 'Số liệu năm 2000 của cả 3 đường, rồi 10 năm tiếp theo (đến 2010).', model: [{ f: 1, text: 'In 2000, the percentage of car commuters was 60%, while the proportions for bus and bicycle users were 25% and 5% respectively.' }, { f: 2, text: 'Over the next 10 years, the figure for car usage fell gradually to 55%, whereas the percentages of bus and bicycle commuters rose slightly to 30% and 10%.' }] },
-          { step: 'body2', focus_vi: 'Giai đoạn 2010–2025: ô tô tiếp tục giảm, xe buýt & xe đạp tăng đều, điểm giao nhau khoảng 2023.', model: [{ f: 1, text: 'From 2010 to 2025, the proportion of people driving to work continued to decline significantly, falling to 35% at the end of the period.' }, { f: 1, text: 'Meanwhile, the figures for bus and bicycle commuters grew steadily, reaching 39% and 20% respectively.' }, { f: 2, text: 'Notably, the percentage of car commuters was overtaken by that of bus commuters in about 2023.' }] },
+          { step: 'intro', focus_vi: 'Paraphrase đề: shows → illustrates, giữ đủ 3 phương tiện và 2 mốc năm.', how_vi: ['Chọn tên biểu đồ: The line graph.', 'Đổi động từ của đề: shows → illustrates.', 'Giữ đúng chủ thể: the percentage of commuters … by car, bus and bicycle.', 'Đổi cụm thời gian: from 2000 to 2025 → between 2000 and 2025.'], model: [{ f: 1, text: 'The line graph illustrates the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025.', note_vi: 'K1 = Name (The line graph) + Verb (illustrates) + Object (the percentage of commuters … by car, bus and bicycle) + Time (between 2000 and 2025).' }] },
+          { step: 'overview', focus_vi: 'Hai xu hướng ngược nhau (ô tô giảm, xe buýt & xe đạp tăng) + phương tiện phổ biến nhất cuối giai đoạn. Không ghi số.', how_vi: ['Mở bằng “Overall, it is obvious that while …”.', 'Vế 1: đường giảm (ô tô) — experienced a downward trend.', 'Vế 2: “the opposite was true for” + 2 đường tăng.', 'Câu 2: phương tiện phổ biến nhất cuối giai đoạn. Không ghi số.'], model: [{ f: 1, text: 'Overall, it is obvious that while the proportion of car commuters experienced a downward trend, the opposite was true for bus and bicycle commuters.', note_vi: 'K1: [S + V] = the proportion of car commuters experienced a downward trend; [cái còn lại] = bus and bicycle commuters. Dùng “proportion” để không lặp “percentage” ở mở bài.' }, { f: 2, text: 'In addition, the bus became the most popular means of transport at the end of the period.', note_vi: 'K2: nêu cái cao nhất ở cuối giai đoạn, không có số liệu.' }] },
+          { step: 'body1', focus_vi: 'Số liệu năm 2000 của cả 3 đường, rồi 10 năm tiếp theo (đến 2010).', how_vi: ['Mở bằng năm đầu: In 2000, …', 'Đọc số của cả 3 đường năm 2000; 2 số sau gom bằng “respectively”.', 'Câu 2 “Over the next 10 years”: ô tô giảm dần, 2 đường kia tăng nhẹ (kèm số năm 2010).'], model: [{ f: 1, text: 'In 2000, the percentage of car commuters was 60%, while the proportions for bus and bicycle users were 25% and 5% respectively.', note_vi: 'K1: [năm đầu] = 2000; [A] = car commuters 60%; [B], [C] = bus and bicycle users 25% và 5% — “respectively” = lần lượt.' }, { f: 2, text: 'Over the next 10 years, the figure for car usage fell gradually to 55%, whereas the percentages of bus and bicycle commuters rose slightly to 30% and 10%.', note_vi: 'K2: xu hướng + so sánh. “fell gradually to 55%”: to = giảm ĐẾN mức 55%. “whereas” nối hai xu hướng ngược nhau.' }] },
+          { step: 'body2', focus_vi: 'Giai đoạn 2010–2025: ô tô tiếp tục giảm, xe buýt & xe đạp tăng đều, điểm giao nhau khoảng 2023.', how_vi: ['Mở bằng “From 2010 to 2025”.', 'Ô tô: tiếp tục giảm mạnh, ghi số cuối (35%).', 'Xe buýt và xe đạp: tăng đều, ghi số cuối (39% và 20%).', 'Kết bằng điểm giao nhau: bị vượt qua khoảng năm 2023 (K2).'], model: [{ f: 1, text: 'From 2010 to 2025, the proportion of people driving to work continued to decline significantly, falling to 35% at the end of the period.', note_vi: 'K1: “people driving to work” là cách viết khác của car commuters (lần 2 mới đổi). “falling to 35%” là V-ing nối tiếp, không lặp chủ ngữ.' }, { f: 1, text: 'Meanwhile, the figures for bus and bicycle commuters grew steadily, reaching 39% and 20% respectively.', note_vi: 'Meanwhile = trong khi đó; “reaching … respectively” ghi số cuối của 2 đường.' }, { f: 2, text: 'Notably, the percentage of car commuters was overtaken by that of bus commuters in about 2023.', note_vi: 'K2: A was overtaken by B in [năm]. “that of” thay cho “the percentage of” để không lặp.' }] },
         ],
         vocab: [
           { phrase: 'commuters', meaning_vi: 'người đi làm hằng ngày', example: 'The percentage of commuters who travelled by bus rose.' },
@@ -3486,6 +3934,13 @@ window.LESSON = (function () {
           { phrase: 'respectively', meaning_vi: 'lần lượt', example: 'Bus and bicycle users were 25% and 5% respectively.' },
           { phrase: 'at the end of the period', meaning_vi: 'vào cuối giai đoạn', example: 'The bus was the most popular at the end of the period.' },
         ],
+        grammar_vi: [
+          { point_vi: 'Quá khứ đơn cho các năm đã qua (fell, rose, grew).', example: 'The figure for car usage fell gradually to 55%.' },
+          { point_vi: 'Giới từ với số liệu: to = đạt đến mức, by = thay đổi một lượng, at = giữ ở mức.', example: 'Bus use rose to 30% (tăng ĐẾN 30%).' },
+          { point_vi: 'V-ing nối tiếp để không lặp chủ ngữ (falling to …, reaching …).', example: '… continued to decline significantly, falling to 35%.' },
+          { point_vi: 'Bị động “was overtaken by” để nói đường này bị đường kia vượt qua.', example: 'Car use was overtaken by bus use in about 2023.' },
+        ],
+        checklist_vi: ['Mở bài đã đổi động từ và cụm thời gian, giữ đủ 3 phương tiện.', 'Overview có 2 xu hướng và không có số liệu.', 'Body 1 có số năm 2000 của cả 3 đường.', 'Body 2 có số năm 2025 và điểm giao nhau.', 'Không có chủ ngữ trọc lốc (Car decreased ❌).', 'Bài từ 150 từ trở lên.'],
         mistakes_vi: [
           '“Car decreased” (chủ ngữ trọc lốc) → “The percentage of car commuters decreased”.',
           '“The percentage witnessed a fall” → “The percentage experienced a fall” hoặc “The decade witnessed a fall in …”.',
@@ -3634,7 +4089,7 @@ window.LESSON = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, pasteImage, setupVisible, snapshot, openSaved, savedId, setSavedId };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible, snapshot, openSaved, savedId, setSavedId, memoSrc };
 })();
 </script>
   <script>
@@ -4832,9 +5287,21 @@ window.GRADE = (function () {
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
     renderStructs();
+    $('#memo-review').innerHTML = MEMO.screen(outlineOf(a), memoSrc(a), 'write');
     $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
     // Lần đầu xem bài hoàn chỉnh: AI phân tích kỹ cấu trúc câu (mỗi phiên bản bài một lần)
     if (S.structs && S.structs.source === 'local' && !structTried.has(S.structs.essay)) structsAI(true);
+  }
+
+  // Từ của đề đang luyện viết cho bảng “📒 Từ cần học thuộc”
+  const memoSrc = a => ({ paraphrase: a.paraphrase || [], subject_pp: a.subject_pp || [], vocab: (a.steps || []).flatMap(st => st.vocab || []) });
+  function memoCopy(kind, ctx) {
+    let outline, src = null;
+    if (ctx === 'write') { if (!S.analysis) return; outline = outlineOf(S.analysis); src = memoSrc(S.analysis); }
+    else if (ctx === 'lesson') { const m = LESSON.memoSrc(); if (!m) return; outline = m.outline; src = m.src; }
+    else outline = ctx.replace(/^lib:/, '');
+    const c = MEMO.copy(outline, src, kind === 'quiz');
+    copyRich(c.plain, c.html, kind === 'quiz' ? 'Đã sao chép phiếu tự kiểm tra (để trống nghĩa) — dán vào Word / Google Docs để in cho học sinh.' : 'Đã sao chép bảng từ cần học thuộc — dán vào Word, Google Docs hoặc Zalo gửi học sinh.');
   }
 
   /* ---------- Cấu trúc câu đã dùng trong bài (ôn lại) ---------- */
@@ -5003,6 +5470,7 @@ window.GRADE = (function () {
         ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
         <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
         ${G.SUBJECT_PP[libTab] ? `<div class="vsec"><h3>Paraphrase chủ thể cho dạng này</h3>${subjTable(G.SUBJECT_PP[libTab])}</div>` : ''}
+        <div class="vsec">${MEMO.screen(libTab, libTab === (S.analysis && !S.isDemo ? cur : '') ? memoSrc(S.analysis) : null, 'lib:' + libTab)}</div>
         ${o.sample ? `<div class="vsec"><h3>Bài mẫu</h3><div class="paper">${o.sample.split('\n').map(p => `<div class="para-block"><p>${esc(p)}</p></div>`).join('')}</div></div>` : ''}`;
     }
     const own = S.analysis && !S.isDemo ? (S.analysis.steps || []).map((x, k) => x.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${x.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
@@ -5230,6 +5698,7 @@ window.GRADE = (function () {
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
     if (paneClick(t)) return;
     if (t.dataset.save) { saveNow(t.dataset.save); return; }
+    if (t.dataset.memo) { memoCopy(t.dataset.memo, t.dataset.memoCtx); return; }
     if (t.dataset.savedOpen) { openSaved(t.dataset.savedOpen); return; }
     if (t.dataset.savedDel) { delSaved(t); return; }
     if (t.dataset.mode) { show(t.dataset.mode === 'write' ? (S.analysis ? 'wizard' : 'setup') : t.dataset.mode); return; }

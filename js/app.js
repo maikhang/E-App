@@ -811,9 +811,21 @@
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
     renderStructs();
+    $('#memo-review').innerHTML = MEMO.screen(outlineOf(a), memoSrc(a), 'write');
     $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
     // Lần đầu xem bài hoàn chỉnh: AI phân tích kỹ cấu trúc câu (mỗi phiên bản bài một lần)
     if (S.structs && S.structs.source === 'local' && !structTried.has(S.structs.essay)) structsAI(true);
+  }
+
+  // Từ của đề đang luyện viết cho bảng “📒 Từ cần học thuộc”
+  const memoSrc = a => ({ paraphrase: a.paraphrase || [], subject_pp: a.subject_pp || [], vocab: (a.steps || []).flatMap(st => st.vocab || []) });
+  function memoCopy(kind, ctx) {
+    let outline, src = null;
+    if (ctx === 'write') { if (!S.analysis) return; outline = outlineOf(S.analysis); src = memoSrc(S.analysis); }
+    else if (ctx === 'lesson') { const m = LESSON.memoSrc(); if (!m) return; outline = m.outline; src = m.src; }
+    else outline = ctx.replace(/^lib:/, '');
+    const c = MEMO.copy(outline, src, kind === 'quiz');
+    copyRich(c.plain, c.html, kind === 'quiz' ? 'Đã sao chép phiếu tự kiểm tra (để trống nghĩa) — dán vào Word / Google Docs để in cho học sinh.' : 'Đã sao chép bảng từ cần học thuộc — dán vào Word, Google Docs hoặc Zalo gửi học sinh.');
   }
 
   /* ---------- Cấu trúc câu đã dùng trong bài (ôn lại) ---------- */
@@ -982,6 +994,7 @@
         ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
         <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
         ${G.SUBJECT_PP[libTab] ? `<div class="vsec"><h3>Paraphrase chủ thể cho dạng này</h3>${subjTable(G.SUBJECT_PP[libTab])}</div>` : ''}
+        <div class="vsec">${MEMO.screen(libTab, libTab === (S.analysis && !S.isDemo ? cur : '') ? memoSrc(S.analysis) : null, 'lib:' + libTab)}</div>
         ${o.sample ? `<div class="vsec"><h3>Bài mẫu</h3><div class="paper">${o.sample.split('\n').map(p => `<div class="para-block"><p>${esc(p)}</p></div>`).join('')}</div></div>` : ''}`;
     }
     const own = S.analysis && !S.isDemo ? (S.analysis.steps || []).map((x, k) => x.vocab.length ? `<p><b>${STEP_NAMES[k]}:</b> ${x.vocab.map(v => esc(v.phrase) + (v.meaning_vi ? ' <span class="muted">(' + esc(v.meaning_vi) + ')</span>' : '')).join(' · ')}</p>` : '').join('') : '';
@@ -1209,6 +1222,7 @@
     if (t.matches('[data-close]')) { t.closest('dialog').close(); return; }
     if (paneClick(t)) return;
     if (t.dataset.save) { saveNow(t.dataset.save); return; }
+    if (t.dataset.memo) { memoCopy(t.dataset.memo, t.dataset.memoCtx); return; }
     if (t.dataset.savedOpen) { openSaved(t.dataset.savedOpen); return; }
     if (t.dataset.savedDel) { delSaved(t); return; }
     if (t.dataset.mode) { show(t.dataset.mode === 'write' ? (S.analysis ? 'wizard' : 'setup') : t.dataset.mode); return; }

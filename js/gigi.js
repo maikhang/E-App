@@ -366,6 +366,274 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   };
   const TECH = Object.fromEntries(SUBJECT_GUIDE.techniques.map(t => [t.id, t.name]));
 
+  /* ---------- 📒 Từ cần học thuộc theo từng dạng ----------
+   * Lấy từ chính dàn ý của cô ở trên (khung câu, lưu ý & từ vựng, bài mẫu): mỗi nhóm = một phần của bài.
+   * Mỗi từ: en (từ / cụm từ) · vi (nghĩa) · ex (ví dụ, phần lớn trích bài mẫu của cô). Maps lấy thêm 2 bảng từ vựng Maps (content.js). */
+  const W = (en, vi, ex) => ({ en, vi, ex: ex || '' });
+  const MEMORIZE = {
+    trend: [
+      { group: 'Mở bài (Introduction)', items: [
+        W('shows / illustrates / presents / demonstrates', 'cho thấy / minh hoạ / trình bày', 'The line graph illustrates the percentage of commuters …'),
+        W('the number of', 'số lượng (danh từ đếm được)', 'the number of visitors'),
+        W('the amount of', 'lượng (danh từ không đếm được)', 'the amount of water'),
+        W('the quantity of', 'số lượng (dùng được cả hai loại)', 'the quantity of goods'),
+        W('the percentage of', 'tỉ lệ phần trăm (phần so với tổng)', 'the percentage of commuters using cars'),
+        W('the proportion of', 'tỉ lệ (giữa các phần)', 'the proportion of bus users'),
+        W('the figure for', 'số liệu của (nói chung)', 'the figure for car usage'),
+        W('from … to … / between … and …', 'từ … đến … / trong khoảng … và …', 'between 2000 and 2025'),
+        W('over a period of … years', 'trong khoảng thời gian … năm', 'over a period of 25 years'),
+      ] },
+      { group: 'Tổng quan (Overview)', items: [
+        W('Overall, it is obvious that …', 'Nhìn chung, rõ ràng là …', 'Overall, it is obvious that while the proportion of car users witnessed a downward trend, …'),
+        W('while …, the opposite was true for …', 'trong khi …, điều ngược lại xảy ra với …', '… the opposite was true for bus and bicycle commuters.'),
+        W('an upward / a downward trend', 'xu hướng tăng / xu hướng giảm', 'witnessed a downward trend'),
+        W('showed a similar upward / downward trend', 'có xu hướng tăng / giảm giống nhau', 'All three figures showed a similar upward trend over the period.'),
+        W('the most popular … at the end of the period', '… phổ biến nhất vào cuối giai đoạn', 'Bus commuting is projected to become the most popular method at the end of the period.'),
+      ] },
+      { group: 'Động từ xu hướng: TĂNG', items: [
+        W('rise · increase · grow · climb · go up', 'tăng (mức bình thường)', 'The figure rose to 40%.'),
+        W('jump · soar · surge · skyrocket', 'tăng vọt, tăng rất mạnh', 'Sales soared to 80%.'),
+        W('a significant increase in', 'sự tăng đáng kể của (danh từ)', 'There was a significant increase in bus use.'),
+        W('steady growth', 'sự tăng trưởng đều', 'The figures for bus and bicycle commuters experienced a steady growth.'),
+      ] },
+      { group: 'Động từ xu hướng: GIẢM', items: [
+        W('fall · drop · decline · decrease · go down', 'giảm (mức bình thường)', 'The figure fell to about 35%.'),
+        W('plunge · plummet', 'giảm mạnh, lao dốc', 'Sales plummeted in 2010.'),
+        W('a gradual decline', 'sự giảm dần', 'Car usage experienced a gradual decline to roughly 55%.'),
+      ] },
+      { group: 'Dao động · ổn định · đỉnh · đáy', items: [
+        W('fluctuate', 'dao động, lên xuống thất thường', 'The figure fluctuated around 20%.'),
+        W('remain stable / remain steady', 'giữ ổn định', 'The figure remained stable at 10%.'),
+        W('level off / plateau', 'chững lại, đi ngang', '… before leveling off at 30%.'),
+        W('reach a peak of / peak at', 'đạt đỉnh ở mức', 'It peaked at 50% in 2010.'),
+        W('hit a low of', 'chạm đáy ở mức', 'It hit a low of 5% in 2015.'),
+      ] },
+      { group: 'Trạng từ chỉ mức độ', items: [
+        W('sharply · quickly · rapidly · steeply', 'mạnh, nhanh, dốc', 'rose sharply'),
+        W('considerably · significantly · substantially', 'đáng kể', 'continued to drop significantly'),
+        W('steadily · gradually · moderately', 'đều đặn, từ từ, vừa phải', 'increased gradually'),
+        W('slightly · slowly', 'nhẹ, chậm', 'saw a slight increase'),
+      ] },
+      { group: 'Giới từ đi với số liệu', items: [
+        W('by + số', 'thay đổi MỘT LƯỢNG bằng …', 'increased by 10%'),
+        W('to + số', 'tăng / giảm ĐẾN mức …', 'rose to 10%'),
+        W('at + số', 'giữ Ở mức …', 'remained at 10%'),
+        W('around / about / approximately / roughly / nearly', 'khoảng / gần (số không chính xác)', 'climbing to nearly 40% in 2025'),
+        W('respectively', 'lần lượt (theo thứ tự đã nêu)', '… were around 25% and 5% respectively.'),
+      ] },
+      { group: 'Cấu trúc câu (Body)', items: [
+        W('There was a + adj + noun + in …', 'Đã có một sự … trong …', 'There was a significant increase in …'),
+        W('[Thời gian] + saw / witnessed / experienced + a … in …', 'Giai đoạn … chứng kiến một sự …', 'The first five years witnessed a significant increase in …'),
+        W('…, followed by …', '…, theo sau là …', 'a sharp rise, followed by a slight fall'),
+        W('… before leveling off at …', '… trước khi chững lại ở …', 'saw a sharp increase before leveling off at 30%'),
+        W('A was overtaken by B in [năm]', 'A bị B vượt qua vào năm …', 'The proportion of bus users overtook that of car users in 2023.'),
+        W('The two figures intersected at … in …', 'Hai số liệu gặp nhau tại … vào …', ''),
+        W('The gap between A and B narrowed', 'Khoảng cách giữa A và B thu hẹp', ''),
+      ] },
+      { group: 'Từ nối & so sánh', items: [
+        W('In [năm đầu], …', 'Vào năm … (mở Body 1 bằng số liệu năm đầu)', 'In 2000, the percentage of car commuters was the highest at approximately 60%.'),
+        W('Over the next … years', 'Trong … năm tiếp theo', 'Over the next 10 years, …'),
+        W('From … to … / Between … and …', 'Từ … đến … (mở Body 2)', 'From 2010 to 2025, …'),
+        W('whereas / while', 'trong khi (hai xu hướng trái ngược)', ''),
+        W('in contrast / compared to', 'ngược lại / so với', 'In contrast, the percentages of people traveling by bus …'),
+        W('meanwhile · notably', 'trong khi đó · đáng chú ý là', 'Meanwhile, the figures for bus and bicycle commuters …'),
+      ] },
+    ],
+    compare: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('illustrates / shows + [chủ thể] + in [năm / nơi]', 'minh hoạ / cho thấy … tại …', 'The pie chart illustrates … in 2020.'),
+        W('had the highest / lowest …', 'có … cao nhất / thấp nhất', ''),
+        W('recorded the lowest / highest figures', 'ghi nhận số liệu thấp nhất / cao nhất', ''),
+        W('showed similar / different values', 'có giá trị giống nhau / khác nhau', ''),
+        W('the most dominant', 'chiếm ưu thế nhất', 'travel and business are the most dominant motives'),
+        W('While A and B are the most dominant … in the first chart, C is … in the second one.', '(2 biểu đồ) nối miếng lớn nhất của mỗi hình', ''),
+      ] },
+      { group: 'Body: từ số lớn đến số nhỏ', items: [
+        W('Looking at the chart more closely, …', 'Nhìn kỹ hơn vào biểu đồ, …', ''),
+        W('accounted for … %', 'chiếm … % (chỉ dùng với %)', 'travel … accounting for the highest proportion at 33%'),
+        W('making it the dominant category', 'khiến nó trở thành hạng mục chiếm ưu thế', ''),
+        W('This was followed by … at … %', 'Theo sau là … với … %', 'followed closely by purchasing real estate abroad at 19%'),
+        W('nearly double that of / slightly lower than / roughly the same as', 'gần gấp đôi / thấp hơn một chút / gần bằng', ''),
+        W('represented … %', 'chiếm / đại diện cho … %', ''),
+        W('showing a noticeable difference compared with …', 'cho thấy sự khác biệt rõ rệt so với …', ''),
+        W('By contrast, the smallest proportion was seen in …', 'Ngược lại, tỉ lệ nhỏ nhất thuộc về …', ''),
+        W('Similarly, … had a relatively modest figure, standing at …', 'Tương tự, … có số liệu khá khiêm tốn, ở mức …', ''),
+        W('It is also worth noting that … were identical', 'Cũng đáng chú ý là … bằng nhau', ''),
+        W('Another striking feature is that …', 'Một điểm nổi bật khác là …', ''),
+        W('Turning to the second chart, …', 'Chuyển sang biểu đồ thứ hai, …', 'Looking at the second chart, a striking 34% of teachers …'),
+      ] },
+      { group: 'Pie chart (chỉ dùng khi là % và tổng 100%)', items: [
+        W('account for · make up · constitute · represent', 'chiếm (bao nhiêu %)', 'Business accounted for 26%.'),
+        W('a larger share than', 'phần lớn hơn so với', ''),
+        W('the lion’s share', 'phần lớn nhất, phần “sư tử”', ''),
+        W('took the lead / led the chart with …', 'dẫn đầu với …', 'Chinese food took the lead with 34%.'),
+        W('ranked second, accounting for …', 'đứng thứ hai, chiếm …', ''),
+        W('tops the list / ranks first', 'đứng đầu danh sách', 'Travel tops the list, accounting for the highest proportion at 33%.'),
+      ] },
+      { group: 'Bar chart (số tuyệt đối)', items: [
+        W('outweigh · surpass · exceed', 'vượt hơn, cao hơn', ''),
+        W('double', 'gấp đôi', ''),
+        W('lag behind', 'tụt lại phía sau', ''),
+        W('recorded / registered', 'ghi nhận', 'Business … registered at 26%'),
+        W('stood at · reached', 'ở mức · đạt tới', ''),
+        W('attracted (người) · sold / produced / earned', 'thu hút · bán / sản xuất / thu về', 'There were 500 visitors in City A, compared to only 200 in City B.'),
+      ] },
+      { group: 'Mức độ so sánh', items: [
+        W('approximately · about · roughly', 'khoảng (số không chính xác 100%)', ''),
+        W('slightly · marginally', 'chênh lệch nhỏ', ''),
+        W('far · significantly', 'chênh lệch lớn', ''),
+        W('In stark contrast, … registered only …', 'Trái ngược hoàn toàn, … chỉ ghi nhận …', 'In stark contrast, personal development and social contacts each represent a mere 7%.'),
+        W('double / triple / nearly triple that of …', 'gấp đôi / gấp ba / gần gấp ba … (Band 7+)', ''),
+        W('… times higher than that of …', 'cao hơn … lần so với …', ''),
+        W('only a third / a quarter of …', 'chỉ bằng một phần ba / một phần tư …', ''),
+      ] },
+      { group: 'Phân số thay cho %', items: [
+        W('all / every', '100%', ''), W('three quarters', '75%', ''), W('a half', '50%', ''),
+        W('about a third', '≈ 33%', ''), W('a quarter', '25%', ''), W('no / none', '0%', ''),
+      ] },
+      { group: 'Câu ghép', items: [
+        W('…, which was the highest figure in the chart', 'mệnh đề quan hệ bổ sung thông tin', '… 50%, which was the highest figure in the chart.'),
+        W('While / Whereas A …, B …', 'Trong khi A …, B …', 'While Group A accounted for 50%, Group B represented only 10%.'),
+        W('A and B stood at … and … respectively', 'A và B lần lượt ở mức … và …', ''),
+      ] },
+    ],
+    maps: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The maps illustrate the development of …', 'Các bản đồ minh hoạ sự phát triển của …', 'The maps illustrate the development of the village of Ryemouth between 1995 and present.'),
+        W('The maps illustrate the changes in …', 'Các bản đồ minh hoạ những thay đổi ở …', ''),
+        W('underwent significant / considerable development', 'trải qua sự phát triển đáng kể', 'Overall, the area underwent significant development, …'),
+        W('with the addition of … and the removal of …', 'với việc thêm … và dỡ bỏ …', 'with the addition of new recreational facilities and the removal of the fishing port'),
+        W('Some areas, however, remained unchanged.', 'Tuy nhiên, một số khu vực vẫn giữ nguyên.', ''),
+      ] },
+      { group: 'Body 1: vị trí trên bản đồ đầu tiên', items: [
+        W('In [năm], the layout of … included several key features.', 'Năm …, bố cục của … gồm một số đặc điểm chính.', 'In 1995, the layout of the village included several key features.'),
+        W('was located in / was situated in', 'nằm ở', 'A housing area was located in the north-west.'),
+        W('lay to the north / south of', 'nằm về phía bắc / nam của', 'A shop lay to the south of the housing area.'),
+        W('stood next to', 'đứng cạnh, nằm cạnh', 'A hotel stood next to the forest park.'),
+      ] },
+      { group: 'Body 2: thay đổi trên bản đồ sau', items: [
+        W('By [năm], the area had experienced significant changes.', 'Đến năm …, khu vực đã trải qua nhiều thay đổi (quá khứ hoàn thành)', ''),
+        W('By the present day, the area has experienced …', 'Đến nay, khu vực đã trải qua … (bản đồ hiện tại: hiện tại hoàn thành)', 'By the present day, the area has experienced significant changes, …'),
+        W('A new … was constructed in …', 'Một … mới được xây ở …', 'A new golf course was constructed in the north-east.'),
+        W('These modifications resulted in …', 'Những thay đổi này dẫn đến …', ''),
+      ] },
+      { group: 'Giới từ chỉ vị trí (quy tắc của cô)', items: [
+        W('In the North of the city', 'BÊN TRONG thành phố, phía Bắc', ''),
+        W('To the North of the city', 'BÊN NGOÀI thành phố, lệch về hướng Bắc', ''),
+        W('on the northern side of …', 'có “side” → dùng ON', 'on the northern side of the bridge'),
+        W('in the eastern part of …', 'có “part” → dùng IN', 'in the eastern part of the village'),
+        W('IN: center · middle · corner · part · area', 'nhóm đi với IN', ''),
+        W('AT: top · bottom · entrance · intersection · junction', 'nhóm đi với AT', ''),
+        W('ON: side · bank · edge · left/right-hand side', 'nhóm đi với ON', ''),
+      ] },
+      { group: 'Từ đồng nghĩa & thời gian', items: [
+        W('erected · constructed · built', 'được xây mới', ''),
+        W('demolished · knocked down', 'bị phá bỏ', ''),
+        W('enlarged · expanded', 'được mở rộng', ''),
+        W('replaced by · made way for', 'bị thay thế bằng · nhường chỗ cho', ''),
+        W('modernized · renovated', 'được hiện đại hoá · cải tạo', ''),
+        W('In the first map · By 2020 · In the second / final map', 'cách nói mốc thời gian / bản đồ', ''),
+        W('Over the 30 years / Over the two decades', 'Trong 30 năm / hai thập kỷ', ''),
+      ] },
+    ],
+    floorplan: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The diagram illustrates the layout of …', 'Sơ đồ minh hoạ bố cục của …', ''),
+        W('the arrangement of rooms / facilities / exits', 'cách sắp xếp phòng / tiện ích / lối ra', ''),
+        W('is divided into … main sections', 'được chia thành … khu chính', 'Overall, the building is divided into three main sections, …'),
+        W('the most noticeable feature', 'đặc điểm nổi bật nhất', ''),
+        W('has a symmetrical layout centred around …', 'có bố cục đối xứng xoay quanh …', ''),
+        W('serves as the main access point', 'đóng vai trò lối vào chính', ''),
+        W('arranged around', 'được bố trí xung quanh', ''),
+      ] },
+      { group: 'Body 1: khu vực chính', items: [
+        W('On the north / south / west / east side, there is …', 'Ở phía bắc / nam / tây / đông có …', ''),
+        W('In the centre of the building, … is located', 'Ở trung tâm toà nhà là …', ''),
+        W('which connects to …', 'nối với …', ''),
+        W('Surrounding this central area are …', 'Bao quanh khu trung tâm này là …', ''),
+      ] },
+      { group: 'Body 2: lối đi & tiện ích', items: [
+        W('is equipped with …', 'được trang bị …', 'The building is equipped with stairs and lifts, …'),
+        W('providing access to …', 'giúp đi đến …', ''),
+        W('… runs through the centre, linking … to …', '… chạy qua trung tâm, nối … với …', ''),
+        W('situated in the corners / along the hallway', 'nằm ở các góc / dọc hành lang', ''),
+      ] },
+      { group: 'Vị trí', items: [
+        W('to the left / right of', 'bên trái / phải của', ''), W('adjacent to', 'kề bên', ''), W('opposite', 'đối diện', ''),
+        W('between … and …', 'giữa … và …', ''), W('next to', 'bên cạnh', ''),
+        W('at the end of the corridor', 'ở cuối hành lang', ''), W('at / near the main entrance', 'ở / gần lối vào chính', ''),
+      ] },
+      { group: 'Động từ bố cục & kết nối', items: [
+        W('occupies · is positioned · is located · is situated · is found · lies', 'chiếm / nằm ở', ''),
+        W('is connected to · gives access to · leads to', 'được nối với · dẫn vào · dẫn tới', ''),
+        W('opens into · branches off into', 'mở ra · rẽ nhánh thành', ''),
+        W('provides direct access to', 'đi thẳng tới', ''),
+      ] },
+      { group: 'Kích thước', items: [
+        W('occupies the largest area', 'chiếm diện tích lớn nhất', ''),
+        W('takes up most of the space', 'chiếm phần lớn không gian', ''),
+        W('covers approximately half of the building', 'chiếm khoảng một nửa toà nhà', ''),
+        W('is considerably larger than …', 'lớn hơn đáng kể so với …', ''),
+      ] },
+    ],
+    process_man: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The diagram demonstrates / illustrates the process of …', 'Sơ đồ mô tả quy trình …', 'The diagram illustrates the process of how olive oil is produced.'),
+        W('comprises … main stages', 'gồm … giai đoạn chính', 'Overall, this process comprises several main stages, …'),
+        W('beginning with … and ending with …', 'bắt đầu bằng … và kết thúc bằng …', 'beginning with harvesting the olives and ending with storing the oil in a tank'),
+        W('The entire process can be divided into two main phases', 'Toàn bộ quy trình chia thành hai giai đoạn lớn', ''),
+      ] },
+      { group: 'Từ nối trình tự', items: [
+        W('In the first stage of the process, …', 'Ở giai đoạn đầu tiên của quy trình, …', 'In the first stage of the process, olives are harvested from trees …'),
+        W('First / Firstly / Initially', 'Đầu tiên', ''),
+        W('After that / Next / Then', 'Sau đó / Tiếp theo', 'After that, they are moved to be de-leafed and washed.'),
+        W('Following this, …', 'Tiếp theo bước này, …', 'Following this, the olives are crushed in an olive mill …'),
+        W('Subsequently, …', 'Sau đó, …', 'Subsequently, the mixture is pressed in a centrifugal press.'),
+        W('Once this is completed, …', 'Khi bước này hoàn tất, …', ''),
+        W('…, followed by …', '…, tiếp theo là …', ''),
+        W('In the final stage / Finally', 'Ở giai đoạn cuối / Cuối cùng', 'Finally, the cleaned oil is collected and stored in a storage tank.'),
+        W('which results in …', 'tạo ra / dẫn đến …', ''),
+      ] },
+      { group: 'Động từ bị động (hiện tại đơn)', items: [
+        W('is / are produced', 'được sản xuất', ''),
+        W('is transformed into', 'được biến đổi thành', ''),
+        W('is carried out', 'được thực hiện', ''),
+        W('is fed into / is introduced into', 'được đưa vào (máy)', 'the trimmed logs are fed into a machine'),
+        W('is transferred to / is conveyed to / is moved to', 'được chuyển đến', ''),
+        W('undergoes · is processed in · is subjected to', 'trải qua · được xử lý trong · chịu (tác động)', ''),
+      ] },
+      { group: 'Cách kéo dài câu', items: [
+        W('before + V-ing', 'trước khi …', ''),
+        W('after being + V3', 'sau khi được …', ''),
+        W('which is then …', 'cái mà sau đó được …', ''),
+        W('using … / for … hours / in a special machine', 'thêm dụng cụ / thời gian / địa điểm có trong hình', 'dried using hot air in a special machine for 24 hours'),
+      ] },
+    ],
+    process_nat: [
+      { group: 'Mở bài & Tổng quan', items: [
+        W('The diagram illustrates the life cycle of …', 'Sơ đồ minh hoạ vòng đời của …', 'The diagram illustrates the natural process of the life cycle of a salmon.'),
+        W('the natural process of …', 'quá trình tự nhiên của …', ''),
+        W('a cyclical process with … stages', 'một quá trình tuần hoàn gồm … giai đoạn', 'Overall, this is a cyclical process with three main stages, …'),
+        W('beginning with … and ending with …', 'bắt đầu bằng … và kết thúc bằng …', ''),
+        W('after which the cycle repeats itself', 'sau đó chu trình lặp lại', ''),
+      ] },
+      { group: 'Từ nối trình tự', items: [
+        W('Initially, …', 'Ban đầu, …', 'Initially, salmon eggs are laid in the upper river, …'),
+        W('Following this, …', 'Tiếp theo, …', 'Following this, they hatch and develop into “fry”, …'),
+        W('At the next stage, …', 'Ở giai đoạn tiếp theo, …', ''),
+        W('In the subsequent stage, …', 'Ở giai đoạn sau đó, …', 'In the subsequent stage, the salmon move to the open ocean, …'),
+        W('Finally, …', 'Cuối cùng, …', ''),
+        W('which completes the cycle as it returns to the original stage', 'khép lại chu trình khi quay về giai đoạn ban đầu', ''),
+      ] },
+      { group: 'Động từ & chi tiết', items: [
+        W('develop into / grow into', 'phát triển thành', 'they grow into “smolt”'),
+        W('reach a length / size of', 'đạt chiều dài / kích thước', 'reaching a length of 12 to 15cm'),
+        W('for about … months / years', 'trong khoảng … tháng / năm', 'where they stay for about 5 to 6 months'),
+        W('between … and … cm long', 'dài từ … đến … cm', ''),
+      ] },
+    ],
+  };
+
   /* Cách paraphrase CHỦ THỂ theo từng dạng (bám quy tắc của cô: không “trọc lốc”, lần 1 sát đề, lần 2 mới đổi).
    * Mỗi dòng: loại chủ thể · từ trong đề → cách viết khác · lưu ý. */
   const SUBJECT_PP = {
@@ -473,5 +741,5 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     return [...new Set(out)].sort((a, b) => b.length - a.length);
   }
 
-  return { OUTLINES, GENERAL, SUBJECT_PP, SUBJECT_GUIDE, TECH, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
+  return { OUTLINES, GENERAL, SUBJECT_PP, SUBJECT_GUIDE, TECH, MEMORIZE, STEP_KEYS, outlineFor, promptBlock, generalBlock, subjectBlock, lint, fixedPhrases };
 })();

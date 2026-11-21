@@ -49,10 +49,17 @@ Mục thứ ba trên thanh đầu trang. Giáo viên dán đề (ảnh và/hoặ
 
 ## 🎓 Bài giảng & bài tập
 Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (Ctrl+V / kéo thả / chọn ảnh), chọn dạng bài tập, trình độ và số câu; AI soạn:
-- **Bài giảng**: mục tiêu, câu hỏi dẫn dắt đọc biểu đồ (ẩn đáp án để hỏi lớp), đặc điểm chính, khung dàn ý Ms. Gigi từng đoạn kèm câu mẫu K1/K2…, từ vựng, paraphrase, lỗi hay mắc.
+- **Bài giảng chi tiết theo từng bước**: Bước 1 nhận dạng đề (vì sao dùng dàn ý này) → Bước 2 đọc biểu đồ (câu hỏi + 💡 gợi ý nhìn vào đâu, ẩn đáp án để hỏi lớp) → Bước 3 đặc điểm chính và cách chọn ý cho Overview → Bước 4 viết từng đoạn: “🪜 cách viết từng bước”, khung K1/K2… của cô, câu mẫu có 💡 giải thích (điền gì vào [ô] của khung, vì sao chọn từ / thì / cấu trúc) → bài mẫu hoàn chỉnh → ngữ pháp dùng trong bài → từ vựng, paraphrase → 📒 từ cần học thuộc → lỗi hay mắc → ✅ tự kiểm tra trước khi nộp.
+- Bài giảng và bài tập do 2 lượt AI soạn song song, nên bài giảng dài hơn mà không bị cắt giữa chừng.
 - **Bài tập từ dễ đến khó**: trắc nghiệm đọc biểu đồ, Đúng/Sai/Không có thông tin, nối từ paraphrase, điền từ theo khung (ngân hàng từ), sắp xếp câu theo khung, viết câu theo khung (kiểm tra theo quy tắc + câu mẫu). Làm và chấm điểm ngay trên app.
 - Nút sao chép: **bài giảng**, **phiếu bài tập** (không đáp án, kèm ảnh biểu đồ khi dán vào Word/Docs), **đáp án**.
 - “Xem bài giảng mẫu” dùng một biểu đồ đường minh hoạ (số liệu tự soạn).
+
+## 📒 Từ cần học thuộc
+- Bảng từ học sinh cần học thuộc cho **từng dạng**, lấy từ chính dàn ý của cô (khung câu, lưu ý & từ vựng, bài mẫu; Maps thêm 2 bảng từ vựng thay đổi / vị trí) — `js/gigi.js` → `MEMORIZE`, mỗi từ có nghĩa tiếng Việt và ví dụ.
+- Kèm **từ của đề đang làm**: chủ thể và cách paraphrase, từ paraphrase, từ vựng AI gợi ý cho đề.
+- Có ở: trang bài hoàn chỉnh (Luyện viết), cuối bài giảng (Bài giảng & bài tập, cũng nằm trong bản “Sao chép bài giảng”), và từng thẻ dạng trong “📚 Dàn ý Ms. Gigi”.
+- “📋 Sao chép bảng từ” chép bảng màu (dán Word / Google Docs giữ bảng); “📝 Phiếu tự kiểm tra” chép bảng để trống cột nghĩa cho học sinh tự ghi rồi tự chấm. Mã trong `js/memo.js`.
 
 ## 🧩 Cấu trúc câu đã dùng trong bài
 Ở trang bài hoàn chỉnh có mục **“Cấu trúc câu đã dùng trong bài”** để học sinh ôn lại: mỗi cấu trúc có tên (Việt + Anh), công thức, cách dùng và câu ví dụ lấy từ chính bài của em (phần cấu trúc được tô vàng, ghi rõ đoạn · câu mấy).
@@ -95,6 +102,7 @@ Sửa trong `src/index.html`, `css/`, `js/` rồi chạy `python3 build.py` đ�
 
 - `js/content.js` – dàn ý & từ vựng Maps, bài mẫu
 - `js/structures.js` – danh mục & nhận diện cấu trúc câu trong bài
+- `js/memo.js` – bảng từ cần học thuộc (từ dàn ý + từ của đề), bản sao chép và phiếu tự kiểm tra
 - `js/saved.js` – lưu / mở / xoá bài đã lưu (kho tài khoản Claude hoặc trình duyệt)
 - `js/ai.js` – gọi AI đọc đề, tạo gợi ý, kiểm tra số liệu, chấm câu, phân tích cấu trúc câu, soạn bài giảng & bài tập
 - `js/lesson.js` – mục Bài giảng & bài tập

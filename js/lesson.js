@@ -177,29 +177,45 @@ window.LESSON = (function () {
     $('#lr-score').textContent = sc; $('#lr-score').hidden = !sc;
   }
 
+  // Bài mẫu hoàn chỉnh ghép từ câu mẫu của 4 đoạn
+  const modelEssay = x => x.plan.map(p => p.model.map(m => m.text).join(' ')).filter(Boolean);
+  const words = t => (String(t).match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+  const memoSrc = () => (L.data ? { outline: G.outlineFor(L.data.task_type, L.data.outline), src: { paraphrase: L.data.paraphrase || [], subject_pp: L.data.subject_pp || [], vocab: (L.data.lesson && L.data.lesson.vocab) || [] } } : null);
+
   function lessonView(d, o) {
     const x = d.lesson;
     const ul = a => `<ul>${a.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    const ph = t => esc(t).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>');
+    let n = 0;
+    const sec = (title, body, cls) => `<section class="l-sec${cls ? ' ' + cls : ''}"><h3><span class="l-step">Bước ${++n}</span> ${title}</h3>${body}</section>`;
     const plan = x.plan.map((p, i) => {
-      const sec = o[G.STEP_KEYS[i]];
+      const sc = o[G.STEP_KEYS[i]];
       return `<div class="l-plan">
-        <h4>${['①', '②', '③', '④'][i]} ${STEP_NAMES[i]} <span class="muted">— ${esc(sec.rule)}</span></h4>
-        ${p.focus_vi ? `<p class="l-focus">🎯 ${esc(p.focus_vi)}</p>` : ''}
+        <h4>${['①', '②', '③', '④'][i]} ${STEP_NAMES[i]} <span class="muted">— ${esc(sc.rule)}</span></h4>
+        ${p.focus_vi ? `<p class="l-focus">🎯 <b>Đoạn này viết gì:</b> ${esc(p.focus_vi)}</p>` : ''}
+        ${(p.how_vi || []).length ? `<div class="l-how"><b>🪜 Cách viết từng bước</b><ol>${p.how_vi.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>` : ''}
         <div class="l-two">
-          <div><h5>Khung câu</h5><ul class="frames">${sec.frames.map((f, n) => `<li><span class="fno">K${n + 1}</span> ${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>
-          <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
+          <div><h5>Khung câu của cô</h5><ul class="frames">${sc.frames.map((f, k) => `<li><span class="fno">K${k + 1}</span> ${ph(f)}</li>`).join('')}</ul></div>
+          <div><h5>Câu mẫu cho biểu đồ này</h5><ul class="frames l-models">${p.model.map(m => `<li>${fno(m.f)} ${esc(m.text)}${m.note_vi ? `<span class="l-note">💡 ${esc(m.note_vi)}</span>` : ''}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>
         </div></div>`;
     }).join('');
+    const essay = modelEssay(x);
+    const total = essay.reduce((k, t) => k + words(t), 0);
     return `${x.objectives_vi.length ? `<section class="l-sec"><h3>🎯 Mục tiêu bài học</h3>${ul(x.objectives_vi)}</section>` : ''}
-      <section class="l-sec"><h3>👀 Bước 1 · Đọc biểu đồ</h3><p class="muted small">Hỏi lớp từng câu trước, rồi bấm để hiện đáp án.</p>
-        <ol class="l-read">${x.reading_steps.map(r => `<li><b>${esc(r.q_vi)}</b><details><summary>Hiện đáp án</summary><p>${esc(r.a)}</p></details></li>`).join('')}</ol></section>
-      ${x.key_features.length ? `<section class="l-sec"><h3>⭐ Đặc điểm chính cần nhận ra</h3>${ul(x.key_features)}</section>` : ''}
-      <section class="l-sec"><h3>📐 Bước 2 · Áp dụng dàn ý Ms. Gigi: ${esc(o.name)}</h3>${plan}</section>
-      ${x.vocab.length ? `<section class="l-sec"><h3>📌 Từ vựng cho biểu đồ này</h3><div class="table-wrap"><table><thead><tr><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
-        ${x.vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi || '')}</td><td>${esc(v.example || '')}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
-      ${(d.subject_pp || []).length ? `<section class="l-sec"><h3>🧑‍🏫 Paraphrase chủ thể</h3><p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.tipsHtml(d.subject_tips)}${H.subjectsHtml(d.subject_pp)}</section>` : ''}
-      ${d.paraphrase.length ? `<section class="l-sec"><h3>🔁 Từ paraphrase</h3>${H.paraphraseHtml(d.paraphrase)}</section>` : ''}
+      ${sec('🧭 Nhận dạng đề', `<p><b>Dạng:</b> ${esc(o.name)}</p>${x.type_why_vi ? `<p>${esc(x.type_why_vi)}</p>` : ''}<p class="muted small">Dấu hiệu chung của dạng này: ${esc(o.when)}</p>`)}
+      ${sec('👀 Đọc biểu đồ', `<p class="muted small">Hỏi lớp từng câu, cho học sinh nhìn vào chỗ gợi ý rồi mới bấm “Hiện đáp án”.</p>
+        <ol class="l-read">${x.reading_steps.map(r => `<li><b>${esc(r.q_vi)}</b>${r.hint_vi ? `<p class="l-hint">💡 ${esc(r.hint_vi)}</p>` : ''}<details><summary>Hiện đáp án</summary><p>${esc(r.a)}</p></details></li>`).join('')}</ol>`)}
+      ${x.key_features.length ? sec('⭐ Đặc điểm chính → ý cho Overview', `${ul(x.key_features)}${x.overview_how_vi ? `<p class="l-tip">📝 <b>Chọn ý cho Overview:</b> ${esc(x.overview_how_vi)}</p>` : ''}`) : ''}
+      ${sec(`📐 Viết từng đoạn theo dàn ý Ms. Gigi: ${esc(o.name)}`, `<p class="muted small"><span class="slot-ph">[chữ trong ngoặc]</span> = phần em điền thông tin của đề; phần còn lại của khung giữ nguyên. 💡 = giải thích câu mẫu.</p>${plan}`)}
+      ${essay.length ? sec(`📄 Bài mẫu hoàn chỉnh (${total} từ)`, `<div class="paper">${essay.map((t, i) => `<div class="para-block"><h3><span>${STEP_NAMES[i]}</span></h3><p>${esc(t)}</p></div>`).join('')}</div>`) : ''}
+      ${(x.grammar_vi || []).length ? sec('🧩 Ngữ pháp dùng trong bài', `<ul class="l-gram">${x.grammar_vi.map(g => `<li><b>${esc(g.point_vi)}</b>${g.example ? `<span class="l-note">VD: ${esc(g.example)}</span>` : ''}</li>`).join('')}</ul>`) : ''}
+      ${x.vocab.length ? sec('📌 Từ vựng cho biểu đồ này', `<div class="table-wrap"><table><thead><tr><th>Từ / cụm từ</th><th>Nghĩa</th><th>Ví dụ</th></tr></thead><tbody>
+        ${x.vocab.map(v => `<tr><td>${esc(v.phrase)}</td><td>${esc(v.meaning_vi || '')}</td><td>${esc(v.example || '')}</td></tr>`).join('')}</tbody></table></div>`) : ''}
+      ${(d.subject_pp || []).length ? sec('🧑‍🏫 Paraphrase chủ thể', `<p class="muted small">Lần 1 (Intro / Overview) dùng cách sát đề nhất; Body mới đổi sang cách khác. Không để chủ thể “trọc lốc”.</p>${H.tipsHtml(d.subject_tips)}${H.subjectsHtml(d.subject_pp)}`) : ''}
+      ${d.paraphrase.length ? sec('🔁 Từ paraphrase', H.paraphraseHtml(d.paraphrase)) : ''}
+      <section class="l-sec">${MEMO.screen(memoSrc().outline, memoSrc().src, 'lesson')}</section>
       ${x.mistakes_vi.length ? `<section class="l-sec"><h3>⚠️ Lỗi học sinh hay mắc</h3>${ul(x.mistakes_vi)}</section>` : ''}
+      ${(x.checklist_vi || []).length ? `<section class="l-sec"><h3>✅ Tự kiểm tra trước khi nộp bài</h3><ul class="l-check">${x.checklist_vi.map(t => `<li>☐ ${esc(t)}</li>`).join('')}</ul></section>` : ''}
       <div class="row end"><button type="button" class="btn primary" data-ltab="ex">✏️ Sang phần bài tập →</button></div>`;
   }
 
@@ -314,22 +330,32 @@ window.LESSON = (function () {
     if (d.topic_vi) p.push(d.topic_vi);
     if (L.prompt || d.prompt_text) p.push('', '📝 ĐỀ BÀI', L.prompt || d.prompt_text);
     if (x.objectives_vi.length) p.push('', '🎯 MỤC TIÊU', ...x.objectives_vi.map(t => '• ' + t));
-    p.push('', line, '👀 BƯỚC 1 · ĐỌC BIỂU ĐỒ', line, ...x.reading_steps.map((r, i) => `${i + 1}. ${r.q_vi}\n   → ${r.a}`));
-    if (x.key_features.length) p.push('', '⭐ ĐẶC ĐIỂM CHÍNH', ...x.key_features.map(t => '• ' + t));
-    p.push('', line, `📐 BƯỚC 2 · DÀN Ý MS. GIGI: ${o.name}`, line);
+    let n = 0;
+    const head = t => p.push('', line, `BƯỚC ${++n} · ${t}`, line);
+    head('🧭 NHẬN DẠNG ĐỀ'); p.push(`Dạng: ${o.name}`); if (x.type_why_vi) p.push(x.type_why_vi);
+    head('👀 ĐỌC BIỂU ĐỒ'); p.push(...x.reading_steps.map((r, i) => `${i + 1}. ${r.q_vi}${r.hint_vi ? '\n   💡 ' + r.hint_vi : ''}\n   → ${r.a}`));
+    if (x.key_features.length) { head('⭐ ĐẶC ĐIỂM CHÍNH → Ý CHO OVERVIEW'); p.push(...x.key_features.map(t => '• ' + t)); if (x.overview_how_vi) p.push('📝 Chọn ý cho Overview: ' + x.overview_how_vi); }
+    head(`📐 VIẾT TỪNG ĐOẠN THEO DÀN Ý MS. GIGI: ${o.name}`);
     x.plan.forEach((pl, i) => {
       const sec = o[G.STEP_KEYS[i]];
       p.push('', `${['①', '②', '③', '④'][i]} ${STEP_NAMES[i].toUpperCase()} — ${sec.rule}`);
-      if (pl.focus_vi) p.push('Nội dung: ' + pl.focus_vi);
-      p.push('Khung câu:', ...sec.frames.map((f, n) => `  K${n + 1}. ${f}`));
-      if (pl.model.length) p.push('Câu mẫu:', ...pl.model.map(m => `  ${m.f ? 'K' + m.f : '•'} → ${m.text}`));
+      if (pl.focus_vi) p.push('🎯 Đoạn này viết gì: ' + pl.focus_vi);
+      if ((pl.how_vi || []).length) p.push('🪜 Cách viết từng bước:', ...pl.how_vi.map((t, k) => `  ${k + 1}. ${t}`));
+      p.push('Khung câu của cô:', ...sec.frames.map((f, k) => `  K${k + 1}. ${f}`));
+      if (pl.model.length) p.push('Câu mẫu:', ...pl.model.map(m => `  ${m.f ? 'K' + m.f : '•'} → ${m.text}${m.note_vi ? '\n     💡 ' + m.note_vi : ''}`));
     });
-    if (x.vocab.length) p.push('', line, '📌 TỪ VỰNG', line, ...x.vocab.map(v => `• ${v.phrase} (${v.meaning_vi || ''})${v.example ? '\n   VD: ' + v.example : ''}`));
-    if ((d.subject_pp || []).length) p.push('', line, '🧑‍🏫 PARAPHRASE CHỦ THỂ', line, ...H.tipsPlain(d.subject_tips), ...H.subjectsPlain(d.subject_pp));
-    if (d.paraphrase.length) p.push('', line, '🔁 TỪ PARAPHRASE', line, ...d.paraphrase.map(w => `• ${w.word}${w.meaning_vi ? ' (' + w.meaning_vi + ')' : ''}\n` + w.alternatives.map(a => `   → ${a.phrase}${a.meaning_vi ? ' (' + a.meaning_vi + ')' : ''}${a.note_vi ? ' – ' + a.note_vi : ''}`).join('\n')));
+    const essay = modelEssay(x);
+    if (essay.length) { head(`📄 BÀI MẪU HOÀN CHỈNH (${essay.reduce((k, t) => k + words(t), 0)} từ)`); essay.forEach((t, i) => p.push('', `${STEP_NAMES[i]}:`, t)); }
+    if ((x.grammar_vi || []).length) { head('🧩 NGỮ PHÁP DÙNG TRONG BÀI'); p.push(...x.grammar_vi.map(g => `• ${g.point_vi}${g.example ? '\n   VD: ' + g.example : ''}`)); }
+    if (x.vocab.length) { head('📌 TỪ VỰNG CHO BIỂU ĐỒ NÀY'); p.push(...x.vocab.map(v => `• ${v.phrase} (${v.meaning_vi || ''})${v.example ? '\n   VD: ' + v.example : ''}`)); }
+    if ((d.subject_pp || []).length) { head('🧑‍🏫 PARAPHRASE CHỦ THỂ'); p.push(...H.tipsPlain(d.subject_tips), ...H.subjectsPlain(d.subject_pp)); }
+    if (d.paraphrase.length) { head('🔁 TỪ PARAPHRASE'); p.push(...d.paraphrase.map(w => `• ${w.word}${w.meaning_vi ? ' (' + w.meaning_vi + ')' : ''}\n` + w.alternatives.map(a => `   → ${a.phrase}${a.meaning_vi ? ' (' + a.meaning_vi + ')' : ''}${a.note_vi ? ' – ' + a.note_vi : ''}`).join('\n'))); }
     if (x.mistakes_vi.length) p.push('', '⚠️ LỖI HAY MẮC', ...x.mistakes_vi.map(t => '• ' + t));
-    const plain = p.join('\n');
-    const html = toHtml(plain);
+    if ((x.checklist_vi || []).length) p.push('', '✅ TỰ KIỂM TRA TRƯỚC KHI NỘP BÀI', ...x.checklist_vi.map(t => '☐ ' + t));
+    // Bảng từ cần học thuộc ở cuối bài giảng (bảng màu khi dán Word / Docs)
+    const m = memoSrc(), memo = MEMO.copy(m.outline, m.src, false);
+    const plain = p.join('\n') + '\n\n' + line + '\n' + memo.plain;
+    const html = toHtml(p.join('\n')) + memo.html;
     return { plain, html };
   }
 
@@ -370,7 +396,7 @@ window.LESSON = (function () {
     const body = plain.split('\n').map(l => {
       if (/^━+$/.test(l)) return '';
       const e = esc(l);
-      if (/^(🎓|✏️|🔑|👀|📐|📌|🔁|⚠️|⭐|🎯|📝|BÀI \d|①|②|③|④)/.test(l)) return `<p style="margin:10px 0 4px;font-weight:bold;color:#2f6f45">${e}</p>`;
+      if (/^(🎓|✏️|🔑|👀|📐|📌|🔁|⚠️|⭐|🎯|📝|✅|BÀI \d|BƯỚC \d|①|②|③|④)/.test(l)) return `<p style="margin:10px 0 4px;font-weight:bold;color:#2f6f45">${e}</p>`;
       return `<p style="margin:0 0 3px;white-space:pre-wrap">${e || '&nbsp;'}</p>`;
     }).join('');
     const img = withImage && L.image ? `<p><img src="${L.image.dataUrl}" style="max-width:520px" alt="Biểu đồ"></p>` : '';
@@ -437,19 +463,21 @@ window.LESSON = (function () {
       lesson: {
         objectives_vi: ['Đọc hiểu biểu đồ đường: trục, đơn vị, mốc thời gian và 3 đường số liệu.', 'Nhận ra 2 xu hướng ngược nhau và điểm hai đường cắt nhau.', 'Viết từng câu theo khung Line graph của Ms. Gigi.'],
         reading_steps: [
-          { q_vi: 'Đây là dạng biểu đồ gì và nói về điều gì?', a: 'Biểu đồ đường (line graph), cho biết tỷ lệ % người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp.' },
-          { q_vi: 'Đơn vị là gì? Vậy chủ ngữ nên viết thế nào?', a: 'Phần trăm (%). Viết “the percentage / the proportion of car commuters”, không viết trống “Car increased”.' },
-          { q_vi: 'Khoảng thời gian bao lâu? Dùng thì gì?', a: 'Từ 2000 đến 2025, mỗi mốc cách 5 năm → dùng thì quá khứ đơn.' },
-          { q_vi: 'Năm 2000, phương tiện nào cao nhất và thấp nhất?', a: 'Ô tô cao nhất (60%), xe đạp thấp nhất (5%); xe buýt 25%.' },
-          { q_vi: 'Xu hướng chính của mỗi đường là gì?', a: 'Ô tô giảm liên tục (60% → 35%); xe buýt (25% → 39%) và xe đạp (5% → 20%) đều tăng.' },
-          { q_vi: 'Có điểm đặc biệt nào cần nhắc tới?', a: 'Khoảng năm 2023 xe buýt vượt ô tô và trở thành phương tiện phổ biến nhất vào năm 2025.' },
+          { q_vi: 'Đây là dạng biểu đồ gì và nói về điều gì?', hint_vi: 'Đọc tiêu đề phía trên và chú thích (3 màu đường).', a: 'Biểu đồ đường (line graph), cho biết tỷ lệ % người đi làm ở Metro City dùng ô tô, xe buýt và xe đạp.' },
+          { q_vi: 'Đơn vị là gì? Vậy chủ ngữ nên viết thế nào?', hint_vi: 'Nhìn nhãn trục tung (bên trái): có dấu %.', a: 'Phần trăm (%). Viết “the percentage / the proportion of car commuters”, không viết trống “Car increased”.' },
+          { q_vi: 'Khoảng thời gian bao lâu? Dùng thì gì?', hint_vi: 'Nhìn trục hoành (phía dưới): năm đầu và năm cuối.', a: 'Từ 2000 đến 2025, mỗi mốc cách 5 năm → dùng thì quá khứ đơn.' },
+          { q_vi: 'Năm 2000, phương tiện nào cao nhất và thấp nhất?', hint_vi: 'Đặt thước dọc ở năm 2000, so điểm đầu của 3 đường với các vạch kẻ ngang.', a: 'Ô tô cao nhất (60%), xe đạp thấp nhất (5%); xe buýt 25%.' },
+          { q_vi: 'Xu hướng chính của mỗi đường là gì?', hint_vi: 'So điểm đầu (2000) với điểm cuối (2025) của từng đường: lên hay xuống?', a: 'Ô tô giảm liên tục (60% → 35%); xe buýt (25% → 39%) và xe đạp (5% → 20%) đều tăng.' },
+          { q_vi: 'Có điểm đặc biệt nào cần nhắc tới?', hint_vi: 'Tìm chỗ hai đường cắt nhau.', a: 'Khoảng năm 2023 xe buýt vượt ô tô và trở thành phương tiện phổ biến nhất vào năm 2025.' },
         ],
+        type_why_vi: 'Biểu đồ đường có trục thời gian (2000 → 2025, nhiều năm) nên dùng dàn ý Line / Bar (xu hướng): Overview nêu 2 xu hướng trái ngược, Body chia theo thời gian.',
+        overview_how_vi: 'Lấy 2 ý: (1) ô tô giảm trong khi xe buýt và xe đạp tăng — hai xu hướng ngược nhau; (2) xe buýt phổ biến nhất vào cuối giai đoạn. Không ghi số % trong Overview.',
         key_features: ['Ô tô giảm từ 60% xuống 35%.', 'Xe buýt tăng từ 25% lên 39%, xe đạp tăng gấp 4 lần (5% → 20%).', 'Xe buýt vượt ô tô vào khoảng năm 2023.', 'Cuối giai đoạn, xe buýt là phương tiện phổ biến nhất.'],
         plan: [
-          { step: 'intro', focus_vi: 'Paraphrase đề: shows → illustrates, giữ đủ 3 phương tiện và 2 mốc năm.', model: [{ f: 1, text: 'The line graph illustrates the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025.' }] },
-          { step: 'overview', focus_vi: 'Hai xu hướng ngược nhau (ô tô giảm, xe buýt & xe đạp tăng) + phương tiện phổ biến nhất cuối giai đoạn. Không ghi số.', model: [{ f: 1, text: 'Overall, it is obvious that while the proportion of car commuters experienced a downward trend, the opposite was true for bus and bicycle commuters.' }, { f: 2, text: 'In addition, the bus became the most popular means of transport at the end of the period.' }] },
-          { step: 'body1', focus_vi: 'Số liệu năm 2000 của cả 3 đường, rồi 10 năm tiếp theo (đến 2010).', model: [{ f: 1, text: 'In 2000, the percentage of car commuters was 60%, while the proportions for bus and bicycle users were 25% and 5% respectively.' }, { f: 2, text: 'Over the next 10 years, the figure for car usage fell gradually to 55%, whereas the percentages of bus and bicycle commuters rose slightly to 30% and 10%.' }] },
-          { step: 'body2', focus_vi: 'Giai đoạn 2010–2025: ô tô tiếp tục giảm, xe buýt & xe đạp tăng đều, điểm giao nhau khoảng 2023.', model: [{ f: 1, text: 'From 2010 to 2025, the proportion of people driving to work continued to decline significantly, falling to 35% at the end of the period.' }, { f: 1, text: 'Meanwhile, the figures for bus and bicycle commuters grew steadily, reaching 39% and 20% respectively.' }, { f: 2, text: 'Notably, the percentage of car commuters was overtaken by that of bus commuters in about 2023.' }] },
+          { step: 'intro', focus_vi: 'Paraphrase đề: shows → illustrates, giữ đủ 3 phương tiện và 2 mốc năm.', how_vi: ['Chọn tên biểu đồ: The line graph.', 'Đổi động từ của đề: shows → illustrates.', 'Giữ đúng chủ thể: the percentage of commuters … by car, bus and bicycle.', 'Đổi cụm thời gian: from 2000 to 2025 → between 2000 and 2025.'], model: [{ f: 1, text: 'The line graph illustrates the percentage of commuters in Metro City who travelled to work by car, bus and bicycle between 2000 and 2025.', note_vi: 'K1 = Name (The line graph) + Verb (illustrates) + Object (the percentage of commuters … by car, bus and bicycle) + Time (between 2000 and 2025).' }] },
+          { step: 'overview', focus_vi: 'Hai xu hướng ngược nhau (ô tô giảm, xe buýt & xe đạp tăng) + phương tiện phổ biến nhất cuối giai đoạn. Không ghi số.', how_vi: ['Mở bằng “Overall, it is obvious that while …”.', 'Vế 1: đường giảm (ô tô) — experienced a downward trend.', 'Vế 2: “the opposite was true for” + 2 đường tăng.', 'Câu 2: phương tiện phổ biến nhất cuối giai đoạn. Không ghi số.'], model: [{ f: 1, text: 'Overall, it is obvious that while the proportion of car commuters experienced a downward trend, the opposite was true for bus and bicycle commuters.', note_vi: 'K1: [S + V] = the proportion of car commuters experienced a downward trend; [cái còn lại] = bus and bicycle commuters. Dùng “proportion” để không lặp “percentage” ở mở bài.' }, { f: 2, text: 'In addition, the bus became the most popular means of transport at the end of the period.', note_vi: 'K2: nêu cái cao nhất ở cuối giai đoạn, không có số liệu.' }] },
+          { step: 'body1', focus_vi: 'Số liệu năm 2000 của cả 3 đường, rồi 10 năm tiếp theo (đến 2010).', how_vi: ['Mở bằng năm đầu: In 2000, …', 'Đọc số của cả 3 đường năm 2000; 2 số sau gom bằng “respectively”.', 'Câu 2 “Over the next 10 years”: ô tô giảm dần, 2 đường kia tăng nhẹ (kèm số năm 2010).'], model: [{ f: 1, text: 'In 2000, the percentage of car commuters was 60%, while the proportions for bus and bicycle users were 25% and 5% respectively.', note_vi: 'K1: [năm đầu] = 2000; [A] = car commuters 60%; [B], [C] = bus and bicycle users 25% và 5% — “respectively” = lần lượt.' }, { f: 2, text: 'Over the next 10 years, the figure for car usage fell gradually to 55%, whereas the percentages of bus and bicycle commuters rose slightly to 30% and 10%.', note_vi: 'K2: xu hướng + so sánh. “fell gradually to 55%”: to = giảm ĐẾN mức 55%. “whereas” nối hai xu hướng ngược nhau.' }] },
+          { step: 'body2', focus_vi: 'Giai đoạn 2010–2025: ô tô tiếp tục giảm, xe buýt & xe đạp tăng đều, điểm giao nhau khoảng 2023.', how_vi: ['Mở bằng “From 2010 to 2025”.', 'Ô tô: tiếp tục giảm mạnh, ghi số cuối (35%).', 'Xe buýt và xe đạp: tăng đều, ghi số cuối (39% và 20%).', 'Kết bằng điểm giao nhau: bị vượt qua khoảng năm 2023 (K2).'], model: [{ f: 1, text: 'From 2010 to 2025, the proportion of people driving to work continued to decline significantly, falling to 35% at the end of the period.', note_vi: 'K1: “people driving to work” là cách viết khác của car commuters (lần 2 mới đổi). “falling to 35%” là V-ing nối tiếp, không lặp chủ ngữ.' }, { f: 1, text: 'Meanwhile, the figures for bus and bicycle commuters grew steadily, reaching 39% and 20% respectively.', note_vi: 'Meanwhile = trong khi đó; “reaching … respectively” ghi số cuối của 2 đường.' }, { f: 2, text: 'Notably, the percentage of car commuters was overtaken by that of bus commuters in about 2023.', note_vi: 'K2: A was overtaken by B in [năm]. “that of” thay cho “the percentage of” để không lặp.' }] },
         ],
         vocab: [
           { phrase: 'commuters', meaning_vi: 'người đi làm hằng ngày', example: 'The percentage of commuters who travelled by bus rose.' },
@@ -462,6 +490,13 @@ window.LESSON = (function () {
           { phrase: 'respectively', meaning_vi: 'lần lượt', example: 'Bus and bicycle users were 25% and 5% respectively.' },
           { phrase: 'at the end of the period', meaning_vi: 'vào cuối giai đoạn', example: 'The bus was the most popular at the end of the period.' },
         ],
+        grammar_vi: [
+          { point_vi: 'Quá khứ đơn cho các năm đã qua (fell, rose, grew).', example: 'The figure for car usage fell gradually to 55%.' },
+          { point_vi: 'Giới từ với số liệu: to = đạt đến mức, by = thay đổi một lượng, at = giữ ở mức.', example: 'Bus use rose to 30% (tăng ĐẾN 30%).' },
+          { point_vi: 'V-ing nối tiếp để không lặp chủ ngữ (falling to …, reaching …).', example: '… continued to decline significantly, falling to 35%.' },
+          { point_vi: 'Bị động “was overtaken by” để nói đường này bị đường kia vượt qua.', example: 'Car use was overtaken by bus use in about 2023.' },
+        ],
+        checklist_vi: ['Mở bài đã đổi động từ và cụm thời gian, giữ đủ 3 phương tiện.', 'Overview có 2 xu hướng và không có số liệu.', 'Body 1 có số năm 2000 của cả 3 đường.', 'Body 2 có số năm 2025 và điểm giao nhau.', 'Không có chủ ngữ trọc lốc (Car decreased ❌).', 'Bài từ 150 từ trở lên.'],
         mistakes_vi: [
           '“Car decreased” (chủ ngữ trọc lốc) → “The percentage of car commuters decreased”.',
           '“The percentage witnessed a fall” → “The percentage experienced a fall” hoặc “The decade witnessed a fall in …”.',
@@ -610,5 +645,5 @@ window.LESSON = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, pasteImage, setupVisible, snapshot, openSaved, savedId, setSavedId };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible, snapshot, openSaved, savedId, setSavedId, memoSrc };
 })();
