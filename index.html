@@ -624,6 +624,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .l-gram li { margin-bottom: 6px; }
 .l-check { list-style: none; padding-left: 4px; }
 .l-check li { margin-bottom: 4px; }
+.ev-t td { vertical-align: top; }
+.ev-kind { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+.ev-t td:nth-child(4) { font-family: var(--font-serif, Georgia, serif); font-size: 14px; }
+.ev-t td:nth-child(2) { min-width: 150px; }
+.ev-t td:nth-child(3) { min-width: 130px; }
 </style>
 </head>
 <body>
@@ -812,7 +817,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
               </div>
             </div>
             <div class="paper" id="paper"></div>
-            <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm các bảng màu: thông tin đề → bài viết (mỗi đoạn một màu) → phân tích từng câu ↔ khung Ms. Gigi (ô vàng = khung đã đổi vì không hợp đề) → từ vựng → bảng paraphrase có nghĩa tiếng Việt. Dán vào Word, Google Docs, Gmail giữ nguyên bảng màu; dán vào Zalo/Messenger sẽ thành chữ thường có đánh số.</p>
+            <p class="muted small">“Sao chép bài học hoàn chỉnh” gồm các bảng màu: thông tin đề → bài viết (mỗi đoạn một màu) → phân tích từng câu ↔ khung Ms. Gigi (ô vàng = khung đã đổi vì không hợp đề) → cấu trúc câu → bảng từ vựng & cụm từ trong bài → bảng paraphrase có nghĩa tiếng Việt. Dán vào Word, Google Docs, Gmail giữ nguyên bảng màu; dán vào Zalo/Messenger sẽ thành chữ thường có đánh số.</p>
           </div>
           <div class="card structs-card">
             <div class="row between">
@@ -820,6 +825,13 @@ td:first-child { font-weight: 600; white-space: nowrap; }
               <div class="row"><button type="button" class="btn sm" id="btn-structs-ai">🤖 AI phân tích kỹ + bài luyện tập</button><button type="button" class="btn sm primary" id="btn-copy-structs">📋 Sao chép cấu trúc câu</button></div>
             </div>
             <div class="structs" id="structs"></div>
+          </div>
+          <div class="card vocab-card">
+            <div class="row between">
+              <div><h3>📗 Từ vựng &amp; cụm từ trong bài</h3><p class="muted small" id="evocab-meta">Từ và cụm từ hay trong chính bài này — sao chép cho học sinh học thuộc.</p></div>
+              <div class="row"><button type="button" class="btn sm" id="btn-evocab-ai">🤖 AI lập bảng đầy đủ</button><button type="button" class="btn sm primary" id="btn-copy-evocab">📋 Sao chép bảng từ vựng</button><button type="button" class="btn sm" id="btn-quiz-evocab">📝 Phiếu tự kiểm tra</button></div>
+            </div>
+            <div id="evocab"></div>
           </div>
           <div class="card" id="memo-review"></div>
           <details class="card preview-card" open>
@@ -2997,6 +3009,41 @@ Rules:
 Reply with ONLY one JSON object:
 { "items": [ { "id": "reduced_rel", "name_vi": "only for other", "name_en": "only for other", "formula": "only for other", "use_vi": "...", "examples": [ { "s": "3.2", "part": "exact words" } ], "practice": { "q_vi": "...", "from": "...", "to": "..." } } ] }`;
   }
+  /* Bảng từ vựng & cụm từ của chính bài đã viết (để học sinh học thuộc) */
+  const VOCAB_KINDS = ['topic', 'trend', 'compare', 'link', 'data', 'place', 'process', 'other'];
+  function buildVocabPrompt({ sentences, band }) {
+    return `You are an IELTS Writing Task 1 vocabulary teacher for Vietnamese students of Ms. Gigi. The student has finished the essay below. Build the VOCABULARY TABLE of THIS essay: the words and phrases in it that the student should learn by heart to write this kind of task again.
+Target level: ${BAND[band] || BAND['7.0']}
+
+Essay sentences ([paragraph.sentence] text):
+${sentences.map(x => `[${x.p + 1}.${x.n + 1}] ${x.text}`).join('\n')}
+
+Rules:
+- Only words / phrases that really appear in the essay. "part" is copied EXACTLY from that sentence (same words, same case), 1-8 words. "phrase" is the form to learn: base form of verbs, with its usual pattern (part "rose sharply" → "rise sharply"; part "accounted for" → "account for + %"; part "was overtaken by" → "be overtaken by").
+- Prefer useful chunks over single easy words: collocations (experience a gradual decline, the figure for, a downward trend), trend verbs + adverbs, comparison phrases, linking / opening phrases of the outline, topic nouns of THIS task, prepositions with figures (rise to / by, stand at), location and change phrases (maps), sequence phrases and passive verbs (process). Skip names, numbers and very basic words.
+- 15-25 items, in the order they appear in the essay, no duplicates.
+- kind: "topic" (từ của chủ đề / chủ thể), "trend" (xu hướng, thay đổi), "compare" (so sánh), "link" (từ nối, cụm mở câu), "data" (số liệu, giới từ đi với số), "place" (vị trí), "process" (trình tự, bị động), "other".
+- meaning_vi: short Vietnamese meaning in this context. note_vi: optional short Vietnamese usage tip (goes with what, word form, only with %…). alt: 1-2 alternatives with the same meaning and level the student could use instead, '' if none.
+
+Reply with ONLY one JSON object:
+{ "items": [ { "phrase": "experience a gradual decline", "kind": "trend", "meaning_vi": "...", "s": "3.2", "part": "experienced a gradual decline", "note_vi": "...", "alt": "..." } ] }`;
+  }
+  async function analyzeVocab({ sentences, band, signal }) {
+    const r = await ask(buildVocabPrompt({ sentences, band }), null, signal, 'low', 'items');
+    const byKey = {}, seen = new Set();
+    sentences.forEach(x => { byKey[`${x.p + 1}.${x.n + 1}`] = x; });
+    const items = (r && Array.isArray(r.items) ? r.items : []).map(it => {
+      const phrase = String((it && it.phrase) || '').trim();
+      if (!phrase || seen.has(phrase.toLowerCase())) return null;
+      seen.add(phrase.toLowerCase());
+      const s = byKey[String(it.s || '').trim()], part = String(it.part || '').trim();
+      const at = s && part ? s.text.toLowerCase().indexOf(part.toLowerCase()) : -1;
+      return { phrase, kind: VOCAB_KINDS.includes(it.kind) ? it.kind : 'other', vi: String(it.meaning_vi || ''), note: String(it.note_vi || ''), alt: String(it.alt || ''),
+        ex: at < 0 ? null : { p: s.p, n: s.n, text: s.text, part: s.text.slice(at, at + part.length) } };
+    }).filter(Boolean);
+    if (!items.length) throw new Error('AI chưa lập được bảng từ vựng. Bấm thử lại.');
+    return items;
+  }
   async function analyzeStructures({ sentences, band, signal }) {
     const r = await ask(buildStructPrompt({ sentences, band }), null, signal, 'low', 'items');
     const S = window.STRUCTS, byKey = {};
@@ -3280,7 +3327,7 @@ ${part === 'exercises' ? EXERCISES_SHAPE : LESSON_SHAPE}`;
     return validateLesson(r, ex);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, makeExtras, extractJson, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, analyzeVocab, gradeEssay, normGrade, splitEssay, normSubjects, normTips, makeExtras, extractJson, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
 </script>
   <script>
@@ -5158,6 +5205,7 @@ window.GRADE = (function () {
       subjects: a.subject_pp || [],
       tips: a.subject_tips || null,
       structs: (ensureStructs() || { items: [] }).items,
+      vocab: (ensureVocab() || { items: [] }).items,
     };
   }
   const NUM = ['①', '②', '③', '④'];
@@ -5188,7 +5236,8 @@ window.GRADE = (function () {
       if (x.vocab.length) out.push('  Từ vựng: ' + x.vocab.map(v => v.phrase + (v.meaning_vi ? ' (' + v.meaning_vi + ')' : '')).join(' · '));
     });
     out.push(...structsPlain(d.structs, 3));
-    if (d.paraphrase.length || d.subjects.length) out.push('', line, `🔁 ${d.structs.length ? 4 : 3}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
+    out.push(...vocabPlain(d.vocab, d.structs.length ? 4 : 3));
+    if (d.paraphrase.length || d.subjects.length) out.push('', line, `🔁 ${3 + !!d.structs.length + !!d.vocab.length}. TỪ PARAPHRASE (từ trong đề → cách viết khác)`, line);
     if (d.subjects.length) out.push('🧑‍🏫 Paraphrase chủ thể:', ...tipsPlain(d.tips), ...subjectsPlain(d.subjects), '', '🔁 Từ khác trong đề:');
     if (d.paraphrase.length) {
       d.paraphrase.forEach(x => out.push(`• ${x.word}${x.meaning_vi ? ' (' + x.meaning_vi + ')' : ''}`,
@@ -5249,7 +5298,8 @@ window.GRADE = (function () {
     });
 
     h += structsHtml(d.structs, 3);
-    if (d.paraphrase.length || d.subjects.length) h += h2(`🔁 ${d.structs.length ? 4 : 3}. Từ paraphrase (từ trong đề → cách viết khác)`);
+    h += vocabHtml(d.vocab, d.structs.length ? 4 : 3);
+    if (d.paraphrase.length || d.subjects.length) h += h2(`🔁 ${3 + !!d.structs.length + !!d.vocab.length}. Từ paraphrase (từ trong đề → cách viết khác)`);
     if (d.subjects.length) h += `<p style="margin:0 0 6px"><b style="color:#5a3fb5">🧑‍🏫 Paraphrase chủ thể</b> <span style="color:#5b6957">— lần 1 (Intro / Overview) dùng cách sát đề nhất, Body mới đổi; không để chủ thể “trọc lốc”.</span></p>${tipsTable(d.tips)}${subjectsTable(d.subjects)}`;
     if (d.paraphrase.length) {
       if (d.subjects.length) h += '<p style="margin:0 0 6px"><b style="color:#2f6f45">🔁 Từ khác trong đề</b></p>';
@@ -5295,10 +5345,12 @@ window.GRADE = (function () {
       ${S.paras[k] ? `<p>${hl(S.paras[k], vocab)}</p>` : '<p class="empty">Chưa viết.</p>'}
       ${G.lint(S.paras[k], outlineOf(a), k).map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`).join('');
     renderStructs();
+    renderEssayVocab();
     $('#memo-review').innerHTML = MEMO.screen(outlineOf(a), memoSrc(a), 'write');
     $('#lesson-preview').innerHTML = S.paras.some(p => p.trim()) ? lessonHtml() : '<p class="muted">Chưa có bài viết.</p>';
     // Lần đầu xem bài hoàn chỉnh: AI phân tích kỹ cấu trúc câu (mỗi phiên bản bài một lần)
     if (S.structs && S.structs.source === 'local' && !structTried.has(S.structs.essay)) structsAI(true);
+    if (!S.isDemo && S.essayVocab && S.essayVocab.source === 'local' && !vocabTried.has(S.essayVocab.essay)) vocabAI(true);
   }
 
   // Từ của đề đang luyện viết cho bảng “📒 Từ cần học thuộc”
@@ -5418,6 +5470,118 @@ window.GRADE = (function () {
     }
     return h;
   }
+  /* ---------- 📗 Từ vựng & cụm từ trong bài (học sinh học thuộc) ----------
+   * Hiện ngay: từ của đề (từ vựng từng đoạn, paraphrase, chủ thể) và từ trong dàn ý của cô có trong bài.
+   * Rồi AI lập bảng đầy đủ một lần cho mỗi phiên bản bài (cụm từ dạng gốc, nghĩa, câu trong bài, từ thay thế). */
+  const VKIND = { topic: 'Từ của đề', trend: 'Xu hướng', compare: 'So sánh', link: 'Từ nối', data: 'Số liệu', place: 'Vị trí', process: 'Trình tự', other: 'Khác', outline: 'Dàn ý của cô' };
+  let vocabBusy = false;
+  const vocabTried = new Set();
+  // “rise · increase / go up” → rise, increase, go up (bỏ mục còn chỗ trống […], …, +)
+  const variants = en => String(en).split(/\s*[·/]\s*/).map(x => x.trim()).filter(x => x.length > 3 && !/[[\]…+]|\.\.\./.test(x));
+  function localVocab() {
+    const a = S.analysis || {}, sents = essaySentences(), cands = [];
+    (a.steps || []).forEach(st => (st.vocab || []).forEach(v => cands.push({ en: v.phrase, vi: v.meaning_vi || '', kind: 'topic' })));
+    (a.subject_pp || []).forEach(x => [x.subject, ...x.ways.map(w => w.text)].forEach(en => cands.push({ en, vi: x.meaning_vi || '', kind: 'topic' })));
+    (a.paraphrase || []).forEach(x => [{ phrase: x.word, meaning_vi: x.meaning_vi }, ...x.alternatives].forEach(v => cands.push({ en: v.phrase, vi: v.meaning_vi || x.meaning_vi || '', kind: 'topic' })));
+    MEMO.groups(outlineOf(a)).forEach(g => g.items.forEach(w => variants(w.en).forEach(en => cands.push({ en, vi: w.vi, kind: 'outline' }))));
+    // Cụm dài xét trước; cụm nằm gọn trong cụm đã chọn (the village ⊂ the village of Stokeford) và tên riêng đứng một mình thì bỏ
+    const out = [], seen = new Set(), taken = [];
+    cands.sort((x, y) => String(y.en || '').length - String(x.en || '').length).forEach(c => {
+      const key = String(c.en || '').toLowerCase().trim();
+      if (key.length < 3 || seen.has(key) || /^[A-Z][a-z]+$/.test(String(c.en).trim())) return;
+      const re = new RegExp('(?<![A-Za-z])' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-z])', 'gi');
+      for (const x of sents) {
+        for (const m of x.text.matchAll(re)) {
+          const from = m.index, to = m.index + m[0].length;
+          if (taken.some(t => t.s === x && from >= t.from && to <= t.to)) continue;
+          seen.add(key); taken.push({ s: x, from, to });
+          out.push({ phrase: c.en, kind: c.kind, vi: c.vi, note: '', alt: '', ex: { p: x.p, n: x.n, text: x.text, part: m[0] }, at: x.p * 1e6 + x.n * 1e4 + from });
+          return;
+        }
+      }
+    });
+    return out.sort((x, y) => x.at - y.at).slice(0, 30).map(({ at, ...x }) => x);
+  }
+  // Gắn với đúng nội dung bài: bài đổi thì lập lại
+  function ensureVocab() {
+    const essay = essayText();
+    if (!essay) return null;
+    if (!S.essayVocab || S.essayVocab.essay !== essay) { S.essayVocab = { essay, source: 'local', items: localVocab() }; save(); }
+    return S.essayVocab;
+  }
+  function renderEssayVocab() {
+    const v = ensureVocab(), box = $('#evocab');
+    $('#btn-evocab-ai').hidden = !v || v.source === 'ai';
+    $('#btn-evocab-ai').disabled = vocabBusy;
+    if (!v) { box.innerHTML = '<p class="muted">Chưa có bài viết.</p>'; return; }
+    $('#evocab-meta').textContent = v.source === 'ai'
+      ? `${v.items.length} từ / cụm từ AI chọn từ chính bài này — cụm từ ở dạng gốc để học thuộc; phần tô vàng là chỗ dùng trong bài.`
+      : 'Nhận diện nhanh: từ của đề và từ trong dàn ý của cô có trong bài. Bấm “AI lập bảng đầy đủ” để AI chọn thêm cụm từ hay, kèm nghĩa và từ thay thế.';
+    box.innerHTML = (vocabBusy ? '<p class="structs-busy" role="status"><span class="spinner"></span> AI đang lập bảng từ vựng & cụm từ của bài…</p>' : '') +
+      (v.items.length ? `<div class="table-wrap"><table class="memo-t ev-t"><thead><tr><th>#</th><th>Từ / cụm từ</th><th>Nghĩa</th><th>Trong bài</th><th>Có thể thay bằng</th></tr></thead><tbody>${v.items.map((it, k) => `<tr>
+        <td class="memo-n">${k + 1}</td>
+        <td><b>${esc(it.phrase)}</b><span class="ev-kind">${esc(VKIND[it.kind] || '')}</span></td>
+        <td>${esc(it.vi)}${it.note ? `<span class="memo-ex">${esc(it.note)}</span>` : ''}</td>
+        <td>${it.ex ? `<span class="st-where" style="--pc:${PCOLOR[it.ex.p]}">${STEP_NAMES[it.ex.p]} · câu ${it.ex.n + 1}</span> ${hlPart(it.ex.text, it.ex.part)}` : '—'}</td>
+        <td>${it.alt ? `<span class="memo-alt">${esc(it.alt)}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="muted">Chưa nhận ra từ nào — bấm “AI lập bảng đầy đủ”.</p>');
+  }
+  async function vocabAI(auto) {
+    const v = ensureVocab();
+    if (!v || vocabBusy) return;
+    AVAIL = await AI.available();
+    if (AVAIL.via === 'key' && !AI.getKey()) { if (!auto) openKey(); return; }
+    vocabBusy = true; vocabTried.add(v.essay);
+    if (S.view === 'review') renderEssayVocab();
+    try {
+      const items = await AI.analyzeVocab({ sentences: essaySentences(), band: S.band });
+      if (S.essayVocab && S.essayVocab.essay === v.essay) { S.essayVocab = { essay: v.essay, source: 'ai', items }; save(); }
+      if (!auto) toast('AI đã lập xong bảng từ vựng & cụm từ của bài.');
+    } catch (e) {
+      if (!auto) toast('⚠️ ' + (e.message || 'AI chưa lập được bảng từ vựng. Thử lại.'), 4000);
+    } finally {
+      vocabBusy = false;
+      if (S.view === 'review') renderReview();
+    }
+  }
+  // quiz = phiếu tự kiểm tra: để trống nghĩa và từ thay thế, giữ câu trong bài làm gợi ý
+  function vocabPlain(items, no, quiz) {
+    if (!items.length) return [];
+    const line = '━━━━━━━━━━━━━━━━━━━━';
+    const out = ['', line, `📗 ${no ? no + '. ' : ''}TỪ VỰNG & CỤM TỪ TRONG BÀI${quiz ? ' · PHIẾU TỰ KIỂM TRA' : ' (học thuộc)'}`, line];
+    items.forEach((it, k) => {
+      out.push(`${k + 1}. ${it.phrase}${VKIND[it.kind] ? ' (' + VKIND[it.kind] + ')' : ''} = ${quiz ? '………………' : it.vi}`);
+      if (!quiz && it.note) out.push(`   Lưu ý: ${it.note}`);
+      if (it.ex) out.push(`   Trong bài: ${it.ex.text.replace(it.ex.part, () => '[' + it.ex.part + ']')}`);
+      if (!quiz && it.alt) out.push(`   Thay bằng: ${it.alt}`);
+    });
+    return out;
+  }
+  function vocabHtml(items, no, quiz) {
+    if (!items.length) return '';
+    const B = '1px solid #d5dfd0', c = '#1a7a43', blank = '<span style="color:#c4ccc2">…………………………</span>';
+    const td = (x, st) => `<td style="border:${B};padding:6px 8px;vertical-align:top;${st || ''}">${x}</td>`;
+    const th = (x, w) => `<th style="border:1px solid ${c};background:${c};color:#ffffff;padding:6px 8px;text-align:left;${w ? 'width:' + w : ''}">${x}</th>`;
+    const ex = e => e ? `<span style="font-size:11px;font-weight:bold;color:${PCOLOR[e.p]}">${STEP_NAMES[e.p]} · câu ${e.n + 1}</span><br><span style="font-family:Georgia,'Times New Roman',serif">${esc(e.text).replace(esc(e.part), () => `<b style="background:#fff3b0">${esc(e.part)}</b>`)}</span>` : '—';
+    let rows = `<tr>${th('#', '30px')}${th('Từ / cụm từ', '24%')}${th(quiz ? 'Nghĩa (em tự ghi)' : 'Nghĩa', '22%')}${th('Câu trong bài')}${quiz ? '' : th('Có thể thay bằng', '18%')}</tr>`;
+    items.forEach((it, k) => {
+      const bg = k % 2 ? '#ffffff' : '#f2f8f3';
+      rows += `<tr>${td(k + 1, `background:${bg};color:#5b6957`)}${td(`<b>${esc(it.phrase)}</b>${VKIND[it.kind] ? `<br><span style="font-size:11px;color:#5b6957">${esc(VKIND[it.kind])}</span>` : ''}`, `background:${bg}`)}${td(quiz ? blank : esc(it.vi) + (it.note ? `<br><span style="font-size:12px;color:#5b6957">${esc(it.note)}</span>` : ''), `background:${bg}`)}${td(ex(it.ex), `background:${bg}`)}${quiz ? '' : td(it.alt ? `<b style="color:#5a3fb5">${esc(it.alt)}</b>` : '', `background:${bg}`)}</tr>`;
+    });
+    return `<h2 style="font-size:17px;margin:22px 0 8px;color:${c};border-bottom:3px solid ${c};padding-bottom:4px">📗 ${no ? no + '. ' : ''}Từ vựng &amp; cụm từ trong bài${quiz ? ' · Phiếu tự kiểm tra' : ''}</h2>
+      ${quiz ? '<p style="margin:0 0 8px;color:#5b6957">Em ghi nghĩa tiếng Việt vào chỗ trống (nhìn câu trong bài để đoán nghĩa), rồi so với bảng từ để tự chấm.</p>' : ''}
+      <table style="border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14px;line-height:1.5">${rows}</table>`;
+  }
+  function copyEssayVocab(quiz) {
+    const v = ensureVocab();
+    if (!v || !v.items.length) { toast('Chưa có từ vựng để sao chép.'); return; }
+    const a = S.analysis || {};
+    const title = `📘 Ms. Nhi Gigi · Từ vựng & cụm từ trong bài${a.subject ? ' · ' + a.subject : ''}`;
+    copyRich([title].concat(vocabPlain(v.items, '', quiz)).join('\n'),
+      `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1d281b;max-width:860px"><h1 style="font-size:20px;margin:0 0 4px">${esc(title)}</h1>${vocabHtml(v.items, '', quiz)}</div>`,
+      quiz ? 'Đã sao chép phiếu tự kiểm tra từ vựng (để trống nghĩa) — dán vào Word / Google Docs để in cho học sinh.' : 'Đã sao chép bảng từ vựng & cụm từ của bài — dán vào Word, Google Docs hoặc Zalo gửi học sinh học thuộc.');
+  }
+
   function copyStructs() {
     const st = ensureStructs();
     if (!st || !st.items.length) { toast('Chưa có cấu trúc câu để sao chép.'); return; }
@@ -5764,6 +5928,9 @@ window.GRADE = (function () {
       case 'btn-copy-lesson': copyLesson(); return;
       case 'btn-structs-ai': structsAI(false); return;
       case 'btn-copy-structs': copyStructs(); return;
+      case 'btn-evocab-ai': vocabAI(false); return;
+      case 'btn-copy-evocab': copyEssayVocab(false); return;
+      case 'btn-quiz-evocab': copyEssayVocab(true); return;
       case 'btn-copy-all': {
         const txt = essayText();
         if (!txt) { toast('Chưa có nội dung để sao chép.'); return; }

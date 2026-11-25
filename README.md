@@ -55,6 +55,11 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - Nút sao chép: **bài giảng**, **phiếu bài tập** (không đáp án, kèm ảnh biểu đồ khi dán vào Word/Docs), **đáp án**.
 - “Xem bài giảng mẫu” dùng một biểu đồ đường minh hoạ (số liệu tự soạn).
 
+## 📗 Từ vựng & cụm từ trong bài (trang bài hoàn chỉnh)
+- Khi ra bài hoàn chỉnh, app lập bảng từ vựng & cụm từ của **chính bài đó**: cụm từ ở dạng gốc để học thuộc (rose sharply → rise sharply), loại (xu hướng, so sánh, từ nối, số liệu, vị trí, trình tự, từ của đề), nghĩa tiếng Việt, câu trong bài có tô vàng chỗ dùng, và từ có thể thay thế.
+- Hiện ngay bản nhận diện nhanh (từ của đề và từ trong dàn ý của cô có trong bài); rồi AI tự lập bảng đầy đủ một lần cho mỗi phiên bản bài (bài mẫu thì bấm “🤖 AI lập bảng đầy đủ”). Sửa bài → bảng lập lại.
+- “📋 Sao chép bảng từ vựng” (bảng màu cho Word / Google Docs) và “📝 Phiếu tự kiểm tra” (để trống nghĩa, giữ câu trong bài làm gợi ý). Bảng này cũng nằm trong “📚 Sao chép bài học hoàn chỉnh”.
+
 ## 📒 Từ cần học thuộc
 - Bảng từ học sinh cần học thuộc cho **từng dạng**, lấy từ chính dàn ý của cô (khung câu, lưu ý & từ vựng, bài mẫu; Maps thêm 2 bảng từ vựng thay đổi / vị trí) — `js/gigi.js` → `MEMORIZE`, mỗi từ có nghĩa tiếng Việt và ví dụ.
 - Kèm **từ của đề đang làm**: chủ thể và cách paraphrase, từ paraphrase, từ vựng AI gợi ý cho đề.

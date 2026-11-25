@@ -667,6 +667,41 @@ Rules:
 Reply with ONLY one JSON object:
 { "items": [ { "id": "reduced_rel", "name_vi": "only for other", "name_en": "only for other", "formula": "only for other", "use_vi": "...", "examples": [ { "s": "3.2", "part": "exact words" } ], "practice": { "q_vi": "...", "from": "...", "to": "..." } } ] }`;
   }
+  /* Bảng từ vựng & cụm từ của chính bài đã viết (để học sinh học thuộc) */
+  const VOCAB_KINDS = ['topic', 'trend', 'compare', 'link', 'data', 'place', 'process', 'other'];
+  function buildVocabPrompt({ sentences, band }) {
+    return `You are an IELTS Writing Task 1 vocabulary teacher for Vietnamese students of Ms. Gigi. The student has finished the essay below. Build the VOCABULARY TABLE of THIS essay: the words and phrases in it that the student should learn by heart to write this kind of task again.
+Target level: ${BAND[band] || BAND['7.0']}
+
+Essay sentences ([paragraph.sentence] text):
+${sentences.map(x => `[${x.p + 1}.${x.n + 1}] ${x.text}`).join('\n')}
+
+Rules:
+- Only words / phrases that really appear in the essay. "part" is copied EXACTLY from that sentence (same words, same case), 1-8 words. "phrase" is the form to learn: base form of verbs, with its usual pattern (part "rose sharply" → "rise sharply"; part "accounted for" → "account for + %"; part "was overtaken by" → "be overtaken by").
+- Prefer useful chunks over single easy words: collocations (experience a gradual decline, the figure for, a downward trend), trend verbs + adverbs, comparison phrases, linking / opening phrases of the outline, topic nouns of THIS task, prepositions with figures (rise to / by, stand at), location and change phrases (maps), sequence phrases and passive verbs (process). Skip names, numbers and very basic words.
+- 15-25 items, in the order they appear in the essay, no duplicates.
+- kind: "topic" (từ của chủ đề / chủ thể), "trend" (xu hướng, thay đổi), "compare" (so sánh), "link" (từ nối, cụm mở câu), "data" (số liệu, giới từ đi với số), "place" (vị trí), "process" (trình tự, bị động), "other".
+- meaning_vi: short Vietnamese meaning in this context. note_vi: optional short Vietnamese usage tip (goes with what, word form, only with %…). alt: 1-2 alternatives with the same meaning and level the student could use instead, '' if none.
+
+Reply with ONLY one JSON object:
+{ "items": [ { "phrase": "experience a gradual decline", "kind": "trend", "meaning_vi": "...", "s": "3.2", "part": "experienced a gradual decline", "note_vi": "...", "alt": "..." } ] }`;
+  }
+  async function analyzeVocab({ sentences, band, signal }) {
+    const r = await ask(buildVocabPrompt({ sentences, band }), null, signal, 'low', 'items');
+    const byKey = {}, seen = new Set();
+    sentences.forEach(x => { byKey[`${x.p + 1}.${x.n + 1}`] = x; });
+    const items = (r && Array.isArray(r.items) ? r.items : []).map(it => {
+      const phrase = String((it && it.phrase) || '').trim();
+      if (!phrase || seen.has(phrase.toLowerCase())) return null;
+      seen.add(phrase.toLowerCase());
+      const s = byKey[String(it.s || '').trim()], part = String(it.part || '').trim();
+      const at = s && part ? s.text.toLowerCase().indexOf(part.toLowerCase()) : -1;
+      return { phrase, kind: VOCAB_KINDS.includes(it.kind) ? it.kind : 'other', vi: String(it.meaning_vi || ''), note: String(it.note_vi || ''), alt: String(it.alt || ''),
+        ex: at < 0 ? null : { p: s.p, n: s.n, text: s.text, part: s.text.slice(at, at + part.length) } };
+    }).filter(Boolean);
+    if (!items.length) throw new Error('AI chưa lập được bảng từ vựng. Bấm thử lại.');
+    return items;
+  }
   async function analyzeStructures({ sentences, band, signal }) {
     const r = await ask(buildStructPrompt({ sentences, band }), null, signal, 'low', 'items');
     const S = window.STRUCTS, byKey = {};
@@ -950,5 +985,5 @@ ${part === 'exercises' ? EXERCISES_SHAPE : LESSON_SHAPE}`;
     return validateLesson(r, ex);
   }
 
-  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, gradeEssay, normGrade, splitEssay, normSubjects, normTips, makeExtras, extractJson, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
+  return { readImage, ocr, analyze, verify, regenSentence, checkSentence, analyzeStructures, analyzeVocab, gradeEssay, normGrade, splitEssay, normSubjects, normTips, makeExtras, extractJson, upgradeSteps: steps => steps.map(s => (s.sentences ? s : Object.assign({}, s, { sentences: slotsFromOptions(s), skipped: [] }))), makeLesson, EX_TYPES, available, getKey, setKey };
 })();
