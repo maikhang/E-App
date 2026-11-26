@@ -6,7 +6,7 @@ window.CONTENT = (function () {
   // A. Từ vựng miêu tả sự thay đổi (Dùng chủ yếu trong Body 2)
   const changeVocab = [
     { id: 'built', phrase: 'was built', meaning: 'Được xây dựng', usage: 'Miêu tả công trình mới được xây.', example: 'A school was built in the north.', note: 'Thường dùng trong Body 2 để chỉ công trình mới trên map 2.', sections: ['body2'] },
-    { id: 'constructed', phrase: 'was constructed', meaning: 'Được xây dựng', usage: 'Tương tự “was built,” trang trọng hơn.', example: 'A shopping center was constructed in the center.', note: 'Có thể thay thế “was built” để đa dạng hóa.', sections: ['body2'] },
+    { id: 'constructed', phrase: 'was constructed', meaning: 'Được xây dựng', usage: 'Tương tự “was built,” trang trọng hơn.', example: 'A shopping centre was constructed in the centre.', note: 'Có thể thay thế “was built” để đa dạng hóa.', sections: ['body2'] },
     { id: 'added', phrase: 'was added', meaning: 'Được bổ sung', usage: 'Chỉ việc thêm công trình mới.', example: 'A park was added to the east.', note: 'Nhẹ hơn “was built,” dùng khi công trình nhỏ hoặc bổ sung.', sections: ['body2'] },
     { id: 'demolished', phrase: 'was demolished', meaning: 'Bị phá bỏ', usage: 'Miêu tả công trình bị phá hủy.', example: 'The old houses were demolished.', note: 'Dùng trong Body 2 để chỉ công trình biến mất trên map 2.', sections: ['body2'] },
     { id: 'removed', phrase: 'was removed', meaning: 'Bị loại bỏ', usage: 'Tương tự “was demolished.”', example: 'The factory was removed.', note: 'Dùng khi công trình bị xóa bỏ hoàn toàn.', sections: ['body2'] },
@@ -23,16 +23,16 @@ window.CONTENT = (function () {
     { id: 'underwent', phrase: 'underwent development', meaning: 'Được phát triển', usage: 'Miêu tả sự phát triển tổng thể.', example: 'The area underwent development with new facilities.', note: 'Dùng trong Overview hoặc Body 2, mang tính khái quát.', sections: ['overview', 'body2'] },
     { id: 'redeveloped', phrase: 'was redeveloped', meaning: 'Được tái phát triển', usage: 'Khu vực được xây dựng lại.', example: 'The northern area was redeveloped.', note: 'Bổ sung, dùng khi khu vực được cải tạo lớn.', sections: ['body2'] },
     { id: 'transformed', phrase: 'was transformed into', meaning: 'Được chuyển đổi thành', usage: 'Tương tự “was converted into.”', example: 'The farmland was transformed into a residential area.', note: 'Bổ sung, nhấn mạnh sự thay đổi lớn.', sections: ['body2'] },
-    { id: 'addition', phrase: 'saw the addition of', meaning: 'Có thêm', usage: 'Chỉ sự bổ sung công trình mới.', example: 'The town saw the addition of a sports center.', note: 'Bổ sung, nhẹ hơn “was added.”', sections: ['overview', 'body2'] },
+    { id: 'addition', phrase: 'saw the addition of', meaning: 'Có thêm', usage: 'Chỉ sự bổ sung công trình mới.', example: 'The town saw the addition of a sports centre.', note: 'Bổ sung, nhẹ hơn “was added.”', sections: ['overview', 'body2'] },
   ];
 
   // B. Từ vựng miêu tả vị trí (Dùng trong Body 1 và Body 2)
   const positionVocab = [
     { id: 'to_dir', phrase: 'to the north/south/east/west (of)', meaning: 'Về phía bắc/nam/đông/tây', usage: 'Chỉ hướng tương đối.', example: 'The park is to the north of the river.', note: 'Dùng khi mô tả vị trí so với điểm khác.' },
     { id: 'in_dir', phrase: 'in the north/south/east/west (of)', meaning: 'Ở khu vực bắc/nam/đông/tây', usage: 'Chỉ khu vực cụ thể.', example: 'The factory is in the east of the town.', note: 'Nhấn mạnh khu vực hơn là hướng.' },
-    { id: 'center', phrase: 'in the center of', meaning: 'Ở trung tâm', usage: 'Chỉ vị trí trung tâm.', example: 'The town hall is in the center of the map.', note: 'Dùng cho vị trí trung tâm bản đồ.' },
-    { id: 'middle', phrase: 'in the middle of', meaning: 'Ở giữa', usage: 'Tương tự “in the center of.”', example: 'A park is in the middle of the town.', note: 'Dùng thay thế “in the center of” để đa dạng.' },
-    { id: 'central_part', phrase: 'in the central part of', meaning: 'Ở phần trung tâm', usage: 'Tương tự “in the center of,” trang trọng hơn.', example: 'The library is in the central part of the map.', note: 'Dùng trong văn phong học thuật.' },
+    { id: 'center', phrase: 'in the centre of', meaning: 'Ở trung tâm', usage: 'Chỉ vị trí trung tâm.', example: 'The town hall is in the centre of the map.', note: 'Dùng cho vị trí trung tâm bản đồ.' },
+    { id: 'middle', phrase: 'in the middle of', meaning: 'Ở giữa', usage: 'Tương tự “in the centre of.”', example: 'A park is in the middle of the town.', note: 'Dùng thay thế “in the center of” để đa dạng.' },
+    { id: 'central_part', phrase: 'in the central part of', meaning: 'Ở phần trung tâm', usage: 'Tương tự “in the centre of,” trang trọng hơn.', example: 'The library is in the central part of the map.', note: 'Dùng trong văn phong học thuật.' },
     { id: 'next_to', phrase: 'next to', meaning: 'Bên cạnh', usage: 'Chỉ vị trí liền kề.', example: 'The school is next to the park.', note: 'Phổ biến, đơn giản.' },
     { id: 'adjacent_to', phrase: 'adjacent to', meaning: 'Kề bên', usage: 'Tương tự “next to,” trang trọng hơn.', example: 'The factory is adjacent to the river.', note: 'Dùng trong văn phong học thuật.' },
     { id: 'opposite', phrase: 'opposite', meaning: 'Đối diện', usage: 'Chỉ vị trí đối diện.', example: 'The shop is opposite the station.', note: 'Dùng khi hai công trình ở hai phía đối lập.' },
@@ -49,7 +49,7 @@ window.CONTENT = (function () {
   const writingStructures = [
     { group: 'Mô tả sự thay đổi lớn', items: ['has been replaced by', 'has been transformed into', 'has been converted into', 'has been expanded', 'was demolished to make way for'] },
     { group: 'Miêu tả sự xuất hiện hoặc biến mất', items: ['A new [building, road, etc.] has been built/constructed', 'The [structure] was removed/demolished', 'No significant changes occurred in...'] },
-    { group: 'Từ chỉ vị trí (để mô tả chính xác vị trí trên bản đồ)', items: ['In the north/south/east/west', 'In the center of the map', 'Alongside the [river, road, etc.]', 'On the outskirts of [place]'] },
+    { group: 'Từ chỉ vị trí (để mô tả chính xác vị trí trên bản đồ)', items: ['In the north/south/east/west', 'In the centre of the map', 'Alongside the [river, road, etc.]', 'On the outskirts of [place]'] },
   ];
 
   // Bảng cấu trúc câu (sentence structures)
@@ -64,16 +64,16 @@ window.CONTENT = (function () {
 
   // Lưu ý quan trọng Task 1
   const rules = [
-    { title: '1. Phân biệt "To the North" và "In the North"', points: [
-      '<b>In the North of the city:</b> Cái đó nằm <b>trong</b> thành phố, ở khu vực phía Bắc.',
-      '<b>To the North of the city:</b> Cái đó nằm <b>ngoài</b> thành phố, lệch về hướng Bắc.'] },
+    { title: '1. Phân biệt "To the north" và "In the north"', points: [
+      '<b>In the north of the city:</b> Cái đó nằm <b>trong</b> thành phố, ở khu vực phía Bắc.',
+      '<b>To the north of the city:</b> Cái đó nằm <b>ngoài</b> thành phố, lệch về hướng Bắc.'] },
     { title: '2. Quy tắc dùng "Side"', points: ['Cứ có chữ <b>side</b> là dùng <b>On</b>.', '<i>Ví dụ:</i> <b>On</b> the northern <b>side</b> of the bridge.'] },
     { title: '3. Quy tắc dùng "Part"', points: ['Cứ có chữ <b>part</b> (phần) là dùng <b>In</b>.', '<i>Ví dụ:</i> <b>In</b> the eastern <b>part</b> of the village.'] },
   ];
   const prepGroups = [
-    { group: 'Nhóm "IN"', use: 'Center, Middle, Corner, Part, Area.' },
+    { group: 'Nhóm "IN"', use: 'Centre, Middle, Corner, Part, Area.' },
     { group: 'Nhóm "AT"', use: 'Top, Bottom, Entrance, Intersection, Junction.' },
-    { group: 'Nhóm "ON"', use: 'Side, Bank, Edge, Left/Right-hand side.' },
+    { group: 'Nhóm "ON"', use: 'Side, Bank, Left/Right-hand side (edge: on hoặc at đều được — on the edge of the town, at the edge of the map).' },
     { group: 'Nhóm "TO"', use: 'North/South/East/West of [Object].' },
   ];
   const paraphrasing = {
@@ -171,9 +171,9 @@ window.CONTENT = (function () {
             O(1, 'In 1930, the layout of the village included several key features along a single main road.'),
           ] },
           { f: [2], status: 'fit', focus_vi: 'Vị trí nhà ở và trường học.', options: [
-            O(2, 'A row of houses was located along the main road, close to a school in the center of the village.'),
+            O(2, 'A row of houses was located along the main road, close to a school in the centre of the village.'),
             O(2, 'Most houses were located along the main road, adjacent to a school in the middle of the village.'),
-            O(2, 'Houses were located on both sides of the main road, close to the school in the center.'),
+            O(2, 'Houses were located on both sides of the main road, close to the school in the centre.'),
           ] },
           { f: [3], status: 'fit', focus_vi: 'Đất nông nghiệp phía nam và cánh đồng ở rìa bản đồ.', options: [
             O(3, 'Farmland lay to the south of the houses, while open fields were situated at the edge of the map.'),
@@ -183,7 +183,7 @@ window.CONTENT = (function () {
           { f: [4], status: 'replaced', why_vi: 'Khung K4 có vế “was surrounded by …”, nhưng trên bản đồ 1930 không có công trình nào được bao quanh bởi công trình khác, nên bỏ vế này.', alt_frame: 'Additionally, [Công trình 6] stood next to [Công trình 7].', focus_vi: 'Bưu điện cạnh trường học.', options: [
             O(4, 'Additionally, a post office stood next to the school.'),
             O(4, 'Additionally, a small post office stood next to the school on the main road.'),
-            O(4, 'Additionally, a post office stood next to the school, in the center of the village.'),
+            O(4, 'Additionally, a post office stood next to the school, in the centre of the village.'),
           ] },
         ],
         skipped: [],
@@ -204,7 +204,7 @@ window.CONTENT = (function () {
             O(2, 'The farmland was converted into housing, which was located in the southern part of the village.'),
           ] },
           { f: [3], status: 'fit', focus_vi: 'Trường mở rộng về phía tây; đường chính giữ nguyên.', options: [
-            O(3, 'The school was expanded to the west, while the main road remained unchanged in the center.'),
+            O(3, 'The school was expanded to the west, while the main road remained unchanged in the centre.'),
             O(3, 'The school was enlarged to the west, while the main road remained unchanged in the middle of the village.'),
             O(3, 'The school was expanded to the west, while the main road remained unchanged in the same position.'),
           ] },

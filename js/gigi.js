@@ -13,7 +13,7 @@ window.GIGI = (function () {
         frames: [
           'The line graph / The bar chart / The pie chart + shows / illustrates / presents / demonstrates + the number of / the amount of / the quantity of / the percentage of / the proportion of / the figure for + [chủ thể] + from ... to ... / between ... and ... / over a period of ... years from ... to ... / in ...',
         ],
-        notes: ['number of = đếm được; amount of = không đếm được; quantity of = cả hai', 'percentage of = % phần so với tổng; proportion of = tỷ lệ giữa các phần; figure for = số liệu tổng quan'],
+        notes: ['number of = đếm được; amount of = không đếm được; quantity of = cả hai', 'percentage of = phần trăm so với tổng; proportion of = phần / tỷ lệ so với tổng (thay cho percentage được); ratio mới là tỷ lệ giữa hai phần (A : B); figure for = số liệu tổng quan'],
       },
       overview: {
         rule: '2 câu: 2 xu hướng khác nhau + cái cao nhất / phổ biến nhất. Không có số liệu.',
@@ -42,14 +42,14 @@ window.GIGI = (function () {
         'Trạng từ: sharply, quickly, rapidly, steeply / considerably, significantly, substantially / steadily, gradually, moderately / slightly, slowly.',
         'Thêm số liệu: by (mức thay đổi: increased by 10%), to (mức đạt tới: rose to 10%), at (ổn định: remained at 10%), from ... to ...; around/about, nearly.',
         '3 cấu trúc: S + V + adv (… increased significantly) · There + be + a + adj + noun + in … (There was a significant increase in …) · Time + saw/witnessed/experienced + a + adj + noun + in … (The first five years witnessed a significant increase in …).',
-        '“witness”: chủ ngữ là Period/Year/Decade ✅, Country/City/Market ✅, Chart/Graph ⚠️ không nên, Percentage/Number/Figure ❌, Age group ❌.',
-        'Kết hợp xu hướng: [xu hướng 1], followed by [xu hướng 2] · saw a sharp increase before leveling off at … · A was overtaken by B in [năm] · The gap between A and B narrowed until they met at the same level.',
+        '“witness” / “saw”: chủ ngữ là Period/Year/Decade ✅, Country/City/Market ✅, Chart/Graph ⚠️ không nên, Percentage/Number/Figure/Proportion ❌, Age group ❌. Chủ ngữ là số liệu → dùng experienced (The proportion of car users experienced a downward trend).',
+        'Kết hợp xu hướng: [xu hướng 1], followed by [xu hướng 2] · experienced a sharp increase before levelling off at … · A was overtaken by B in [năm] · The gap between A and B narrowed until they met at the same level.',
         'So sánh: whereas, while (2 xu hướng trái ngược), in contrast, compared to, respectively.',
       ],
       sample: `The line graph illustrates the percentage of commuters using cars, buses, and bicycles in Metro City between 2000 and 2025.
-Overall, it is obvious that while the proportion of car users witnessed a downward trend, the opposite was true for bus and bicycle commuters. In addition, bus commuting is projected to become the most popular method at the end of the period.
-In 2000, the percentage of car commuters was the highest at approximately 60%, while the proportions for bus and bicycle users were around 25% and 5% respectively. Over the next 10 years, the figure for car usage experienced a gradual decline to roughly 55%. In contrast, the percentages of people traveling by bus and bicycle saw a slight increase, reaching about 30% and 10%.
-From 2010 to 2025, the proportion of people driving cars continued to drop significantly, falling to about 35% at the end of the period. Meanwhile, the figures for bus and bicycle commuters experienced a steady growth. Notably, the proportion of bus users overtook that of car users in 2023, before climbing to nearly 40% in 2025, whereas the figure for bicycles ended at approximately 20%.`,
+Overall, it is obvious that while the proportion of car users experienced a downward trend, the opposite was true for bus and bicycle commuters. In addition, bus commuting is projected to become the most popular method at the end of the period.
+In 2000, the percentage of car commuters was the highest at approximately 60%, while the proportions for bus and bicycle users were around 25% and 5% respectively. Over the next 10 years, the figure for car usage experienced a gradual decline to roughly 55%. In contrast, the percentages of people travelling by bus and bicycle rose slightly, reaching about 30% and 10%.
+From 2010 to 2025, the proportion of people driving cars continued to drop significantly, falling to about 35% at the end of the period. Meanwhile, the figures for bus and bicycle commuters experienced steady growth. Notably, the proportion of bus users overtook that of car users in 2023, before climbing to nearly 40% in 2025, whereas the figure for bicycles ended at approximately 20%.`,
     },
 
     compare: {
@@ -87,19 +87,19 @@ From 2010 to 2025, the proportion of people driving cars continued to drop signi
       },
       rules: [
         'Pie: “account for, make up, constitute, represent, a larger share than, the lion’s share” CHỈ dùng khi dữ liệu là % và tổng 100%. Không nói “Product A accounted for 500 units”.',
-        'Bar (số tuyệt đối): dùng outweigh, surpass, exceed, double, lag behind; recorded/registered, stood at, reached, attracted (người), sold/produced/earned; “There were 500 visitors in City A, compared to only 200 in City B.”',
+        'Bar (số tuyệt đối): dùng outnumber (số người / vật: Visitors to A outnumbered those to B), surpass, exceed, double, lag behind; recorded/registered, stood at, reached, attracted (người), sold/produced/earned; “There were 500 visitors in City A, compared to only 200 in City B.”',
         'Số liệu không chính xác 100% → approximately, about, roughly. Chênh lệch nhỏ: slightly, marginally; lớn: far, significantly.',
-        'Tránh lặp higher than/lower than — xen kẽ outweigh, surpass, in contrast.',
+        'Tránh lặp higher than/lower than — xen kẽ outnumber, surpass, in contrast.',
         'Phân số: 100% = all/every · 75% = three quarters · 50% = a half · 33% = about a third · 25% = a quarter · 0 = no/none.',
         'MỨC ĐỘ 1 – cao nhất (mở đoạn): [Chủ thể] tops the list / ranks first, accounting for [số] · [Chủ thể] recorded/registered the highest figure/proportion, standing at [số] · [Chủ thể] was the most dominant motive/factor, at [số].',
         'MỨC ĐỘ 2 – so sánh hơn + đối lập: While the figure for [A] was [số], that of [B] was significantly lower/higher, at [số] · The figure for [A] stood at [số]. In stark contrast, [B] registered only [số] · [A] was higher/lower than [B] ([số A] compared to [số B]).',
-        'MỨC ĐỘ 3 – gấp nhiều lần (Band 7+): The figure for [A] was double/triple/nearly triple that of [B] · [A] was [số] times higher than that of [B] · [A] was only a third/a quarter of the [B] total.',
+        'MỨC ĐỘ 3 – gấp nhiều lần (Band 7+): The figure for [A] was double/triple/nearly triple that for [B] · The figure for [A] was [số] times higher than that for [B] · [A] was only a third/a quarter of the [B] total.',
         'Câu ghép: mệnh đề quan hệ (…50%, which was the highest figure in the chart) · While/Whereas (While Group A accounted for 50%, Group B represented only 10%) · respectively (A and B stood at 10% and 20% respectively).',
       ],
       sample: `The pie charts illustrate the survey responses from foreign language teachers in Britain regarding the primary reasons their students choose to learn a foreign language, alongside their perceptions of recent changes in these motivations.
 Overall, it is evident that travel and business are the most dominant motives for language acquisition, whereas buying property overseas is perceived as the reason experiencing the most significant recent growth.
-Regarding the primary motives, travel tops the list, accounting for the highest proportion at 33%. Business is the second most common reason, registered at 26%, followed closely by purchasing real estate abroad at 19%. In stark contrast, personal development and social contacts each represent a mere 7%, while general interest accounts for the lowest figure at only 3%.
-Looking at the second chart, a striking 34% of teachers reported a recent increase in students learning languages to buy property overseas. Business also saw a notable rise according to 19% of respondents, while social contacts registered a 15% increase. Whereas travel was the most popular overall motive in the first chart, it was noted as a growing factor by only 3% of educators in the second one.`,
+Regarding the primary motives, travel tops the list, accounting for the highest proportion at 33%. Business is the second most common reason, at 26%, followed closely by purchasing real estate abroad at 19%. In stark contrast, personal development and social contacts each represent a mere 7%, while general interest accounts for the lowest figure at only 3%.
+Looking at the second chart, a striking 34% of teachers reported a recent increase in students learning languages to buy property overseas. Business also saw a notable rise according to 19% of respondents, while 15% of teachers reported a rise in social contacts. Whereas travel was the most popular overall motive in the first chart, it was noted as a growing factor by only 3% of educators in the second one.`,
     },
 
     maps: {
@@ -121,7 +121,7 @@ Looking at the second chart, a striking 34% of teachers reported a recent increa
         rule: 'CHỈ miêu tả vị trí các công trình trên bản đồ đầu tiên, không đề cập thay đổi.',
         frames: [
           'Mở đoạn: In [thời điểm 1], the layout of [khu vực] included several key features.',
-          'Chi tiết vị trí: [Công trình 1] was located in [the north/center], [adjacent to/close to] [Công trình 2].',
+          'Chi tiết vị trí: [Công trình 1] was located in [the north/centre], [adjacent to/close to] [Công trình 2].',
           'Vị trí khác: [Công trình 3] lay to the [north/south] of [Công trình 4], while [Công trình 5] was situated in [the top-left corner / at the edge of the map].',
           'Vị trí bổ sung: Additionally, [Công trình 6] stood next to [Công trình 7] and was surrounded by [Công trình 8].',
         ],
@@ -130,16 +130,16 @@ Looking at the second chart, a striking 34% of teachers reported a recent increa
         rule: 'Miêu tả thay đổi và vị trí trên bản đồ 2 (chỉ 3-4 thay đổi chính).',
         frames: [
           'Mở đoạn: By [thời điểm 2], the area had experienced significant changes, with [new constructions/removals]. (Bản đồ hiện tại: By the present day, the area has experienced …)',
-          'Thay đổi và vị trí: [Công trình 1] was [demolished / replaced by / converted into] [công trình mới], which was located in [the north].',
-          'Thay đổi khác: [Công trình 2] was [expanded/relocated] to [the south], while [Công trình 3] remained unchanged in [the center].',
+          'Thay đổi và vị trí: [Công trình 1] was [demolished to make way for / replaced by / converted into] [công trình mới], which was located in [the north].',
+          'Thay đổi khác: [Công trình 2] was [expanded/relocated] to [the south], while [Công trình 3] remained unchanged in [the centre].',
           'Vị trí bổ sung: A new [Công trình 4] was constructed in [the top-left corner], [next to/opposite] [Công trình 5].',
           '(Kết quả) These modifications resulted in [a reduction in open space / more facilities for students].',
         ],
       },
       rules: [
-        'In the North of the city = bên TRONG thành phố · To the North of the city = bên NGOÀI, lệch về hướng Bắc.',
+        'In the north of the city = bên TRONG thành phố · To the north of the city = bên NGOÀI, lệch về hướng Bắc.',
         'Có “side” → ON (on the northern side of the bridge) · Có “part” → IN (in the eastern part of the village).',
-        'Nhóm IN: center, middle, corner, part, area · AT: top, bottom, entrance, intersection, junction · ON: side, bank, edge, left/right-hand side · TO: north/south/east/west of [object].',
+        'Nhóm IN: centre, middle, corner, part, area · AT: top, bottom, entrance, intersection, junction · ON: side, bank, left/right-hand side · edge: on the edge of the town / at the edge of the map (cả hai đều đúng) · TO: north/south/east/west of [object].',
         'Paraphrase vị trí: The house is located to the right of the tree · On the right-hand side of the tree, a house can be seen · The area to the right of the tree is occupied by a house.',
         'Đồng nghĩa: xây mới erected // constructed / built · phá bỏ demolished // knocked down · mở rộng enlarged // expanded · thay thế replaced by // made way for · chuyển chỗ relocated to · hiện đại hoá modernized // renovated.',
         'Lỗi hay gặp: liệt kê quá nhiều chi tiết · dùng hiện tại đơn (phải dùng quá khứ) · lặp từ · quên so sánh hai thời điểm.',
@@ -147,10 +147,10 @@ Looking at the second chart, a striking 34% of teachers reported a recent increa
         'Thì sau “By + năm”: năm trong quá khứ → quá khứ hoàn thành (By 2010, the area had experienced significant changes); bản đồ hiện tại → hiện tại hoàn thành (By the present day, the area has experienced …). Các câu thay đổi sau đó dùng quá khứ đơn bị động (was built, was converted into).',
         'Mẹo: Thời gian + Vật thể + Hành động + Vị trí (In 1995, a cafe was located next to the library).',
       ],
-      sample: `The maps illustrate the development of the village of Ryemouth between 1995 and present.
+      sample: `The maps illustrate the development of the village of Ryemouth between 1995 and the present day.
 Overall, the area underwent significant development, with the addition of new recreational facilities and the removal of the fishing port, while some residential areas remained unchanged.
-In 1995, the layout of the village included several key features. A housing area was located in the north-west, close to a main road and a small cluster of houses. A shop lay to the south of the housing area, while a forest park was situated in the center of the map. Additionally, a hotel stood next to the forest park, and a fish market stood next to a fishing port with a pier by the sea in the south.
-By the present day, the area has experienced significant changes, with several new constructions and removals. The fish market and the fishing port in the south were demolished and replaced by new apartments, which were located along the coast. The shop was converted into a restaurant, while the hotel remained unchanged in the center-right. A new golf course was constructed in the north-east, and the forest park was replaced by tennis courts. Furthermore, a new car park was constructed next to the hotel.`,
+In 1995, the layout of the village included several key features. A housing area was located in the north-west, close to a main road and a small cluster of houses. A shop lay to the south of the housing area, while a forest park was situated in the centre of the map. Additionally, a hotel stood next to the forest park, and a fish market stood next to a fishing port with a pier by the sea in the south.
+By the present day, the area has experienced significant changes, with several new constructions and removals. The fish market and the fishing port in the south were demolished and replaced by new apartments, which were located along the coast. The shop was converted into a restaurant, while the hotel remained unchanged in the centre-right. A new golf course was constructed in the north-east, and the forest park was replaced by tennis courts. Furthermore, a new car park was constructed next to the hotel.`,
     },
 
     floorplan: {
@@ -220,7 +220,7 @@ By the present day, the area has experienced significant changes, with several n
         'Đưa vào máy: be fed into, be introduced into · Di chuyển: be transferred to, be conveyed to, be moved to · Xử lý: undergo, be processed in, be subjected to.',
         'Kéo dài nội dung: (1) thêm thời gian/địa điểm/dụng cụ có trong hình (dried using hot air in a special machine for 24 hours) · (2) mệnh đề rút gọn before V-ing / after being V3 / which is then … · (3) tả trạng thái trước và sau (the trimmed logs are fed into a machine to be cut into small wood chips) · (4) gom bước nhỏ thành giai đoạn lớn (The entire process can be divided into two main phases, starting with … and ending with …).',
       ],
-      sample: `The diagram illustrates the process of how olive oil is produced.
+      sample: `The diagram illustrates the process of producing olive oil.
 Overall, this process comprises several main stages, beginning with harvesting the olives and ending with storing the oil in a tank.
 In the first stage of the process, olives are harvested from trees and put into a collection vat. After that, they are moved to be de-leafed and washed. Following this, the olives are crushed in an olive mill to create olive paste. Next, the paste is put into a malaxer at a temperature of under 27°C.
 Subsequently, the mixture is pressed in a centrifugal press. From this stage, pomace is separated and transported to refining factories for further processing. Meanwhile, the remaining virgin oils are directed into two parallel stages: separation and decantation. Through these processes, waste water, solids, and other residues are removed. Finally, the cleaned oil is collected and stored in a storage tank.`,
@@ -269,15 +269,15 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     changeTricks: [
       'Chiêu 1 (Noun → Verb): The consumption of water → How water was consumed.',
       'Chiêu 2 (mệnh đề): chèn Who/Which/How giữa câu.',
-      'Chiêu 3 (tính từ quốc gia): The population of Japan → Japanese population; The energy consumption in France → French energy consumption.',
+      'Chiêu 3 (tính từ quốc gia): The population of Japan → the Japanese population / Japan’s population; The energy consumption in France → French energy consumption.',
     ],
     synonyms: [
-      'Sales → Revenue; The amount sold (tiền hoặc số lượng bán ra)',
+      'Sales → The amount sold (tiền hoặc số lượng bán ra); Revenue (chỉ khi doanh số tính bằng tiền)',
       'Spending/Expenditure → Outlays; Money spent (chỉ khi đơn vị tiền tệ)',
-      'Purchases → The number of items bought; Consumer acquisitions',
+      'Purchases → The number of items bought',
       'Production → Output; The amount produced · Generation (điện) → Electricity output · Manufacturing → Industrial production',
       'Consumption → Use/Usage; Intake (đồ ăn/thức uống) · Demand → Consumer need; The level of demand',
-      'Population → The number of inhabitants; Residents · Visitors/Tourists → Arrivals; Holidaymakers · Rate (%) → Percentage/Proportion; Ratio',
+      'Population → The number of inhabitants; Residents · Visitors/Tourists → Arrivals; Holidaymakers · Rate (%) → Percentage/Proportion',
     ],
     pieBar: [
       'Dẫn đầu: [Chủ thể] + took the lead / led the chart + with + [%] (Chinese food took the lead with 34%).',
@@ -287,8 +287,8 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
       'Góc nhìn người khảo sát: [%] of people + chose/preferred/consumed + [Chủ thể] · Bị động: [Chủ thể] + was chosen / was preferred by + [%] of people.',
     ],
     trendBasic: [
-      'Tăng: [Chủ thể] + experienced/saw/witnessed + an upward trend / a significant increase.',
-      'Giảm: [Chủ thể] + underwent/saw/experienced + a sharp decline / a downward trend.',
+      'Tăng: [Chủ thể là số liệu] + experienced + an upward trend / a significant increase · [Thời gian / nơi chốn] + saw / witnessed + a significant increase in + [chủ thể].',
+      'Giảm: [Chủ thể là số liệu] + underwent / experienced + a sharp decline / a downward trend · [Thời gian / nơi chốn] + saw / witnessed + a sharp decline in + [chủ thể].',
       'Động từ: rose/grew/surged/skyrocketed/climbed · dropped/fell/plummeted/decreased.',
       'Đỉnh: reached/hit a peak of + [số] + in [năm] · Dao động/chững: fluctuated / remained stable / plateaued.',
       'Mức độ: tăng increase/go up → rise/grow/climb → surge/soar/show marked growth · giảm decrease/go down → fall/drop/decline → plunge/show a marked decline · phục hồi show signs of recovery → recover/bounce back → see a rebound · ổn định stay the same → remain stable/level off → plateau · dao động fluctuate → fluctuate considerably/oscillate · đỉnh peak at / reach a peak of · đáy hit a low of / fall to its lowest point.',
@@ -297,7 +297,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
       'Biến động nối tiếp: S + V + adv, before [V-ing] + adv (The figure rose sharply to 50%, before dropping gradually to 20%).',
       'Đạt đỉnh: S + peaked at + [số], which was the highest figure recorded in the chart.',
       'Chạm đáy: S + hit a low of + [số], followed by a slight recovery to …',
-      'Hai xu hướng đối lập: S A + V + adv, whereas / in contrast, S B experienced an opposite trend.',
+      'Hai xu hướng đối lập: S A + V + adv, whereas S B experienced the opposite trend. / S A + V + adv. In contrast, S B experienced the opposite trend.',
       'Ổn định: S + experienced a period of stability / minor fluctuations around [số].',
       'Bổ sung thông tin: S + V + [số], accounting for / making up [tỉ lệ], before reaching …',
       'Không lặp chủ ngữ (phân từ): The number of users increased, reaching 50. Dấu phẩy trước before V-ing, accounting for, peaking at.',
@@ -347,7 +347,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
       { id: 'form', name: 'Đổi từ loại', from: 'the percentage of people commuting by car', to: 'the percentage of car commuters', where: 'Intro / Body', note: 'Hoạt động (commuting) ↔ người (commuters) ↔ động từ (commute). Chỉ đổi khi vẫn đo đúng thứ đề đo.' },
       { id: 'compound', name: 'Danh từ ghép', from: 'commuters who travelled by car · the use of cars', to: 'car commuters · car use · car travel', where: 'Body', note: 'Gọn, tự nhiên; tránh ghép quá 3 danh từ.' },
       { id: 'verb', name: 'Noun → Verb (Chiêu 1)', from: 'the percentage of car commuters', to: 'what proportion of people commuted by car · how people travelled to work', where: 'Introduction', note: 'The consumption of water → how much water was consumed.' },
-      { id: 'nation', name: 'Tính từ quốc gia (Chiêu 3)', from: 'the energy consumption in France', to: 'French energy consumption', where: 'Intro / Body', note: 'The population of Japan → Japanese population / Japan’s population.' },
+      { id: 'nation', name: 'Tính từ quốc gia (Chiêu 3)', from: 'the energy consumption in France', to: 'French energy consumption', where: 'Intro / Body', note: 'The population of Japan → the Japanese population / Japan’s population.' },
       { id: 'drop', name: 'Bỏ “the percentage of” (giữ chủ thể)', from: 'The percentage of car commuters accounted for 60%.', to: 'Car commuters accounted for 60% of all commuters.', where: 'Body', note: 'Xem bảng “Bỏ the percentage of được không?”.' },
       { id: 'front', name: 'Đưa số liệu lên đầu', from: 'The percentage of commuters who drove was 60%.', to: '60% of commuters travelled by car. · Around three in five commuters drove to work.', where: 'Body', note: 'Số liệu làm chủ ngữ: [số]% of + N / a quarter of + N.' },
       { id: 'passive', name: 'Bị động', from: '60% of commuters used cars.', to: 'Cars were used by 60% of commuters.', where: 'Body', note: 'Hay dùng với chose / preferred / used.' },
@@ -404,7 +404,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
       { group: 'Dao động · ổn định · đỉnh · đáy', items: [
         W('fluctuate', 'dao động, lên xuống thất thường', 'The figure fluctuated around 20%.'),
         W('remain stable / remain steady', 'giữ ổn định', 'The figure remained stable at 10%.'),
-        W('level off / plateau', 'chững lại, đi ngang', '… before leveling off at 30%.'),
+        W('level off / plateau', 'chững lại, đi ngang', '… before levelling off at 30%.'),
         W('reach a peak of / peak at', 'đạt đỉnh ở mức', 'It peaked at 50% in 2010.'),
         W('hit a low of', 'chạm đáy ở mức', 'It hit a low of 5% in 2015.'),
       ] },
@@ -412,7 +412,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
         W('sharply · quickly · rapidly · steeply', 'mạnh, nhanh, dốc', 'rose sharply'),
         W('considerably · significantly · substantially', 'đáng kể', 'continued to drop significantly'),
         W('steadily · gradually · moderately', 'đều đặn, từ từ, vừa phải', 'increased gradually'),
-        W('slightly · slowly', 'nhẹ, chậm', 'saw a slight increase'),
+        W('slightly · slowly', 'nhẹ, chậm', 'rose slightly'),
       ] },
       { group: 'Giới từ đi với số liệu', items: [
         W('by + số', 'thay đổi MỘT LƯỢNG bằng …', 'increased by 10%'),
@@ -425,7 +425,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
         W('There was a + adj + noun + in …', 'Đã có một sự … trong …', 'There was a significant increase in …'),
         W('[Thời gian] + saw / witnessed / experienced + a … in …', 'Giai đoạn … chứng kiến một sự …', 'The first five years witnessed a significant increase in …'),
         W('…, followed by …', '…, theo sau là …', 'a sharp rise, followed by a slight fall'),
-        W('… before leveling off at …', '… trước khi chững lại ở …', 'saw a sharp increase before leveling off at 30%'),
+        W('… before levelling off at …', '… trước khi chững lại ở …', 'experienced a sharp increase before levelling off at 30%'),
         W('A was overtaken by B in [năm]', 'A bị B vượt qua vào năm …', 'The proportion of car users was overtaken by that of bus users in 2023.'),
         W('The two figures intersected at … in …', 'Hai số liệu gặp nhau tại … vào …', ''),
         W('The gap between A and B narrowed', 'Khoảng cách giữa A và B thu hẹp', ''),
@@ -435,7 +435,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
         W('Over the next … years', 'Trong … năm tiếp theo', 'Over the next 10 years, …'),
         W('From … to … / Between … and …', 'Từ … đến … (mở Body 2)', 'From 2010 to 2025, …'),
         W('whereas / while', 'trong khi (hai xu hướng trái ngược)', ''),
-        W('in contrast / compared to', 'ngược lại / so với', 'In contrast, the percentages of people traveling by bus …'),
+        W('in contrast / compared to', 'ngược lại / so với', 'In contrast, the percentages of people travelling by bus …'),
         W('meanwhile · notably', 'trong khi đó · đáng chú ý là', 'Meanwhile, the figures for bus and bicycle commuters …'),
       ] },
     ],
@@ -471,7 +471,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
         W('tops the list / ranks first', 'đứng đầu danh sách', 'Travel tops the list, accounting for the highest proportion at 33%.'),
       ] },
       { group: 'Bar chart (số tuyệt đối)', items: [
-        W('outweigh · surpass · exceed', 'vượt hơn, cao hơn', ''),
+        W('outnumber · surpass · exceed', 'đông hơn, nhiều hơn (người / vật) · vượt · vượt quá', 'Visitors to City A outnumbered those to City B.'),
         W('double', 'gấp đôi', ''),
         W('lag behind', 'tụt lại phía sau', ''),
         W('recorded / registered', 'ghi nhận', 'Business recorded the second highest figure, at 26%.'),
@@ -483,7 +483,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
         W('slightly · marginally', 'chênh lệch nhỏ', ''),
         W('far · significantly', 'chênh lệch lớn', ''),
         W('In stark contrast, … registered only …', 'Trái ngược hoàn toàn, … chỉ ghi nhận …', 'In stark contrast, personal development and social contacts each represent a mere 7%.'),
-        W('double / triple / nearly triple that of …', 'gấp đôi / gấp ba / gần gấp ba … (Band 7+)', ''),
+        W('The figure for A was double / triple / nearly triple that for B', 'gấp đôi / gấp ba / gần gấp ba … (Band 7+)', ''),
         W('The figure for A was … times higher than that for B', 'số liệu của A cao gấp … lần của B', 'The figure for travel was more than four times higher than that for social contacts.'),
         W('only a third / a quarter of …', 'chỉ bằng một phần ba / một phần tư …', ''),
       ] },
@@ -499,7 +499,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     ],
     maps: [
       { group: 'Mở bài & Tổng quan', items: [
-        W('The maps illustrate the development of …', 'Các bản đồ minh hoạ sự phát triển của …', 'The maps illustrate the development of the village of Ryemouth between 1995 and present.'),
+        W('The maps illustrate the development of …', 'Các bản đồ minh hoạ sự phát triển của …', 'The maps illustrate the development of the village of Ryemouth between 1995 and the present day.'),
         W('The maps illustrate the changes in …', 'Các bản đồ minh hoạ những thay đổi ở …', ''),
         W('underwent significant / considerable development', 'trải qua sự phát triển đáng kể', 'Overall, the area underwent significant development, …'),
         W('with the addition of … and the removal of …', 'với việc thêm … và dỡ bỏ …', 'with the addition of new recreational facilities and the removal of the fishing port'),
@@ -518,13 +518,14 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
         W('These modifications resulted in …', 'Những thay đổi này dẫn đến …', ''),
       ] },
       { group: 'Giới từ chỉ vị trí (quy tắc của cô)', items: [
-        W('In the North of the city', 'BÊN TRONG thành phố, phía Bắc', ''),
-        W('To the North of the city', 'BÊN NGOÀI thành phố, lệch về hướng Bắc', ''),
+        W('in the north of the city', 'BÊN TRONG thành phố, phía Bắc', ''),
+        W('to the north of the city', 'BÊN NGOÀI thành phố, lệch về hướng Bắc', ''),
         W('on the northern side of …', 'có “side” → dùng ON', 'on the northern side of the bridge'),
         W('in the eastern part of …', 'có “part” → dùng IN', 'in the eastern part of the village'),
-        W('IN: center · middle · corner · part · area', 'nhóm đi với IN', ''),
+        W('IN: centre · middle · corner · part · area', 'nhóm đi với IN', ''),
         W('AT: top · bottom · entrance · intersection · junction', 'nhóm đi với AT', ''),
-        W('ON: side · bank · edge · left/right-hand side', 'nhóm đi với ON', ''),
+        W('ON: side · bank · left/right-hand side', 'nhóm đi với ON', 'on the northern side of the bridge'),
+        W('on the edge of … / at the edge of the map', 'ở rìa … (cả hai giới từ đều đúng)', 'A hotel stood at the edge of the map.'),
       ] },
       { group: 'Từ đồng nghĩa & thời gian', items: [
         W('erected · constructed · built', 'được xây mới', ''),
@@ -578,7 +579,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     ],
     process_man: [
       { group: 'Mở bài & Tổng quan', items: [
-        W('The diagram demonstrates / illustrates the process of …', 'Sơ đồ mô tả quy trình …', 'The diagram illustrates the process of how olive oil is produced.'),
+        W('The diagram demonstrates / illustrates the process of …', 'Sơ đồ mô tả quy trình …', 'The diagram illustrates the process of producing olive oil.'),
         W('comprises … main stages', 'gồm … giai đoạn chính', 'Overall, this process comprises several main stages, …'),
         W('beginning with … and ending with …', 'bắt đầu bằng … và kết thúc bằng …', 'beginning with harvesting the olives and ending with storing the oil in a tank'),
         W('The entire process can be divided into two main phases', 'Toàn bộ quy trình chia thành hai giai đoạn lớn', ''),
@@ -689,7 +690,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
   function promptBlock(ids) {
     const parts = ids.map(id => {
       const o = OUTLINES[id];
-      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map((f, n) => `    F${n + 1}. ` + f).join('\n');
+      const sec = k => `  ${k.toUpperCase()} — ${o[k].rule}\n` + o[k].frames.map((f, n) => `    F${n + 1}. ` + f).join('\n') + (o[k].notes || []).map(t => '\n    Note: ' + t).join('');
       return `### OUTLINE "${id}": ${o.name}\nUse when: ${o.when}\n${STEP_KEYS.map(sec).join('\n')}\n  RULES:\n${o.rules.map(r => '    - ' + r).join('\n')}` +
         (o.sample ? `\n  MODEL ESSAY (follow this style and paragraph plan):\n${o.sample.split('\n').map(l => '    ' + l).join('\n')}` : '');
     });
@@ -716,7 +717,7 @@ In the subsequent stage, the salmon move to the open ocean, where they continue 
     if (step === 1 && !/^process/.test(outline) && /\d/.test(t)) out.push('Overview không đưa số liệu.');
     if (outline !== 'compare' && /\b(account(ed|s)? for|made up|makes? up|constitut(ed|es?))\b/i.test(t) && !/%|per ?cent|proportion|share/i.test(t)) out.push('“account for / make up / constitute” chỉ dùng cho tỷ lệ % (tổng 100%).');
     if (/\b(accounted for|made up|constituted)\s+(about |around |approximately |nearly |only )?\d[\d.,]*(?![\d.,])(?!\s*(%|per ?cent))/i.test(t)) out.push('“accounted for / made up” + số tuyệt đối là sai — chỉ dùng với %. Dùng recorded / stood at / reached.');
-    if (/\b(the )?(percentage|number|figure|proportion|age group)\b[^.]{0,20}\bwitness(ed|es)?\b/i.test(t)) out.push('“witness” không đi với chủ ngữ Percentage/Number/Figure/Age group — dùng Period/Year/Country làm chủ ngữ.');
+    if (/\b(the )?(percentage|number|figure|proportion|age group)s?\b[^.]{0,20}\b(witness(ed|es)?|saw)\b/i.test(t)) out.push('“witness / saw” không đi với chủ ngữ Percentage/Number/Figure/Proportion/Age group — dùng experienced, hoặc lấy Period/Year/Country làm chủ ngữ.');
     if (outline === 'maps' && step === 2 && /\b(was|were) (built|constructed|demolished|replaced|converted|expanded|removed|relocated)\b/i.test(t)) out.push('Body 1 (Maps) chỉ mô tả bản đồ đầu tiên, không đề cập thay đổi.');
     if (/^process/.test(outline) && /\b(was|were)\b/i.test(t) && step > 1) out.push('Process dùng bị động thì hiện tại (is/are + V3), tránh was/were.');
     if (outline === 'maps' && /\b(in|at) the (\w+ )?side\b/i.test(t)) out.push('Có “side” → dùng ON (on the northern side).');

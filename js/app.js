@@ -1106,7 +1106,7 @@
           ${C.sentenceStructures.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.formula)}</td><td>${esc(x.example)}</td></tr>`).join('')}</tbody></table></div></div>`;
     } else {
       const o = G.OUTLINES[libTab];
-      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul></div>`;
+      const sec = (k, n) => `<div class="vsec"><h3>${n} — <span class="muted">${esc(o[k].rule)}</span></h3><ul class="frames">${o[k].frames.map(f => `<li>${esc(f).replace(/\[([^\]]+)\]/g, '<span class="slot-ph">[$1]</span>')}</li>`).join('')}</ul>${(o[k].notes || []).length ? `<ul class="muted small">${o[k].notes.map(t => `<li>💡 ${esc(t)}</li>`).join('')}</ul>` : ''}</div>`;
       html = `<p class="muted">${esc(o.when)}</p>
         ${sec('intro', 'Introduction')}${sec('overview', 'Overview')}${sec('body1', 'Body 1')}${sec('body2', 'Body 2')}
         <div class="rule-box"><h3>Lưu ý & từ vựng</h3>${ul(o.rules)}</div>
