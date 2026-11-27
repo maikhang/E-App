@@ -185,6 +185,10 @@ Reply with ONLY one JSON object for this ONE sentence slot:
   }
 
   // Chấm MỘT câu học sinh tự viết: chỉ ra lỗi + sửa ít nhất có thể, giữ ý và cách viết của học sinh
+  // Quy tắc của cô và những thứ KHÔNG phải lỗi: dùng chung khi chấm từng câu (Luyện viết) và chấm cả bài,
+  // để một câu đã sửa đúng bên Luyện viết không bị Chấm bài bắt lỗi lại.
+  const GIGI_RULES = 'Overview starts with "Overall," and has no figures; Body 1 of maps describes only the first map; account for / make up / constitute only with percentages; no "witness" / "saw" with Percentage/Number/Figure/Proportion as subject (use "experienced"); correct tense (maps: past, "By + past year" → past perfect; process: present simple passive); "side" → on, "part" → in; never "the given chart"; subjects kept whole (no bare "Car increased")';
+  const NOT_ERRORS = `These are NOT errors — never list them: a correct sentence; another correct way to say the same thing; stylistic preferences; British vs American spelling (centre / center, travelling / traveling); the fixed words of Ms. Gigi's frames used correctly ("Overall, it is obvious that", "the opposite was true for", "respectively", "the figure for", "accounted for" with %); approximate figures with about / around / approximately / roughly for values read between gridlines; a sentence that could be better but has no mistake.`;
   function buildCheckPrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks, sentence }) {
     const outline = analysis.outline || G.outlineFor(analysis.task_type);
     const st = analysis.steps[stepIndex], slot = st.sentences[slotIndex];
@@ -217,9 +221,10 @@ Student's sentence:
 Check, in this order:
 1. Grammar, spelling, punctuation, word choice and collocation.
 2. Accuracy against the task data (figures, years, units, places, categories, trends). A wrong or invented fact is an error of type "data".
-3. Ms. Gigi's rules for this paragraph (Overview starts with "Overall," and has no figures; Body 1 of maps describes only the first map; account for / make up / constitute only with percentages; no "witness" / "saw" with Percentage/Number/Figure/Proportion (use "experienced"); correct tense; "side" → on, "part" → in; never "the given chart"; subjects kept whole).
+3. Ms. Gigi's rules for this paragraph: ${GIGI_RULES}.
 4. The planned frame: are its fixed words kept and the [brackets] filled with real content? Using a different but correct structure is NOT an error — just mention it in frame_note_vi.
 5. Coherence with the sentences before it (no repeated data, suitable linker).
+${NOT_ERRORS}
 Correct with the SMALLEST possible changes: keep the student's own words, ideas and structure, change only what is wrong. Never rewrite a correct sentence for style, and never add new information unless the sentence is incomplete.
 Explain every error in simple Vietnamese for a student (what is wrong and the rule).
 
@@ -334,7 +339,7 @@ Reply with ONLY one JSON object:
     return found.sort((a, b) => JSON.stringify(b).length - JSON.stringify(a).length)[0];
   }
   const ONE_JSON = '\n\nOUTPUT FORMAT: reply with exactly ONE JSON object and nothing else — no text before or after it, no Markdown fences, no comments, no second object. Every field (including the data sheet) goes INSIDE that one object.';
-  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase', lesson: 'bài giảng' };
+  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', checks: 'phần kiểm tra lỗi', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase', lesson: 'bài giảng' };
   function badReply(text, truncated, want) {
     const err = new Error(truncated ? 'Kết quả AI quá dài nên bị cắt giữa chừng. Bấm thử lại.' : 'AI trả lời chưa đúng định dạng' + (want ? ` (thiếu ${WANT_VI[want] || want})` : '') + '. Bấm thử lại.');
     err.code = truncated ? 'truncated' : 'bad_format';
@@ -741,19 +746,19 @@ Reply with ONLY one JSON object:
     return String(essay || '').split(/\n+/).map(p => p.trim()).filter(Boolean)
       .map(p => p.split(/(?<=[.!?])\s+(?=[A-Z0-9“"'(])/).map(s => s.trim()).filter(Boolean));
   }
-  function buildGradePrompt({ text, visual, essay }) {
+  function buildGradePrompt({ text, visual, data, essay }) {
     const paras = splitEssay(essay);
     const words = (String(essay).match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
     return `You are a senior IELTS Writing Task 1 examiner and the teaching assistant of Ms. Gigi, a Vietnamese teacher whose students write with her outline. Grade the student's essay strictly with the public IELTS Writing Task 1 band descriptors, then give feedback for the student in simple Vietnamese.
 
 ${outlineNotes(OUTLINE_CANDIDATES.auto)}
 
-${taskBlock(text, visual)}
+${taskBlock(text, visual)}${dataBlock({ data })}
 Student's essay (${words} words; [paragraph.sentence] numbering added for reference):
 ${paras.map((ss, p) => ss.map((x, k) => `[${p + 1}.${k + 1}] ${x}`).join('\n')).join('\n\n')}
 
 Do this:
-1. Write the "data" sheet from the TASK first (every figure / feature with its unit), then check every fact in the essay against it. A wrong or invented figure, unit, year, place or trend is an error of type "data".
+1. ${data && data.length ? 'The DATA SHEET above was already checked against the task: copy it into "data" and treat it as the truth.' : 'Write the "data" sheet from the TASK first (every figure / feature with its unit).'} Then check every fact in the essay against it. A wrong or invented figure, unit, year, place or trend is an error of type "data".
 2. Band each criterion in 0.5 steps (0-9) like a real examiner:
    - ta (Task Achievement): clear overview of the main trends / differences / stages? key features selected and supported with ACCURATE data? comparisons? Under 150 words, no overview, inaccurate or missing key data, or copying the prompt lower it.
    - cc (Coherence & Cohesion): paragraphing, logical progression, referencing, linking (not mechanical).
@@ -761,8 +766,9 @@ Do this:
    - gra (Grammatical Range & Accuracy): range of structures and how many sentences are error-free.
    For every criterion give 1-3 "good_vi" points and 1-3 "fix_vi" points, concrete and about THIS essay.
 3. Ms. Gigi's outline: decide which of her outlines fits the task, then judge each paragraph of the essay: its role (intro / overview / body1 / body2 / other), whether it follows her outline (Introduction = 1 sentence paraphrasing the prompt; Overview starts with "Overall," and has no figures; Body 1 / Body 2 content as her outline says), which of her frame numbers it uses, and what is missing or wrong (Vietnamese).
-4. List EVERY language or data error: "s" is the sentence id like "2.1", "wrong" is copied exactly from that sentence, "fix" is the correction, "why_vi" explains the rule simply.
-5. "corrected": the student's essay with ONLY the necessary fixes — keep the student's words, ideas and paragraphs (separate paragraphs with \\n\\n). Fix every data error too.
+4. ERRORS — list every REAL mistake: grammar, spelling, punctuation, a wrong word or collocation, a fact that contradicts the data, or a break of Ms. Gigi's rules (${GIGI_RULES}). "s" is the sentence id like "2.1"; "wrong" is copied EXACTLY from that sentence (the shortest words that show the mistake); "fix" replaces exactly those words; "why_vi" explains the rule simply. ${NOT_ERRORS} If the essay has no real mistake, "errors" is [].
+5. UPGRADES — optional ideas to raise the band that are NOT mistakes (a more precise word, better linking, less repetition, an extra comparison): at most 5; "from" is copied exactly from sentence "s", "to" is the upgraded words, "why_vi" says why it is better.
+5b. "corrected": the student's essay with ONLY the errors from step 4 fixed — nothing else changed (separate paragraphs with \\n\\n).
 6. "model": a Band 8 version written with Ms. Gigi's frames for the outline you chose (4 paragraphs separated by \\n\\n, 170-200 words, accurate data), keeping the student's correct ideas.
 7. "summary_vi": 2-3 encouraging but honest sentences for the student; "priorities_vi": the 3 most important things to improve next time.
 
@@ -775,6 +781,7 @@ Reply with ONLY one JSON object:
   "criteria": { "ta": { "good_vi": [], "fix_vi": [] }, "cc": { "good_vi": [], "fix_vi": [] }, "lr": { "good_vi": [], "fix_vi": [] }, "gra": { "good_vi": [], "fix_vi": [] } },
   "paragraphs": [ { "p": 1, "role": "intro", "ok": true, "frames": [1], "note_vi": "" } ],
   "errors": [ { "s": "2.1", "type": "grammar" | "spelling" | "punctuation" | "vocabulary" | "data" | "rule" | "frame" | "coherence", "wrong": "", "fix": "", "why_vi": "" } ],
+  "upgrades": [ { "s": "3.1", "from": "", "to": "", "why_vi": "" } ],
   "corrected": "",
   "model": "",
   "summary_vi": "",
@@ -799,17 +806,89 @@ Reply with ONLY one JSON object:
       data: arr(r.data).map(x => String(x).trim()).filter(Boolean),
       bands, overall, criteria,
       paragraphs: arr(r.paragraphs).filter(x => x && x.p).map(x => ({ p: +x.p, role: String(x.role || 'other'), ok: x.ok !== false, frames: arr(x.frames).map(n => +n).filter(n => n > 0), note_vi: String(x.note_vi || '') })),
-      errors: arr(r.errors).filter(e => e && (e.wrong || e.fix)).map(e => {
-        const [p, k] = String(e.s || '').split('.').map(n => +n - 1);
-        return { s: String(e.s || ''), sentence: (paras[p] && paras[p][k]) || '', type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong: String(e.wrong || ''), fix: String(e.fix || ''), why_vi: String(e.why_vi || '') };
+      errors: locateErrors(arr(r.errors), paras),
+      upgrades: arr(r.upgrades).filter(u => u && u.to && String(u.to).trim() !== String(u.from || '').trim()).slice(0, 5).map(u => {
+        const at = findIn(paras, String(u.s || ''), String(u.from || ''));
+        return { s: at ? at.s : String(u.s || ''), from: String(u.from || ''), to: String(u.to), why_vi: String(u.why_vi || '') };
       }),
-      corrected: String(r.corrected || '').trim() || String(essay).trim(),
+      dropped: [],
+      corrected: applyErrors(paras, locateErrors(arr(r.errors), paras)),
       model: String(r.model || '').trim(),
       summary_vi: String(r.summary_vi || ''), priorities_vi: arr(r.priorities_vi).map(String).filter(Boolean).slice(0, 3),
     };
   }
-  async function gradeEssay({ text, visual, essay, signal }) {
-    return normGrade(await ask(buildGradePrompt({ text, visual, essay }), null, signal, 'medium', 'bands'), essay);
+  // Tìm câu chứa đoạn chữ (ưu tiên câu AI chỉ ra; không có thì tìm cả bài)
+  function findIn(paras, sid, words) {
+    const w = String(words || '').trim().toLowerCase();
+    if (!w) return null;
+    const [p, k] = String(sid).split('.').map(n => +n - 1);
+    const hit = (pi, ki) => (paras[pi] && paras[pi][ki] != null && paras[pi][ki].toLowerCase().includes(w) ? { s: `${pi + 1}.${ki + 1}`, p: pi, k: ki, sentence: paras[pi][ki] } : null);
+    let r = hit(p, k);
+    paras.forEach((ss, pi) => ss.forEach((_, ki) => { r = r || hit(pi, ki); }));
+    return r;
+  }
+  // Chỉ giữ lỗi trích đúng chữ có trong bài, sửa khác đi, không trùng
+  function locateErrors(list, paras) {
+    const seen = new Set();
+    return list.filter(e => e && e.wrong && e.fix).map(e => {
+      const wrong = String(e.wrong).trim(), fix = String(e.fix).trim();
+      const at = findIn(paras, e.s, wrong);
+      if (!at || wrong.toLowerCase() === fix.toLowerCase()) return null;
+      const key = at.s + '|' + wrong.toLowerCase();
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return { s: at.s, sentence: at.sentence, type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong, fix, why_vi: String(e.why_vi || '') };
+    }).filter(Boolean);
+  }
+  // Bài đã sửa = bài gốc + đúng các lỗi trong danh sách (không đổi chỗ nào khác)
+  function applyErrors(paras, errors) {
+    const out = paras.map(ss => ss.slice());
+    errors.forEach(e => {
+      const [p, k] = e.s.split('.').map(n => +n - 1), x = out[p] && out[p][k];
+      if (x == null) return;
+      const at = x.toLowerCase().indexOf(e.wrong.toLowerCase());
+      if (at >= 0) out[p][k] = x.slice(0, at) + e.fix + x.slice(at + e.wrong.length);
+    });
+    return out.map(ss => ss.join(' ')).join('\n\n');
+  }
+  /* Giám khảo thứ hai xem lại TỪNG lỗi: bỏ chỗ chấm nhầm (câu đúng), sửa lại cách sửa nếu chưa đúng */
+  function buildGradeCheckPrompt({ text, visual, data, essay, errors }) {
+    const paras = splitEssay(essay);
+    return `You are a second, very careful IELTS Writing Task 1 examiner for Ms. Gigi's Vietnamese students. Another examiner marked the errors below in a student's essay. Automatic graders often mark correct language as wrong, so check EACH item against the essay and the task.
+"real": true only when the "wrong" words really are a mistake — grammar, spelling, punctuation, a wrong word or collocation, a fact that contradicts the task data, or a break of Ms. Gigi's rules (${GIGI_RULES}) — and the "fix" is correct. ${NOT_ERRORS}
+When the mistake is real but the "fix" is wrong or changes more than needed, give "better_fix" (replacing exactly the "wrong" words).
+
+${taskBlock(text, visual)}${dataBlock({ data })}
+Student's essay ([paragraph.sentence]):
+${paras.map((ss, p) => ss.map((x, k) => `[${p + 1}.${k + 1}] ${x}`).join('\n')).join('\n\n')}
+
+Marked errors:
+${errors.map((e, i) => `[${i + 1}] sentence ${e.s} (${e.type}): "${e.wrong}" → "${e.fix}" — ${e.why_vi}`).join('\n')}
+
+Reply with ONLY one JSON object:
+{ "checks": [ { "i": 1, "real": true, "better_fix": "", "why_vi": "short Vietnamese reason when it is not a real mistake" } ] }`;
+  }
+  async function gradeEssay({ text, visual, data, essay, signal }) {
+    const r = normGrade(await ask(buildGradePrompt({ text, visual, data, essay }), null, signal, 'medium', 'bands'), essay);
+    r.verified = !r.errors.length;
+    if (r.errors.length) {
+      try {
+        const v = await ask(buildGradeCheckPrompt({ text, visual, data, essay, errors: r.errors }), null, signal, 'medium', 'checks');
+        const by = {};
+        (Array.isArray(v && v.checks) ? v.checks : []).forEach(c => { if (c && c.i) by[+c.i] = c; });
+        const keep = [];
+        r.errors.forEach((e, i) => {
+          const c = by[i + 1];
+          if (c && c.real === false) { r.dropped.push(Object.assign({}, e, { why_vi: String(c.why_vi || '') })); return; }
+          if (c && c.better_fix && String(c.better_fix).trim() && String(c.better_fix).trim() !== e.wrong) e.fix = String(c.better_fix).trim();
+          keep.push(e);
+        });
+        r.errors = keep;
+        r.corrected = applyErrors(splitEssay(essay), keep);
+        r.verified = true;
+      } catch (e) { if (e.code === 'cancelled') throw e; }
+    }
+    return r;
   }
 
   /* ---------- Từ vựng của đề (lượt AI riêng, chạy song song): paraphrase + paraphrase chủ thể ---------- */

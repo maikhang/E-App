@@ -18,7 +18,7 @@ window.GRADE = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false, history: [] };
+    return { image: null, visual: null, data: null, dataKey: '', prompt: '', essay: '', name: '', result: null, date: '', isDemo: false, history: [] };
   }
   let R = load();
   function load() {
@@ -37,6 +37,9 @@ window.GRADE = (function () {
   }
   addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
   const wc = s => (String(s || '').match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+  // Bảng số liệu đã đối chiếu bên Luyện viết chỉ dùng khi đề (chữ + ảnh) vẫn đúng là đề đó
+  const dataKey = () => R.prompt.trim() + '|' + (R.image ? R.image.dataUrl.length : 0);
+  const checkedData = () => (R.data && R.data.length && R.dataKey === dataKey() ? R.data : null);
   const paras = s => String(s || '').split(/\n+/).map(p => p.trim()).filter(Boolean);
   const level = b => (b >= 7 ? 'hi' : b >= 6 ? 'mid' : 'lo');
   const LEVEL_VI = { hi: 'Tốt', mid: 'Khá', lo: 'Cần cố gắng' };
@@ -87,10 +90,27 @@ window.GRADE = (function () {
   function pasteImage(file) {
     if (busy) { toast('AI đang chấm bài — đợi xong rồi dán ảnh mới nhé.'); return; }
     if (!setupVisible()) {
-      Object.assign(R, { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false });
+      Object.assign(R, { image: null, visual: null, data: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false });
       save(); render(); window.scrollTo({ top: 0 });
     }
     takeImage(file);
+  }
+
+  // Lấy đề đang luyện viết: chữ, ảnh, nội dung đã đọc và bảng số liệu đã đối chiếu
+  function useWrite() {
+    const w = H.writingTask();
+    if (!w) return false;
+    Object.assign(R, { image: w.image, visual: w.visual, prompt: w.prompt, data: w.data || null });
+    R.dataKey = dataKey();
+    return true;
+  }
+  // Nút “📝 Chấm bài này” ở trang bài hoàn chỉnh: chuyển cả đề lẫn bài sang Chấm bài
+  function fromWrite(essay) {
+    if (busy) { toast('AI đang chấm bài khác — đợi xong rồi chuyển bài nhé.'); return false; }
+    if (!useWrite()) return false;
+    Object.assign(R, { essay: String(essay || '').trim(), name: '', result: null, date: '', isDemo: false });
+    save(); render(); window.scrollTo({ top: 0 });
+    return true;
   }
 
   /* ================= Chấm bằng AI ================= */
@@ -120,9 +140,9 @@ window.GRADE = (function () {
         if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
       }
       stage(`Bước ${R.image ? 2 : 1}/${R.image ? 2 : 1} · AI đối chiếu số liệu, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn và sửa lỗi…`);
-      R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, essay: R.essay, signal: ctl.signal });
+      R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, data: checkedData(), essay: R.essay, signal: ctl.signal });
       R.date = new Date().toISOString(); R.isDemo = false;
-      R.history.unshift({ date: R.date, name: R.name, prompt: R.prompt, visual: R.visual, essay: R.essay, result: R.result });
+      R.history.unshift({ date: R.date, name: R.name, prompt: R.prompt, visual: R.visual, data: checkedData(), essay: R.essay, result: R.result });
       R.history = R.history.slice(0, MAX_HISTORY);
       save();
       toast(`Đã chấm xong: band ước tính ${fmtBand(R.result.overall)}.`, 3500);
@@ -174,9 +194,13 @@ window.GRADE = (function () {
           <span class="gr-op-verdict">${p.ok && !lint.length ? '✓ Đúng dàn ý' : '⚠️ Cần sửa theo dàn ý'}</span>${p.frames.map(n => `<span class="fno">K${n}</span>`).join('')}</div>
           ${p.note_vi ? `<p>${esc(p.note_vi)}</p>` : ''}${lint.map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`;
       }).join('')}</div></section>`;
-    const errs = `<section class="gr-sec"><h3>🔍 Lỗi trong bài (${r.errors.length})</h3>${r.errors.length ? `<ol class="gr-errs">${r.errors.map(e => `<li>
+    const ups = r.upgrades || [], dropped = r.dropped || [];
+    const errs = `<section class="gr-sec"><h3>🔍 Lỗi sai trong bài (${r.errors.length})</h3>${r.errors.length ? `<ol class="gr-errs">${r.errors.map(e => `<li>
         <span class="etag e-${e.type}">${ETYPE[e.type]}</span>${e.s ? ` <span class="gr-sref">câu ${esc(e.s)}</span>` : ''}
-        ${e.wrong ? `<del>${esc(e.wrong)}</del>` : ''}${e.fix ? ` → <ins>${esc(e.fix)}</ins>` : ''}${e.why_vi ? `<span class="why">${esc(e.why_vi)}</span>` : ''}</li>`).join('')}</ol>` : '<p class="muted">Không tìm thấy lỗi — bài rất tốt!</p>'}</section>`;
+        ${e.wrong ? `<del>${esc(e.wrong)}</del>` : ''}${e.fix ? ` → <ins>${esc(e.fix)}</ins>` : ''}${e.why_vi ? `<span class="why">${esc(e.why_vi)}</span>` : ''}</li>`).join('')}</ol>` : '<p class="gr-noerr">✅ Không có lỗi sai — các câu trong bài đều đúng.</p>'}
+      ${r.verified ? `<p class="muted small">🔎 Mỗi lỗi đã được giám khảo AI thứ hai kiểm tra lại${dropped.length ? `; đã bỏ ${dropped.length} chỗ chấm nhầm (câu đúng)` : ''}.</p>` : ''}
+      ${dropped.length ? `<details class="gr-dropped"><summary>Xem ${dropped.length} chỗ đã bỏ vì không phải lỗi</summary><ul>${dropped.map(e => `<li><span class="gr-sref">câu ${esc(e.s)}</span> “${esc(e.wrong)}” — ${esc(e.why_vi || 'câu đúng, không phải lỗi')}</li>`).join('')}</ul></details>` : ''}</section>
+      ${ups.length ? `<section class="gr-sec"><h3>💡 Gợi ý nâng cấp (${ups.length}) <span class="muted small">— không phải lỗi, giữ nguyên vẫn đúng</span></h3><ol class="gr-ups">${ups.map(u => `<li>${u.s ? `<span class="gr-sref">câu ${esc(u.s)}</span> ` : ''}${u.from ? `${esc(u.from)} → ` : ''}<b>${esc(u.to)}</b>${u.why_vi ? `<span class="why">${esc(u.why_vi)}</span>` : ''}</li>`).join('')}</ol></section>` : ''}`;
     const fixed = `<section class="gr-sec"><h3>✏️ Bài của em đã sửa lỗi</h3><p class="muted small">Giữ nguyên câu chữ của em, chỉ sửa chỗ sai: <del>gạch đỏ</del> là bỏ, <ins>tô xanh</ins> là sửa.</p>
       <div class="gr-essay">${diffParas(R.essay, r.corrected).map(h => `<p>${h}</p>`).join('')}</div></section>`;
     const model = r.model ? `<section class="gr-sec"><h3>🌟 Bài mẫu nâng cấp theo dàn ý của cô</h3><p class="muted small">Viết lại theo khung câu Ms. Gigi, số liệu đúng đề, giữ các ý đúng của em.</p>
@@ -208,8 +232,10 @@ window.GRADE = (function () {
     });
     out.push('', line, '📐 TỪNG ĐOẠN THEO DÀN Ý MS. GIGI', line);
     r.paragraphs.forEach(p => out.push(`Đoạn ${p.p} · ${ROLE[p.role] || ROLE.other}: ${p.ok ? '✓' : '⚠️'} ${p.note_vi}${p.frames.length ? ' (khung ' + p.frames.map(n => 'K' + n).join(', ') + ')' : ''}`));
-    out.push('', line, `🔍 LỖI TRONG BÀI (${r.errors.length})`, line);
+    out.push('', line, `🔍 LỖI SAI TRONG BÀI (${r.errors.length})`, line);
+    if (!r.errors.length) out.push('✅ Không có lỗi sai — các câu trong bài đều đúng.');
     r.errors.forEach((e, i) => out.push(`${i + 1}. [${ETYPE[e.type]}${e.s ? ' · câu ' + e.s : ''}] ${e.wrong ? e.wrong + ' → ' : ''}${e.fix}${e.why_vi ? ' — ' + e.why_vi : ''}`));
+    if ((r.upgrades || []).length) { out.push('', line, `💡 GỢI Ý NÂNG CẤP (không phải lỗi)`, line); r.upgrades.forEach((u, i) => out.push(`${i + 1}. ${u.s ? '[câu ' + u.s + '] ' : ''}${u.from ? u.from + ' → ' : ''}${u.to}${u.why_vi ? ' — ' + u.why_vi : ''}`)); }
     out.push('', line, '✏️ BÀI CỦA EM ĐÃ SỬA LỖI', line, ...paras(r.corrected).flatMap(p => ['', p]));
     if (r.model) out.push('', line, '🌟 BÀI MẪU NÂNG CẤP THEO DÀN Ý CỦA CÔ', line, ...paras(r.model).flatMap(p => ['', p]));
     return out.join('\n');
@@ -246,11 +272,16 @@ window.GRADE = (function () {
       const ok = p.ok && !lintFor(p).length;
       return `<tr>${td(`<b>${p.p}</b>`)}${td(ROLE[p.role] || ROLE.other)}${td(`${ok ? '✓ Đúng' : '⚠️ Cần sửa'}${p.frames.length ? '<br><span style="font-size:12px">' + p.frames.map(n => 'K' + n).join(', ') + '</span>' : ''}`, ok ? 'background:#e3f4e8;color:#136c3a' : 'background:#fbf1d9;color:#93600a')}${td(esc(p.note_vi) + lintFor(p).map(m => `<br><span style="color:#93600a">⚠️ ${esc(m)}</span>`).join(''))}</tr>`;
     }).join(''));
-    h += h2(`🔍 Lỗi trong bài (${r.errors.length})`);
+    h += h2(`🔍 Lỗi sai trong bài (${r.errors.length})`);
+    if (!r.errors.length) h += '<p style="margin:0 0 10px;color:#136c3a;font-weight:bold">✅ Không có lỗi sai — các câu trong bài đều đúng.</p>';
     if (r.errors.length) h += table(`<tr><th style="${hd};width:28px">#</th><th style="${hd};width:110px">Loại · câu</th><th style="${hd}">Lỗi → sửa</th><th style="${hd}">Giải thích</th></tr>` + r.errors.map((e, i) => {
       const z = i % 2 ? '#ffffff' : '#fafbf9';
       return `<tr>${td(`<b>${i + 1}</b>`, `background:${z}`)}${td(`${ETYPE[e.type]}${e.s ? `<br><span style="color:#5b6957;font-size:12px">câu ${esc(e.s)}</span>` : ''}`, `background:${z}${e.type === 'data' ? ';color:#b42318;font-weight:bold' : ''}`)}${td(`${e.wrong ? `<span style="${DEL}">${esc(e.wrong)}</span> → ` : ''}<span style="${INS}">${esc(e.fix)}</span>`, `background:${z}`)}${td(esc(e.why_vi), `background:${z};color:#3d4a3a`)}</tr>`;
     }).join(''));
+    if ((r.upgrades || []).length) {
+      h += h2(`💡 Gợi ý nâng cấp (không phải lỗi)`);
+      h += table(`<tr><th style="${hd};width:28px">#</th><th style="${hd};width:80px">Câu</th><th style="${hd}">Nâng cấp</th><th style="${hd}">Vì sao</th></tr>` + r.upgrades.map((u, i) => `<tr>${td(`<b>${i + 1}</b>`)}${td(u.s ? 'câu ' + esc(u.s) : '')}${td(`${u.from ? esc(u.from) + ' → ' : ''}<b style="color:#1f63b8">${esc(u.to)}</b>`)}${td(esc(u.why_vi), 'color:#3d4a3a')}</tr>`).join(''));
+    }
     h += h2('✏️ Bài của em đã sửa lỗi');
     h += `<p style="margin:0 0 6px;color:#5b6957">Giữ nguyên câu chữ của em, chỉ sửa chỗ sai: <span style="${DEL}">gạch đỏ</span> là bỏ, <span style="${INS}">tô xanh</span> là sửa.</p>`;
     h += `<div style="${essayStyle};background:#f7faf5;border:1px solid #d5dfd0;border-radius:6px;padding:10px 14px">${diffParas(R.essay, r.corrected).map(x => `<p style="margin:0 0 10px">${inlineDiff(x)}</p>`).join('')}</div>`;
@@ -336,12 +367,10 @@ window.GRADE = (function () {
     if (t.dataset.histDel != null) { R.history.splice(+t.dataset.histDel, 1); save(); render(); return true; }
     switch (t.id) {
       case 'gr-drop': $('#gr-file').click(); return true;
-      case 'gr-img-clear': R.image = null; R.visual = null; save(); renderImage(); return true;
+      case 'gr-img-clear': R.image = null; R.visual = null; R.data = null; save(); renderImage(); return true;
       case 'gr-use-write': {
-        const w = H.writingTask();
-        if (!w) { toast('Chưa có đề nào ở mục Luyện viết bài.'); return true; }
-        R.image = w.image; R.visual = w.visual; R.prompt = w.prompt; save(); renderSetup();
-        toast('Đã lấy đề đang luyện viết.');
+        if (!useWrite()) toast('Chưa có đề nào ở mục Luyện viết bài.');
+        else { save(); renderSetup(); toast('Đã lấy đề đang luyện viết (kèm bảng số liệu đã đối chiếu).'); }
         return true;
       }
       case 'gr-go': grade(); return true;
@@ -375,5 +404,5 @@ window.GRADE = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, pasteImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible, fromWrite };
 })();

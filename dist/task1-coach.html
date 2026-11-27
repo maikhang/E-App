@@ -623,6 +623,11 @@ td:first-child { font-weight: 600; white-space: nowrap; }
 .ev-t td:nth-child(4) { font-family: var(--font-serif, Georgia, serif); font-size: 14px; }
 .ev-t td:nth-child(2) { min-width: 150px; }
 .ev-t td:nth-child(3) { min-width: 130px; }
+.gr-noerr { background: #e3f4e8; color: #136c3a; font-weight: 600; border-radius: 10px; padding: 8px 12px; }
+.gr-dropped summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.gr-dropped ul { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.gr-ups li { margin-bottom: 6px; }
+.gr-ups .why { display: block; font-size: 13px; color: var(--muted); }
 </style>
 <header class="topbar">
     <div class="brand">
@@ -805,6 +810,7 @@ td:first-child { font-weight: 600; white-space: nowrap; }
                 <button type="button" class="btn primary" id="btn-copy-lesson">📚 Sao chép bài học hoàn chỉnh</button>
                 <button type="button" class="btn" id="btn-copy">📋 Chỉ sao chép bài viết</button>
                 <button type="button" class="btn save-btn" data-save="write">💾 Lưu bài</button>
+                <button type="button" class="btn" id="btn-grade-this">📝 Chấm bài này</button>
                 <button type="button" class="btn" id="btn-new-2">＋ Nhập đề khác</button>
               </div>
             </div>
@@ -2520,6 +2526,10 @@ Reply with ONLY one JSON object for this ONE sentence slot:
   }
 
   // Chấm MỘT câu học sinh tự viết: chỉ ra lỗi + sửa ít nhất có thể, giữ ý và cách viết của học sinh
+  // Quy tắc của cô và những thứ KHÔNG phải lỗi: dùng chung khi chấm từng câu (Luyện viết) và chấm cả bài,
+  // để một câu đã sửa đúng bên Luyện viết không bị Chấm bài bắt lỗi lại.
+  const GIGI_RULES = 'Overview starts with "Overall," and has no figures; Body 1 of maps describes only the first map; account for / make up / constitute only with percentages; no "witness" / "saw" with Percentage/Number/Figure/Proportion as subject (use "experienced"); correct tense (maps: past, "By + past year" → past perfect; process: present simple passive); "side" → on, "part" → in; never "the given chart"; subjects kept whole (no bare "Car increased")';
+  const NOT_ERRORS = `These are NOT errors — never list them: a correct sentence; another correct way to say the same thing; stylistic preferences; British vs American spelling (centre / center, travelling / traveling); the fixed words of Ms. Gigi's frames used correctly ("Overall, it is obvious that", "the opposite was true for", "respectively", "the figure for", "accounted for" with %); approximate figures with about / around / approximately / roughly for values read between gridlines; a sentence that could be better but has no mistake.`;
   function buildCheckPrompt({ text, band, visual, analysis, stepIndex, slotIndex, picks, sentence }) {
     const outline = analysis.outline || G.outlineFor(analysis.task_type);
     const st = analysis.steps[stepIndex], slot = st.sentences[slotIndex];
@@ -2552,9 +2562,10 @@ Student's sentence:
 Check, in this order:
 1. Grammar, spelling, punctuation, word choice and collocation.
 2. Accuracy against the task data (figures, years, units, places, categories, trends). A wrong or invented fact is an error of type "data".
-3. Ms. Gigi's rules for this paragraph (Overview starts with "Overall," and has no figures; Body 1 of maps describes only the first map; account for / make up / constitute only with percentages; no "witness" / "saw" with Percentage/Number/Figure/Proportion (use "experienced"); correct tense; "side" → on, "part" → in; never "the given chart"; subjects kept whole).
+3. Ms. Gigi's rules for this paragraph: ${GIGI_RULES}.
 4. The planned frame: are its fixed words kept and the [brackets] filled with real content? Using a different but correct structure is NOT an error — just mention it in frame_note_vi.
 5. Coherence with the sentences before it (no repeated data, suitable linker).
+${NOT_ERRORS}
 Correct with the SMALLEST possible changes: keep the student's own words, ideas and structure, change only what is wrong. Never rewrite a correct sentence for style, and never add new information unless the sentence is incomplete.
 Explain every error in simple Vietnamese for a student (what is wrong and the rule).
 
@@ -2669,7 +2680,7 @@ Reply with ONLY one JSON object:
     return found.sort((a, b) => JSON.stringify(b).length - JSON.stringify(a).length)[0];
   }
   const ONE_JSON = '\n\nOUTPUT FORMAT: reply with exactly ONE JSON object and nothing else — no text before or after it, no Markdown fences, no comments, no second object. Every field (including the data sheet) goes INSIDE that one object.';
-  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase', lesson: 'bài giảng' };
+  const WANT_VI = { steps: '4 đoạn gợi ý', fixes: 'phần kiểm tra', verdict: 'kết quả chấm câu', bands: 'điểm chấm', checks: 'phần kiểm tra lỗi', exercises: 'bài tập', items: 'cấu trúc câu', options: 'câu gợi ý', task_type: 'nội dung ảnh đề', values: 'số liệu', paraphrase: 'từ paraphrase', lesson: 'bài giảng' };
   function badReply(text, truncated, want) {
     const err = new Error(truncated ? 'Kết quả AI quá dài nên bị cắt giữa chừng. Bấm thử lại.' : 'AI trả lời chưa đúng định dạng' + (want ? ` (thiếu ${WANT_VI[want] || want})` : '') + '. Bấm thử lại.');
     err.code = truncated ? 'truncated' : 'bad_format';
@@ -3076,19 +3087,19 @@ Reply with ONLY one JSON object:
     return String(essay || '').split(/\n+/).map(p => p.trim()).filter(Boolean)
       .map(p => p.split(/(?<=[.!?])\s+(?=[A-Z0-9“"'(])/).map(s => s.trim()).filter(Boolean));
   }
-  function buildGradePrompt({ text, visual, essay }) {
+  function buildGradePrompt({ text, visual, data, essay }) {
     const paras = splitEssay(essay);
     const words = (String(essay).match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
     return `You are a senior IELTS Writing Task 1 examiner and the teaching assistant of Ms. Gigi, a Vietnamese teacher whose students write with her outline. Grade the student's essay strictly with the public IELTS Writing Task 1 band descriptors, then give feedback for the student in simple Vietnamese.
 
 ${outlineNotes(OUTLINE_CANDIDATES.auto)}
 
-${taskBlock(text, visual)}
+${taskBlock(text, visual)}${dataBlock({ data })}
 Student's essay (${words} words; [paragraph.sentence] numbering added for reference):
 ${paras.map((ss, p) => ss.map((x, k) => `[${p + 1}.${k + 1}] ${x}`).join('\n')).join('\n\n')}
 
 Do this:
-1. Write the "data" sheet from the TASK first (every figure / feature with its unit), then check every fact in the essay against it. A wrong or invented figure, unit, year, place or trend is an error of type "data".
+1. ${data && data.length ? 'The DATA SHEET above was already checked against the task: copy it into "data" and treat it as the truth.' : 'Write the "data" sheet from the TASK first (every figure / feature with its unit).'} Then check every fact in the essay against it. A wrong or invented figure, unit, year, place or trend is an error of type "data".
 2. Band each criterion in 0.5 steps (0-9) like a real examiner:
    - ta (Task Achievement): clear overview of the main trends / differences / stages? key features selected and supported with ACCURATE data? comparisons? Under 150 words, no overview, inaccurate or missing key data, or copying the prompt lower it.
    - cc (Coherence & Cohesion): paragraphing, logical progression, referencing, linking (not mechanical).
@@ -3096,8 +3107,9 @@ Do this:
    - gra (Grammatical Range & Accuracy): range of structures and how many sentences are error-free.
    For every criterion give 1-3 "good_vi" points and 1-3 "fix_vi" points, concrete and about THIS essay.
 3. Ms. Gigi's outline: decide which of her outlines fits the task, then judge each paragraph of the essay: its role (intro / overview / body1 / body2 / other), whether it follows her outline (Introduction = 1 sentence paraphrasing the prompt; Overview starts with "Overall," and has no figures; Body 1 / Body 2 content as her outline says), which of her frame numbers it uses, and what is missing or wrong (Vietnamese).
-4. List EVERY language or data error: "s" is the sentence id like "2.1", "wrong" is copied exactly from that sentence, "fix" is the correction, "why_vi" explains the rule simply.
-5. "corrected": the student's essay with ONLY the necessary fixes — keep the student's words, ideas and paragraphs (separate paragraphs with \\n\\n). Fix every data error too.
+4. ERRORS — list every REAL mistake: grammar, spelling, punctuation, a wrong word or collocation, a fact that contradicts the data, or a break of Ms. Gigi's rules (${GIGI_RULES}). "s" is the sentence id like "2.1"; "wrong" is copied EXACTLY from that sentence (the shortest words that show the mistake); "fix" replaces exactly those words; "why_vi" explains the rule simply. ${NOT_ERRORS} If the essay has no real mistake, "errors" is [].
+5. UPGRADES — optional ideas to raise the band that are NOT mistakes (a more precise word, better linking, less repetition, an extra comparison): at most 5; "from" is copied exactly from sentence "s", "to" is the upgraded words, "why_vi" says why it is better.
+5b. "corrected": the student's essay with ONLY the errors from step 4 fixed — nothing else changed (separate paragraphs with \\n\\n).
 6. "model": a Band 8 version written with Ms. Gigi's frames for the outline you chose (4 paragraphs separated by \\n\\n, 170-200 words, accurate data), keeping the student's correct ideas.
 7. "summary_vi": 2-3 encouraging but honest sentences for the student; "priorities_vi": the 3 most important things to improve next time.
 
@@ -3110,6 +3122,7 @@ Reply with ONLY one JSON object:
   "criteria": { "ta": { "good_vi": [], "fix_vi": [] }, "cc": { "good_vi": [], "fix_vi": [] }, "lr": { "good_vi": [], "fix_vi": [] }, "gra": { "good_vi": [], "fix_vi": [] } },
   "paragraphs": [ { "p": 1, "role": "intro", "ok": true, "frames": [1], "note_vi": "" } ],
   "errors": [ { "s": "2.1", "type": "grammar" | "spelling" | "punctuation" | "vocabulary" | "data" | "rule" | "frame" | "coherence", "wrong": "", "fix": "", "why_vi": "" } ],
+  "upgrades": [ { "s": "3.1", "from": "", "to": "", "why_vi": "" } ],
   "corrected": "",
   "model": "",
   "summary_vi": "",
@@ -3134,17 +3147,89 @@ Reply with ONLY one JSON object:
       data: arr(r.data).map(x => String(x).trim()).filter(Boolean),
       bands, overall, criteria,
       paragraphs: arr(r.paragraphs).filter(x => x && x.p).map(x => ({ p: +x.p, role: String(x.role || 'other'), ok: x.ok !== false, frames: arr(x.frames).map(n => +n).filter(n => n > 0), note_vi: String(x.note_vi || '') })),
-      errors: arr(r.errors).filter(e => e && (e.wrong || e.fix)).map(e => {
-        const [p, k] = String(e.s || '').split('.').map(n => +n - 1);
-        return { s: String(e.s || ''), sentence: (paras[p] && paras[p][k]) || '', type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong: String(e.wrong || ''), fix: String(e.fix || ''), why_vi: String(e.why_vi || '') };
+      errors: locateErrors(arr(r.errors), paras),
+      upgrades: arr(r.upgrades).filter(u => u && u.to && String(u.to).trim() !== String(u.from || '').trim()).slice(0, 5).map(u => {
+        const at = findIn(paras, String(u.s || ''), String(u.from || ''));
+        return { s: at ? at.s : String(u.s || ''), from: String(u.from || ''), to: String(u.to), why_vi: String(u.why_vi || '') };
       }),
-      corrected: String(r.corrected || '').trim() || String(essay).trim(),
+      dropped: [],
+      corrected: applyErrors(paras, locateErrors(arr(r.errors), paras)),
       model: String(r.model || '').trim(),
       summary_vi: String(r.summary_vi || ''), priorities_vi: arr(r.priorities_vi).map(String).filter(Boolean).slice(0, 3),
     };
   }
-  async function gradeEssay({ text, visual, essay, signal }) {
-    return normGrade(await ask(buildGradePrompt({ text, visual, essay }), null, signal, 'medium', 'bands'), essay);
+  // Tìm câu chứa đoạn chữ (ưu tiên câu AI chỉ ra; không có thì tìm cả bài)
+  function findIn(paras, sid, words) {
+    const w = String(words || '').trim().toLowerCase();
+    if (!w) return null;
+    const [p, k] = String(sid).split('.').map(n => +n - 1);
+    const hit = (pi, ki) => (paras[pi] && paras[pi][ki] != null && paras[pi][ki].toLowerCase().includes(w) ? { s: `${pi + 1}.${ki + 1}`, p: pi, k: ki, sentence: paras[pi][ki] } : null);
+    let r = hit(p, k);
+    paras.forEach((ss, pi) => ss.forEach((_, ki) => { r = r || hit(pi, ki); }));
+    return r;
+  }
+  // Chỉ giữ lỗi trích đúng chữ có trong bài, sửa khác đi, không trùng
+  function locateErrors(list, paras) {
+    const seen = new Set();
+    return list.filter(e => e && e.wrong && e.fix).map(e => {
+      const wrong = String(e.wrong).trim(), fix = String(e.fix).trim();
+      const at = findIn(paras, e.s, wrong);
+      if (!at || wrong.toLowerCase() === fix.toLowerCase()) return null;
+      const key = at.s + '|' + wrong.toLowerCase();
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return { s: at.s, sentence: at.sentence, type: ERR_TYPES.includes(e.type) ? e.type : 'grammar', wrong, fix, why_vi: String(e.why_vi || '') };
+    }).filter(Boolean);
+  }
+  // Bài đã sửa = bài gốc + đúng các lỗi trong danh sách (không đổi chỗ nào khác)
+  function applyErrors(paras, errors) {
+    const out = paras.map(ss => ss.slice());
+    errors.forEach(e => {
+      const [p, k] = e.s.split('.').map(n => +n - 1), x = out[p] && out[p][k];
+      if (x == null) return;
+      const at = x.toLowerCase().indexOf(e.wrong.toLowerCase());
+      if (at >= 0) out[p][k] = x.slice(0, at) + e.fix + x.slice(at + e.wrong.length);
+    });
+    return out.map(ss => ss.join(' ')).join('\n\n');
+  }
+  /* Giám khảo thứ hai xem lại TỪNG lỗi: bỏ chỗ chấm nhầm (câu đúng), sửa lại cách sửa nếu chưa đúng */
+  function buildGradeCheckPrompt({ text, visual, data, essay, errors }) {
+    const paras = splitEssay(essay);
+    return `You are a second, very careful IELTS Writing Task 1 examiner for Ms. Gigi's Vietnamese students. Another examiner marked the errors below in a student's essay. Automatic graders often mark correct language as wrong, so check EACH item against the essay and the task.
+"real": true only when the "wrong" words really are a mistake — grammar, spelling, punctuation, a wrong word or collocation, a fact that contradicts the task data, or a break of Ms. Gigi's rules (${GIGI_RULES}) — and the "fix" is correct. ${NOT_ERRORS}
+When the mistake is real but the "fix" is wrong or changes more than needed, give "better_fix" (replacing exactly the "wrong" words).
+
+${taskBlock(text, visual)}${dataBlock({ data })}
+Student's essay ([paragraph.sentence]):
+${paras.map((ss, p) => ss.map((x, k) => `[${p + 1}.${k + 1}] ${x}`).join('\n')).join('\n\n')}
+
+Marked errors:
+${errors.map((e, i) => `[${i + 1}] sentence ${e.s} (${e.type}): "${e.wrong}" → "${e.fix}" — ${e.why_vi}`).join('\n')}
+
+Reply with ONLY one JSON object:
+{ "checks": [ { "i": 1, "real": true, "better_fix": "", "why_vi": "short Vietnamese reason when it is not a real mistake" } ] }`;
+  }
+  async function gradeEssay({ text, visual, data, essay, signal }) {
+    const r = normGrade(await ask(buildGradePrompt({ text, visual, data, essay }), null, signal, 'medium', 'bands'), essay);
+    r.verified = !r.errors.length;
+    if (r.errors.length) {
+      try {
+        const v = await ask(buildGradeCheckPrompt({ text, visual, data, essay, errors: r.errors }), null, signal, 'medium', 'checks');
+        const by = {};
+        (Array.isArray(v && v.checks) ? v.checks : []).forEach(c => { if (c && c.i) by[+c.i] = c; });
+        const keep = [];
+        r.errors.forEach((e, i) => {
+          const c = by[i + 1];
+          if (c && c.real === false) { r.dropped.push(Object.assign({}, e, { why_vi: String(c.why_vi || '') })); return; }
+          if (c && c.better_fix && String(c.better_fix).trim() && String(c.better_fix).trim() !== e.wrong) e.fix = String(c.better_fix).trim();
+          keep.push(e);
+        });
+        r.errors = keep;
+        r.corrected = applyErrors(splitEssay(essay), keep);
+        r.verified = true;
+      } catch (e) { if (e.code === 'cancelled') throw e; }
+    }
+    return r;
   }
 
   /* ---------- Từ vựng của đề (lượt AI riêng, chạy song song): paraphrase + paraphrase chủ thể ---------- */
@@ -4161,7 +4246,7 @@ window.GRADE = (function () {
 
   /* ================= State ================= */
   function blank() {
-    return { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false, history: [] };
+    return { image: null, visual: null, data: null, dataKey: '', prompt: '', essay: '', name: '', result: null, date: '', isDemo: false, history: [] };
   }
   let R = load();
   function load() {
@@ -4180,6 +4265,9 @@ window.GRADE = (function () {
   }
   addEventListener('pagehide', () => { if (saveT) { clearTimeout(saveT); writeNow(); } });
   const wc = s => (String(s || '').match(/[A-Za-z0-9][A-Za-z0-9'.,%-]*/g) || []).length;
+  // Bảng số liệu đã đối chiếu bên Luyện viết chỉ dùng khi đề (chữ + ảnh) vẫn đúng là đề đó
+  const dataKey = () => R.prompt.trim() + '|' + (R.image ? R.image.dataUrl.length : 0);
+  const checkedData = () => (R.data && R.data.length && R.dataKey === dataKey() ? R.data : null);
   const paras = s => String(s || '').split(/\n+/).map(p => p.trim()).filter(Boolean);
   const level = b => (b >= 7 ? 'hi' : b >= 6 ? 'mid' : 'lo');
   const LEVEL_VI = { hi: 'Tốt', mid: 'Khá', lo: 'Cần cố gắng' };
@@ -4230,10 +4318,27 @@ window.GRADE = (function () {
   function pasteImage(file) {
     if (busy) { toast('AI đang chấm bài — đợi xong rồi dán ảnh mới nhé.'); return; }
     if (!setupVisible()) {
-      Object.assign(R, { image: null, visual: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false });
+      Object.assign(R, { image: null, visual: null, data: null, prompt: '', essay: '', name: '', result: null, date: '', isDemo: false });
       save(); render(); window.scrollTo({ top: 0 });
     }
     takeImage(file);
+  }
+
+  // Lấy đề đang luyện viết: chữ, ảnh, nội dung đã đọc và bảng số liệu đã đối chiếu
+  function useWrite() {
+    const w = H.writingTask();
+    if (!w) return false;
+    Object.assign(R, { image: w.image, visual: w.visual, prompt: w.prompt, data: w.data || null });
+    R.dataKey = dataKey();
+    return true;
+  }
+  // Nút “📝 Chấm bài này” ở trang bài hoàn chỉnh: chuyển cả đề lẫn bài sang Chấm bài
+  function fromWrite(essay) {
+    if (busy) { toast('AI đang chấm bài khác — đợi xong rồi chuyển bài nhé.'); return false; }
+    if (!useWrite()) return false;
+    Object.assign(R, { essay: String(essay || '').trim(), name: '', result: null, date: '', isDemo: false });
+    save(); render(); window.scrollTo({ top: 0 });
+    return true;
   }
 
   /* ================= Chấm bằng AI ================= */
@@ -4263,9 +4368,9 @@ window.GRADE = (function () {
         if (!R.prompt && r.prompt_text) R.prompt = r.prompt_text;
       }
       stage(`Bước ${R.image ? 2 : 1}/${R.image ? 2 : 1} · AI đối chiếu số liệu, chấm 4 tiêu chí, kiểm tra dàn ý từng đoạn và sửa lỗi…`);
-      R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, essay: R.essay, signal: ctl.signal });
+      R.result = await AI.gradeEssay({ text: R.prompt, visual: R.visual, data: checkedData(), essay: R.essay, signal: ctl.signal });
       R.date = new Date().toISOString(); R.isDemo = false;
-      R.history.unshift({ date: R.date, name: R.name, prompt: R.prompt, visual: R.visual, essay: R.essay, result: R.result });
+      R.history.unshift({ date: R.date, name: R.name, prompt: R.prompt, visual: R.visual, data: checkedData(), essay: R.essay, result: R.result });
       R.history = R.history.slice(0, MAX_HISTORY);
       save();
       toast(`Đã chấm xong: band ước tính ${fmtBand(R.result.overall)}.`, 3500);
@@ -4317,9 +4422,13 @@ window.GRADE = (function () {
           <span class="gr-op-verdict">${p.ok && !lint.length ? '✓ Đúng dàn ý' : '⚠️ Cần sửa theo dàn ý'}</span>${p.frames.map(n => `<span class="fno">K${n}</span>`).join('')}</div>
           ${p.note_vi ? `<p>${esc(p.note_vi)}</p>` : ''}${lint.map(m => `<p class="warn-line">⚠️ ${esc(m)}</p>`).join('')}</div>`;
       }).join('')}</div></section>`;
-    const errs = `<section class="gr-sec"><h3>🔍 Lỗi trong bài (${r.errors.length})</h3>${r.errors.length ? `<ol class="gr-errs">${r.errors.map(e => `<li>
+    const ups = r.upgrades || [], dropped = r.dropped || [];
+    const errs = `<section class="gr-sec"><h3>🔍 Lỗi sai trong bài (${r.errors.length})</h3>${r.errors.length ? `<ol class="gr-errs">${r.errors.map(e => `<li>
         <span class="etag e-${e.type}">${ETYPE[e.type]}</span>${e.s ? ` <span class="gr-sref">câu ${esc(e.s)}</span>` : ''}
-        ${e.wrong ? `<del>${esc(e.wrong)}</del>` : ''}${e.fix ? ` → <ins>${esc(e.fix)}</ins>` : ''}${e.why_vi ? `<span class="why">${esc(e.why_vi)}</span>` : ''}</li>`).join('')}</ol>` : '<p class="muted">Không tìm thấy lỗi — bài rất tốt!</p>'}</section>`;
+        ${e.wrong ? `<del>${esc(e.wrong)}</del>` : ''}${e.fix ? ` → <ins>${esc(e.fix)}</ins>` : ''}${e.why_vi ? `<span class="why">${esc(e.why_vi)}</span>` : ''}</li>`).join('')}</ol>` : '<p class="gr-noerr">✅ Không có lỗi sai — các câu trong bài đều đúng.</p>'}
+      ${r.verified ? `<p class="muted small">🔎 Mỗi lỗi đã được giám khảo AI thứ hai kiểm tra lại${dropped.length ? `; đã bỏ ${dropped.length} chỗ chấm nhầm (câu đúng)` : ''}.</p>` : ''}
+      ${dropped.length ? `<details class="gr-dropped"><summary>Xem ${dropped.length} chỗ đã bỏ vì không phải lỗi</summary><ul>${dropped.map(e => `<li><span class="gr-sref">câu ${esc(e.s)}</span> “${esc(e.wrong)}” — ${esc(e.why_vi || 'câu đúng, không phải lỗi')}</li>`).join('')}</ul></details>` : ''}</section>
+      ${ups.length ? `<section class="gr-sec"><h3>💡 Gợi ý nâng cấp (${ups.length}) <span class="muted small">— không phải lỗi, giữ nguyên vẫn đúng</span></h3><ol class="gr-ups">${ups.map(u => `<li>${u.s ? `<span class="gr-sref">câu ${esc(u.s)}</span> ` : ''}${u.from ? `${esc(u.from)} → ` : ''}<b>${esc(u.to)}</b>${u.why_vi ? `<span class="why">${esc(u.why_vi)}</span>` : ''}</li>`).join('')}</ol></section>` : ''}`;
     const fixed = `<section class="gr-sec"><h3>✏️ Bài của em đã sửa lỗi</h3><p class="muted small">Giữ nguyên câu chữ của em, chỉ sửa chỗ sai: <del>gạch đỏ</del> là bỏ, <ins>tô xanh</ins> là sửa.</p>
       <div class="gr-essay">${diffParas(R.essay, r.corrected).map(h => `<p>${h}</p>`).join('')}</div></section>`;
     const model = r.model ? `<section class="gr-sec"><h3>🌟 Bài mẫu nâng cấp theo dàn ý của cô</h3><p class="muted small">Viết lại theo khung câu Ms. Gigi, số liệu đúng đề, giữ các ý đúng của em.</p>
@@ -4351,8 +4460,10 @@ window.GRADE = (function () {
     });
     out.push('', line, '📐 TỪNG ĐOẠN THEO DÀN Ý MS. GIGI', line);
     r.paragraphs.forEach(p => out.push(`Đoạn ${p.p} · ${ROLE[p.role] || ROLE.other}: ${p.ok ? '✓' : '⚠️'} ${p.note_vi}${p.frames.length ? ' (khung ' + p.frames.map(n => 'K' + n).join(', ') + ')' : ''}`));
-    out.push('', line, `🔍 LỖI TRONG BÀI (${r.errors.length})`, line);
+    out.push('', line, `🔍 LỖI SAI TRONG BÀI (${r.errors.length})`, line);
+    if (!r.errors.length) out.push('✅ Không có lỗi sai — các câu trong bài đều đúng.');
     r.errors.forEach((e, i) => out.push(`${i + 1}. [${ETYPE[e.type]}${e.s ? ' · câu ' + e.s : ''}] ${e.wrong ? e.wrong + ' → ' : ''}${e.fix}${e.why_vi ? ' — ' + e.why_vi : ''}`));
+    if ((r.upgrades || []).length) { out.push('', line, `💡 GỢI Ý NÂNG CẤP (không phải lỗi)`, line); r.upgrades.forEach((u, i) => out.push(`${i + 1}. ${u.s ? '[câu ' + u.s + '] ' : ''}${u.from ? u.from + ' → ' : ''}${u.to}${u.why_vi ? ' — ' + u.why_vi : ''}`)); }
     out.push('', line, '✏️ BÀI CỦA EM ĐÃ SỬA LỖI', line, ...paras(r.corrected).flatMap(p => ['', p]));
     if (r.model) out.push('', line, '🌟 BÀI MẪU NÂNG CẤP THEO DÀN Ý CỦA CÔ', line, ...paras(r.model).flatMap(p => ['', p]));
     return out.join('\n');
@@ -4389,11 +4500,16 @@ window.GRADE = (function () {
       const ok = p.ok && !lintFor(p).length;
       return `<tr>${td(`<b>${p.p}</b>`)}${td(ROLE[p.role] || ROLE.other)}${td(`${ok ? '✓ Đúng' : '⚠️ Cần sửa'}${p.frames.length ? '<br><span style="font-size:12px">' + p.frames.map(n => 'K' + n).join(', ') + '</span>' : ''}`, ok ? 'background:#e3f4e8;color:#136c3a' : 'background:#fbf1d9;color:#93600a')}${td(esc(p.note_vi) + lintFor(p).map(m => `<br><span style="color:#93600a">⚠️ ${esc(m)}</span>`).join(''))}</tr>`;
     }).join(''));
-    h += h2(`🔍 Lỗi trong bài (${r.errors.length})`);
+    h += h2(`🔍 Lỗi sai trong bài (${r.errors.length})`);
+    if (!r.errors.length) h += '<p style="margin:0 0 10px;color:#136c3a;font-weight:bold">✅ Không có lỗi sai — các câu trong bài đều đúng.</p>';
     if (r.errors.length) h += table(`<tr><th style="${hd};width:28px">#</th><th style="${hd};width:110px">Loại · câu</th><th style="${hd}">Lỗi → sửa</th><th style="${hd}">Giải thích</th></tr>` + r.errors.map((e, i) => {
       const z = i % 2 ? '#ffffff' : '#fafbf9';
       return `<tr>${td(`<b>${i + 1}</b>`, `background:${z}`)}${td(`${ETYPE[e.type]}${e.s ? `<br><span style="color:#5b6957;font-size:12px">câu ${esc(e.s)}</span>` : ''}`, `background:${z}${e.type === 'data' ? ';color:#b42318;font-weight:bold' : ''}`)}${td(`${e.wrong ? `<span style="${DEL}">${esc(e.wrong)}</span> → ` : ''}<span style="${INS}">${esc(e.fix)}</span>`, `background:${z}`)}${td(esc(e.why_vi), `background:${z};color:#3d4a3a`)}</tr>`;
     }).join(''));
+    if ((r.upgrades || []).length) {
+      h += h2(`💡 Gợi ý nâng cấp (không phải lỗi)`);
+      h += table(`<tr><th style="${hd};width:28px">#</th><th style="${hd};width:80px">Câu</th><th style="${hd}">Nâng cấp</th><th style="${hd}">Vì sao</th></tr>` + r.upgrades.map((u, i) => `<tr>${td(`<b>${i + 1}</b>`)}${td(u.s ? 'câu ' + esc(u.s) : '')}${td(`${u.from ? esc(u.from) + ' → ' : ''}<b style="color:#1f63b8">${esc(u.to)}</b>`)}${td(esc(u.why_vi), 'color:#3d4a3a')}</tr>`).join(''));
+    }
     h += h2('✏️ Bài của em đã sửa lỗi');
     h += `<p style="margin:0 0 6px;color:#5b6957">Giữ nguyên câu chữ của em, chỉ sửa chỗ sai: <span style="${DEL}">gạch đỏ</span> là bỏ, <span style="${INS}">tô xanh</span> là sửa.</p>`;
     h += `<div style="${essayStyle};background:#f7faf5;border:1px solid #d5dfd0;border-radius:6px;padding:10px 14px">${diffParas(R.essay, r.corrected).map(x => `<p style="margin:0 0 10px">${inlineDiff(x)}</p>`).join('')}</div>`;
@@ -4479,12 +4595,10 @@ window.GRADE = (function () {
     if (t.dataset.histDel != null) { R.history.splice(+t.dataset.histDel, 1); save(); render(); return true; }
     switch (t.id) {
       case 'gr-drop': $('#gr-file').click(); return true;
-      case 'gr-img-clear': R.image = null; R.visual = null; save(); renderImage(); return true;
+      case 'gr-img-clear': R.image = null; R.visual = null; R.data = null; save(); renderImage(); return true;
       case 'gr-use-write': {
-        const w = H.writingTask();
-        if (!w) { toast('Chưa có đề nào ở mục Luyện viết bài.'); return true; }
-        R.image = w.image; R.visual = w.visual; R.prompt = w.prompt; save(); renderSetup();
-        toast('Đã lấy đề đang luyện viết.');
+        if (!useWrite()) toast('Chưa có đề nào ở mục Luyện viết bài.');
+        else { save(); renderSetup(); toast('Đã lấy đề đang luyện viết (kèm bảng số liệu đã đối chiếu).'); }
         return true;
       }
       case 'gr-go': grade(); return true;
@@ -4518,7 +4632,7 @@ window.GRADE = (function () {
     H = helpers; $ = H.$; esc = H.esc; toast = H.toast;
     bind();
   }
-  return { init, render, onClick, takeImage, pasteImage, setupVisible };
+  return { init, render, onClick, takeImage, pasteImage, setupVisible, fromWrite };
 })();
 </script>
   <script>
@@ -5921,6 +6035,7 @@ window.GRADE = (function () {
       case 'btn-copy-lesson': copyLesson(); return;
       case 'btn-structs-ai': structsAI(false); return;
       case 'btn-copy-structs': copyStructs(); return;
+      case 'btn-grade-this': if (!essayText()) { toast('Chưa có bài viết để chấm.'); return; } if (GRADE.fromWrite(essayText())) { show('grade'); toast('Đã chuyển bài sang Chấm bài (kèm đề và bảng số liệu đã đối chiếu). Gõ tên học sinh rồi bấm “📝 Chấm bài”.', 4500); $('#gr-name').focus(); } return;
       case 'btn-evocab-ai': vocabAI(false); return;
       case 'btn-copy-evocab': copyEssayVocab(false); return;
       case 'btn-quiz-evocab': copyEssayVocab(true); return;
@@ -5999,7 +6114,7 @@ window.GRADE = (function () {
   bindPane();
   LESSON.init({ autoSave, renderSaveBtns, $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
-  const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
+  const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual, data: (S.analysis && S.analysis.data) || null } : null);
   GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, readTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Lần trước có thay đổi chưa kịp ghi vào bài đã lưu (đóng trang sớm) → ghi nốt
   if (S.savedId && unsynced('write') === S.savedId) autoSave('write');

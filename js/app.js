@@ -1397,6 +1397,7 @@
       case 'btn-copy-lesson': copyLesson(); return;
       case 'btn-structs-ai': structsAI(false); return;
       case 'btn-copy-structs': copyStructs(); return;
+      case 'btn-grade-this': if (!essayText()) { toast('Chưa có bài viết để chấm.'); return; } if (GRADE.fromWrite(essayText())) { show('grade'); toast('Đã chuyển bài sang Chấm bài (kèm đề và bảng số liệu đã đối chiếu). Gõ tên học sinh rồi bấm “📝 Chấm bài”.', 4500); $('#gr-name').focus(); } return;
       case 'btn-evocab-ai': vocabAI(false); return;
       case 'btn-copy-evocab': copyEssayVocab(false); return;
       case 'btn-quiz-evocab': copyEssayVocab(true); return;
@@ -1475,7 +1476,7 @@
   bindPane();
   LESSON.init({ autoSave, renderSaveBtns, $, esc, toast, downscale, copyRich, paraphraseHtml, subjectsHtml, subjectsPlain, tipsHtml, tipsPlain, readTask, setPaneImage, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Chấm bài có thể lấy luôn đề đang luyện viết (ảnh + chữ + số liệu đã đọc)
-  const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual } : null);
+  const writingTask = () => (S.analysis || S.prompt || S.image ? { prompt: S.prompt || (S.analysis && S.analysis.prompt_text) || '', image: S.image, visual: S.visual, data: (S.analysis && S.analysis.data) || null } : null);
   GRADE.init({ $, esc, toast, downscale, copyRich, setPaneImage, diffHtml, writingTask, readTask, layout: syncLayout, available: () => AI.available(), getKey: () => AI.getKey(), openKey });
   // Lần trước có thay đổi chưa kịp ghi vào bài đã lưu (đóng trang sớm) → ghi nốt
   if (S.savedId && unsynced('write') === S.savedId) autoSave('write');

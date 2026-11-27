@@ -55,6 +55,11 @@ Mục thứ hai trên thanh đầu trang. Giáo viên dán ảnh biểu đồ (C
 - Nút sao chép: **bài giảng**, **phiếu bài tập** (không đáp án, kèm ảnh biểu đồ khi dán vào Word/Docs), **đáp án**.
 - “Xem bài giảng mẫu” dùng một biểu đồ đường minh hoạ (số liệu tự soạn).
 
+## Chấm câu (Luyện viết) và Chấm bài chấm giống nhau
+- Hai nơi dùng chung một bộ quy tắc của cô và một danh sách “không phải lỗi” (câu đúng, cách diễn đạt khác, chính tả Anh – Mỹ, chữ cố định của khung, số “about” đọc giữa vạch chia…), nên câu đã sửa đúng bên Luyện viết không bị Chấm bài bắt lỗi lại.
+- Chấm bài tách **Lỗi sai** và **💡 Gợi ý nâng cấp (không phải lỗi)**. Mỗi lỗi được giám khảo AI thứ hai kiểm tra lại; chỗ chấm nhầm bị bỏ (xem được trong “chỗ đã bỏ vì không phải lỗi”). Lỗi phải trích đúng chữ trong bài; “Bài của em đã sửa lỗi” chỉ sửa đúng các lỗi trong danh sách.
+- Trang bài hoàn chỉnh có nút **“📝 Chấm bài này”**: chuyển cả đề, ảnh, bài và bảng số liệu đã đối chiếu sang Chấm bài (Chấm bài dùng đúng bảng số liệu đó khi đề không đổi).
+
 ## 📗 Từ vựng & cụm từ trong bài (trang bài hoàn chỉnh)
 - Khi ra bài hoàn chỉnh, app lập bảng từ vựng & cụm từ của **chính bài đó**: cụm từ ở dạng gốc để học thuộc (rose sharply → rise sharply), loại (xu hướng, so sánh, từ nối, số liệu, vị trí, trình tự, từ của đề), nghĩa tiếng Việt, câu trong bài có tô vàng chỗ dùng, và từ có thể thay thế.
 - Hiện ngay bản nhận diện nhanh (từ của đề và từ trong dàn ý của cô có trong bài); rồi AI tự lập bảng đầy đủ một lần cho mỗi phiên bản bài (bài mẫu thì bấm “🤖 AI lập bảng đầy đủ”). Sửa bài → bảng lập lại.
